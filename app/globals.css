@@ -120,9 +120,35 @@
     @apply bg-background text-foreground;
   }
 }
-/* Add this at the end of your globals.css */
 
-/* Replace your old .resizer styles with this */
+.resizer {
+  @apply absolute top-1/2 right-0 h-3/5 w-1 -translate-y-1/2 cursor-col-resize select-none touch-none rounded-full bg-gray-300 opacity-75 transition-all duration-200;
+}
+
+.resizer.isResizing,
+th:hover > .resizer {
+  @apply bg-primary h-full opacity-100;
+}
+
+
+table th {
+  @apply bg-gray-100 dark:bg-gray-800;
+}
+
+/* Style for filter dropdowns */
+.filter-select {
+  @apply w-[180px] border-input focus:border-ring focus:ring-ring/50 focus:ring-[3px];
+}
+
+/* For truncating text in cells to 2 lines */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+/* Resizer styles  */
 .resizer {
   @apply absolute top-1/2 right-0 h-3/5 w-1 -translate-y-1/2 cursor-col-resize select-none touch-none rounded-full bg-gray-300 opacity-75 transition-all duration-200;
 }
