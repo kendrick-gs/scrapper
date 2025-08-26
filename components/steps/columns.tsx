@@ -1,12 +1,11 @@
 'use client';
 
-import { ColumnDef, Row, CellContext } from '@tanstack/react-table';
+import { ColumnDef } from '@tanstack/react-table';
 import { ShopifyProduct, ShopifyVariant } from '@/lib/types';
 import Image from 'next/image';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -16,43 +15,38 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowUp, ArrowDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// This union type is the key to making the table type-safe.
-// A row can be either a full product or just a variant.
 export type ProductRowData = ShopifyProduct | ShopifyVariant;
 
-// This is a "type guard" that lets TypeScript know if a given row is a variant.
 export function isVariant(data: ProductRowData): data is ShopifyVariant {
-    // A simple check: if it has a `sku` and `product_id`, it's a variant.
     return 'sku' in data && 'product_id' in data;
 }
 
-// Your original SortableHeader component, now with proper typing for `column`
+// ## UPDATED SortableHeader COMPONENT ##
 const SortableHeader = ({ column, title }: { column: any, title: string }) => {
     const sortDir = column.getIsSorted();
     return (
         <Button
-            variant={sortDir ? "secondary" : "ghost"}
+            variant={sortDir ? "default" : "ghost"}
             onClick={() => column.toggleSorting(sortDir === "asc")}
-            className="whitespace-nowrap"
+            // This makes the button fill the entire header cell
+            className="w-full h-full justify-start px-2"
         >
-            {title}
-            <div className="ml-2">
-                <ArrowUp className={cn("h-3 w-3", sortDir === 'asc' ? 'text-foreground' : 'text-muted-foreground/50')} />
-                <ArrowDown className={cn("h-3 w-3 -mt-1", sortDir === 'desc' ? 'text-foreground' : 'text-muted-foreground/50')} />
+            <span className="flex-grow text-left">{title}</span>
+            <div className="ml-2 flex items-center -space-x-1">
+                <ArrowUp className={cn("h-4 w-4", sortDir === 'asc' ? 'text-primary-foreground' : 'text-muted-foreground/50')} />
+                <ArrowDown className={cn("h-4 w-4", sortDir === 'desc' ? 'text-primary-foreground' : 'text-muted-foreground/50')} />
             </div>
         </Button>
     )
 };
 
-// Your original columns array, restored and with fixes for type safety.
 export const columns: ColumnDef<ProductRowData>[] = [
   {
     accessorKey: 'handle',
     header: ({ column }) => <SortableHeader column={column} title="Handle" />,
     size: 250,
-    cell: ({ row }) => {
+    cell: ({ row, getValue }) => {
       const isParent = row.getCanExpand();
-      // Safely get the handle, whether it's a parent or child row.
       const handle = isVariant(row.original)
         ? (row.getParentRow()?.original as ShopifyProduct)?.handle
         : row.original.handle;
@@ -64,7 +58,8 @@ export const columns: ColumnDef<ProductRowData>[] = [
               {row.getIsExpanded() ? '▼' : '►'}
             </button>
           ) : <span className="mr-2 w-4 inline-block"></span>}
-          <span>{handle}</span>
+          {/* Add truncation class here */}
+          <span className="line-clamp-2">{handle}</span>
         </div>
       );
     },
@@ -74,9 +69,9 @@ export const columns: ColumnDef<ProductRowData>[] = [
     header: ({ column }) => <SortableHeader column={column} title="Product Title" />,
     size: 350,
     cell: ({ row }) => {
-      // Show title for both products and variants.
       const title = isVariant(row.original) ? row.original.title : row.original.title;
-      return <span className={cn(isVariant(row.original) && "text-gray-600")}>{title}</span>
+      // Add truncation class here
+      return <span className={cn("line-clamp-2", isVariant(row.original) && "text-gray-600")}>{title}</span>
     }
   },
   {
@@ -84,12 +79,12 @@ export const columns: ColumnDef<ProductRowData>[] = [
     header: 'Images',
     size: 200,
     cell: ({ row }) => {
-      if (isVariant(row.original)) return null; // Only show images for the main product row
+      if (isVariant(row.original)) return null;
       const images = row.original.images;
       if (!images || images.length === 0) return null;
       return (
         <div className="flex flex-row flex-wrap items-center gap-1 min-w-[180px]">
-          {images.slice(0, 4).map((img) => ( // Show up to 4 images
+          {images.map((img) => (
             <div key={img.id} className="relative h-12 w-12">
               <Image src={img.src} alt={img.alt || 'Product image'} fill sizes="48px" className="rounded object-cover" />
             </div>
@@ -102,13 +97,13 @@ export const columns: ColumnDef<ProductRowData>[] = [
     accessorKey: 'product_type',
     header: ({ column }) => <SortableHeader column={column} title="Product Type" />,
     size: 150,
-    cell: ({ row }) => (isVariant(row.original) ? '' : row.original.product_type),
+    cell: ({ row }) => <span className="line-clamp-2">{isVariant(row.original) ? '' : row.original.product_type}</span>,
   },
   {
     accessorKey: 'vendor',
     header: ({ column }) => <SortableHeader column={column} title="Vendor" />,
     size: 150,
-    cell: ({ row }) => (isVariant(row.original) ? '' : row.original.vendor),
+    cell: ({ row }) => <span className="line-clamp-2">{isVariant(row.original) ? '' : row.original.vendor}</span>,
   },
   {
     id: 'price',

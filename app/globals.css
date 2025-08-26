@@ -122,11 +122,12 @@
 }
 /* Add this at the end of your globals.css */
 
+/* Replace your old .resizer styles with this */
 .resizer {
-  @apply absolute right-0 top-0 h-full w-1 cursor-col-resize select-none touch-none bg-gray-400 opacity-0 transition-opacity;
+  @apply absolute top-1/2 right-0 h-3/5 w-1 -translate-y-1/2 cursor-col-resize select-none touch-none rounded-full bg-gray-300 opacity-75 transition-all duration-200;
 }
 
 .resizer.isResizing,
 th:hover > .resizer {
-  @apply opacity-100;
+  @apply bg-primary h-full opacity-100;
 }
