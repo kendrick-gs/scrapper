@@ -120,3 +120,13 @@
     @apply bg-background text-foreground;
   }
 }
+/* Add this at the end of your globals.css */
+
+.resizer {
+  @apply absolute right-0 top-0 h-full w-1 cursor-col-resize select-none touch-none bg-gray-400 opacity-0 transition-opacity;
+}
+
+.resizer.isResizing,
+th:hover > .resizer {
+  @apply opacity-100;
+}
