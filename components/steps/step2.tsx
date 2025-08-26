@@ -1,4 +1,4 @@
-'use-client';
+'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
 import {
@@ -31,7 +31,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ShopifyProduct, ShopifyCollection } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
-// ## UPDATED LoadingView to accept props ##
+// ## COMPLETE LoadingView COMPONENT ##
 function LoadingView({ logs }: { logs: string[] }) {
   return (
     <Card className="w-full max-w-2xl mx-auto">
@@ -46,7 +46,7 @@ function LoadingView({ logs }: { logs: string[] }) {
   );
 }
 
-// ## UPDATED ProductTableView to accept props ##
+// ## COMPLETE ProductTableView COMPONENT ##
 function ProductTableView({
     allProducts,
     collections,
@@ -138,25 +138,122 @@ function ProductTableView({
 
   return (
     <div className="w-full space-y-4">
-        {/* All JSX from the original ProductTableView return statement goes here... */}
-        {/* No changes needed inside this return statement */}
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Product View - <span className="text-gray-500">{storeHostname}</span></h2>
+        <div className="flex items-center gap-4">
+          <p>
+            {selectedCollection 
+              ? <>Showing <strong>{selectedRowCount}</strong> products in "<strong>{selectedCollection.title}</strong>"</>
+              : <>Showing <strong>{selectedRowCount}</strong> of <strong>{allProducts.length}</strong> total products</>
+            }
+          </p>
+          <Button>Export Products (CSV)</Button>
+        </div>
+      </div>
+      <div className="flex justify-between items-center gap-4">
+        <div className="flex items-center gap-2">
+            <Select onValueChange={handleCollectionSelect} value={selectedCollection?.handle || 'all'}>
+              <SelectTrigger className="filter-select"><SelectValue placeholder="Filter by Collection" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Collections</SelectItem>
+                {collections.map(col => <SelectItem key={col.id} value={col.handle}>{col.title} ({col.products_count})</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <div className="h-6 w-px bg-gray-300" />
+            <Select onValueChange={value => table.getColumn('vendor')?.setFilterValue(value === 'all' ? '' : value)} value={table.getColumn('vendor')?.getFilterValue() as string || 'all'}>
+              <SelectTrigger className="filter-select"><SelectValue placeholder="Filter by Vendor" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Vendors</SelectItem>
+                {availableVendors.map(vendor => <SelectItem key={vendor.name} value={vendor.name}>{vendor.name} ({vendor.count})</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select onValueChange={value => table.getColumn('product_type')?.setFilterValue(value === 'all' ? '' : value)} value={table.getColumn('product_type')?.getFilterValue() as string || 'all'}>
+              <SelectTrigger className="filter-select"><SelectValue placeholder="Filter by Product Type" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Product Types</SelectItem>
+                {availableProductTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            {hasActiveFilters && (
+              <Button variant="link" onClick={() => { table.resetColumnFilters(); setGlobalFilter(''); setSelectedCollection(null); setDisplayProducts(allProducts); }}>Reset Filters</Button>
+            )}
+            {table.getState().sorting.length > 0 && (
+                <Button variant="link" onClick={() => table.resetSorting()}>Reset Sort</Button>
+            )}
+        </div>
+        <Input placeholder="Search all products..." value={globalFilter ?? ''} onChange={e => setGlobalFilter(e.target.value)} className="max-w-sm" />
+      </div>
+      <div className="rounded-md border">
+        <div className="w-full relative overflow-x-auto">
+          {isTableLoading && ( <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10"><p className="text-lg">Loading Collection...</p></div> )}
+          <Table style={{ width: table.getCenterTotalSize() }}>
+            <TableHeader>
+              {table.getHeaderGroups().map(hg => (
+                <TableRow key={hg.id}>
+                  {hg.headers.map(h => (
+                    <TableHead key={h.id} style={{ width: h.getSize() }} className="relative p-0">
+                      {flexRender(h.column.columnDef.header, h.getContext())}
+                      <div
+                        onMouseDown={h.getResizeHandler()}
+                        onTouchStart={h.getResizeHandler()}
+                        className={cn('resizer', h.column.getIsResizing() && 'isResizing')}
+                      />
+                    </TableHead>
+                  ))}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows.map(row => (
+                <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+                  {row.getVisibleCells().map(cell => (
+                    <TableCell key={cell.id} style={{ width: cell.column.getSize() }} className="p-2 align-middle">
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+      <div className="flex items-center justify-between gap-4 py-4">
+            <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>First</Button>
+                <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>Previous</Button>
+            </div>
+            <div className="text-sm text-muted-foreground">
+                Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+            </div>
+            <div className="flex items-center gap-2">
+                <Select
+                    value={`${table.getState().pagination.pageSize}`}
+                    onValueChange={value => { table.setPageSize(Number(value)) }}
+                >
+                    <SelectTrigger className="w-[120px]">
+                        <SelectValue placeholder="Page size" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {[10, 25, 50, 100].map(size => (
+                            <SelectItem key={size} value={`${size}`}>
+                                Show {size}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                <Button variant="outline"  size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Next</Button>
+                <Button variant="outline" size="sm" onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()}>Last</Button>
+            </div>
+      </div>
     </div>
   );
 }
 
-// ## UPDATED MAIN COMPONENT ##
+// ## MAIN COMPONENT (NO CHANGES HERE) ##
 export default function Step2Review() {
-  // Pull all state and functions from the store here
   const { 
-    shopUrl, 
-    addLog, 
-    setResults, 
-    isLoading, 
-    logs,
-    products,
-    collections,
-    collectionCache,
-    addCollectionToCache
+    shopUrl, addLog, setResults, isLoading, logs,
+    products, collections, collectionCache, addCollectionToCache
   } = useScrapeStore();
 
   useEffect(() => {
@@ -177,18 +274,30 @@ export default function Step2Review() {
     return () => { eventSource?.close(); };
   }, [isLoading, shopUrl, addLog, setResults]);
 
-  // Conditionally render and pass props down
   if (isLoading) {
     return <LoadingView logs={logs} />;
   }
 
+  if (!isLoading && products.length > 0) {
+    return (
+      <ProductTableView 
+          allProducts={products}
+          collections={collections}
+          shopUrl={shopUrl}
+          collectionCache={collectionCache}
+          addCollectionToCache={addCollectionToCache}
+      />
+    );
+  }
+
   return (
-    <ProductTableView 
-        allProducts={products}
-        collections={collections}
-        shopUrl={shopUrl}
-        collectionCache={collectionCache}
-        addCollectionToCache={addCollectionToCache}
-    />
+    <Card className="w-full max-w-2xl mx-auto">
+        <CardHeader>
+            <CardTitle>Scraping Complete</CardTitle>
+        </CardHeader>
+        <CardContent>
+            <p>No products were found for this store.</p>
+        </CardContent>
+    </Card>
   );
 }
