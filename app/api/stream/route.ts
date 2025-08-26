@@ -14,28 +14,40 @@ export async function GET(request: NextRequest) {
 
   const stream = new ReadableStream({
     start(controller) {
+      // Use a text encoder for proper streaming format
+      const encoder = new TextEncoder();
+
       const interval = setInterval(() => {
         const messages = scrapeCache.get<string[]>(streamKey) || [];
         
         if (messages.length > lastSentIndex) {
+          console.log(`[Stream] Found ${messages.length - lastSentIndex} new messages for session ${sessionId}.`);
           for (let i = lastSentIndex; i < messages.length; i++) {
-            controller.enqueue(`data: ${JSON.stringify({ message: messages[i] })}\n\n`);
+            const messagePayload = `data: ${JSON.stringify({ message: messages[i] })}\n\n`;
+            controller.enqueue(encoder.encode(messagePayload));
           }
           lastSentIndex = messages.length;
         }
 
         const lastMessage = messages[messages.length - 1];
         if (lastMessage === '---DONE---' || lastMessage === '---ERROR---') {
-          // ## FIX: Clear the interval FIRST ##
+          console.log(`[Stream] Scraping finished for session ${sessionId}. Closing stream.`);
           clearInterval(interval); 
 
           const finalData = scrapeCache.get(`data-${sessionId}`);
-          controller.enqueue(`data: ${JSON.stringify({ finished: true, data: finalData })}\n\n`);
+          const finalPayload = `data: ${JSON.stringify({ finished: true, data: finalData })}\n\n`;
+          controller.enqueue(encoder.encode(finalPayload));
           
-          // Now it is safe to close the controller
           controller.close();
         }
       }, 500);
+
+      // Clean up the interval if the client closes the connection
+      request.signal.addEventListener('abort', () => {
+        console.log(`[Stream] Client disconnected for session ${sessionId}. Cleaning up.`);
+        clearInterval(interval);
+        controller.close();
+      });
     },
   });
 
