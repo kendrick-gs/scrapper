@@ -1,3 +1,4 @@
+// kendrick-gs/scrapper/scrapper-a31e4028cc7f75eeeb406d17e6548fcd50443ca8/app/api/stream/route.ts
 import { NextRequest } from 'next/server';
 import { scrapeCache } from '@/lib/cache';
 
@@ -13,14 +14,7 @@ export async function GET(request: NextRequest) {
 
   const stream = new ReadableStream({
     start(controller) {
-      let isClosed = false; // <-- ADD THIS FLAG
-
       const interval = setInterval(() => {
-        if (isClosed) { // <-- ADD THIS CHECK
-          clearInterval(interval);
-          return;
-        }
-
         const messages = scrapeCache.get<string[]>(streamKey) || [];
         
         if (messages.length > lastSentIndex) {
@@ -32,11 +26,13 @@ export async function GET(request: NextRequest) {
 
         const lastMessage = messages[messages.length - 1];
         if (lastMessage === '---DONE---' || lastMessage === '---ERROR---') {
+          // ## FIX: Clear the interval FIRST ##
+          clearInterval(interval); 
+
           const finalData = scrapeCache.get(`data-${sessionId}`);
           controller.enqueue(`data: ${JSON.stringify({ finished: true, data: finalData })}\n\n`);
           
-          isClosed = true; // <-- SET THE FLAG
-          clearInterval(interval);
+          // Now it is safe to close the controller
           controller.close();
         }
       }, 500);
