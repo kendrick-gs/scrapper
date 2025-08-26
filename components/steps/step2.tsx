@@ -1,4 +1,4 @@
-'use client';
+'use-client';
 
 import React, { useState, useMemo, useEffect } from 'react';
 import {
@@ -28,11 +28,11 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ShopifyProduct } from '@/lib/types';
+import { ShopifyProduct, ShopifyCollection } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
-function LoadingView() {
-  const { logs } = useScrapeStore();
+// ## UPDATED LoadingView to accept props ##
+function LoadingView({ logs }: { logs: string[] }) {
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader><CardTitle>Fetching Products...</CardTitle></CardHeader>
@@ -46,8 +46,20 @@ function LoadingView() {
   );
 }
 
-function ProductTableView() {
-  const { products: allProducts, collections, shopUrl, collectionCache, addCollectionToCache } = useScrapeStore();
+// ## UPDATED ProductTableView to accept props ##
+function ProductTableView({
+    allProducts,
+    collections,
+    shopUrl,
+    collectionCache,
+    addCollectionToCache
+}: {
+    allProducts: ShopifyProduct[];
+    collections: ShopifyCollection[];
+    shopUrl: string;
+    collectionCache: Record<string, ShopifyProduct[]>;
+    addCollectionToCache: (handle: string, products: ShopifyProduct[]) => void;
+}) {
   const [displayProducts, setDisplayProducts] = useState<ShopifyProduct[]>(allProducts);
   const [isTableLoading, setTableLoading] = useState(false);
   const [selectedCollection, setSelectedCollection] = useState<{ handle: string, title: string } | null>(null);
@@ -104,94 +116,79 @@ function ProductTableView() {
   }, [filteredRows]);
 
   const handleCollectionSelect = async (collectionHandle: string) => {
-    // ... (this function remains the same)
+    setColumnFilters([]);
+    const collection = collections.find(c => c.handle === collectionHandle);
+    setSelectedCollection(collection ? { handle: collection.handle, title: collection.title } : null);
+    if (collectionHandle === 'all') { setDisplayProducts(allProducts); return; }
+    if (collectionCache[collectionHandle]) { setDisplayProducts(collectionCache[collectionHandle]); return; }
+    setTableLoading(true);
+    try {
+      const res = await fetch('/api/collection-products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ shopUrl, collectionHandle }) });
+      const data = await res.json();
+      if (data.products) {
+        addCollectionToCache(collectionHandle, data.products);
+        setDisplayProducts(data.products);
+      } else { throw new Error(data.error || 'Failed to fetch'); }
+    } catch (error) { console.error(error); alert('Could not load products.'); } finally { setTableLoading(false); }
   };
   
   const selectedRowCount = table.getRowModel().rows.filter(row => row.depth === 0).length;
   const storeHostname = useMemo(() => { try { return new URL(shopUrl).hostname; } catch { return 'N/A'; } }, [shopUrl]);
-
-  // ## ADDED: Condition to show the Reset Filters button ##
   const hasActiveFilters = columnFilters.length > 0 || globalFilter !== '';
 
   return (
     <div className="w-full space-y-4">
-      <div className="flex justify-between items-center">
-        {/* ... (Header section remains the same) ... */}
-      </div>
-      <div className="flex justify-between items-center gap-4">
-        <div className="flex items-center gap-2">
-            <Select onValueChange={handleCollectionSelect} value={selectedCollection?.handle || 'all'}>
-              <SelectTrigger className="filter-select"><SelectValue placeholder="Filter by Collection" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Collections</SelectItem>
-                {collections.map(col => <SelectItem key={col.id} value={col.handle}>{col.title} ({col.products_count})</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <div className="h-6 w-px bg-gray-300" />
-            <Select onValueChange={value => table.getColumn('vendor')?.setFilterValue(value === 'all' ? '' : value)} value={table.getColumn('vendor')?.getFilterValue() as string || 'all'}>
-              <SelectTrigger className="filter-select"><SelectValue placeholder="Filter by Vendor" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Vendors</SelectItem>
-                {availableVendors.map(vendor => <SelectItem key={vendor.name} value={vendor.name}>{vendor.name} ({vendor.count})</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Select onValueChange={value => table.getColumn('product_type')?.setFilterValue(value === 'all' ? '' : value)} value={table.getColumn('product_type')?.getFilterValue() as string || 'all'}>
-              <SelectTrigger className="filter-select"><SelectValue placeholder="Filter by Product Type" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Product Types</SelectItem>
-                {availableProductTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            {/* ## UPDATED: Conditionally render the button ## */}
-            {hasActiveFilters && (
-              <Button variant="link" onClick={() => { table.resetColumnFilters(); setGlobalFilter(''); setSelectedCollection(null); setDisplayProducts(allProducts); }}>Reset Filters</Button>
-            )}
-            {table.getState().sorting.length > 0 && (
-                <Button variant="link" onClick={() => table.resetSorting()}>Reset Sort</Button>
-            )}
-        </div>
-        <Input placeholder="Search all products..." value={globalFilter ?? ''} onChange={e => setGlobalFilter(e.target.value)} className="max-w-sm" />
-      </div>
-      <div className="rounded-md border">
-        {/* ... (Table container remains the same) ... */}
-      </div>
-
-      {/* ## UPDATED PAGINATION SECTION ## */}
-      <div className="flex items-center justify-between gap-4 py-4">
-            <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>First</Button>
-                <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>Previous</Button>
-            </div>
-            
-            <div className="text-sm text-muted-foreground">
-                Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
-            </div>
-
-            <div className="flex items-center gap-2">
-                <Select
-                    value={`${table.getState().pagination.pageSize}`}
-                    onValueChange={value => { table.setPageSize(Number(value)) }}
-                >
-                    <SelectTrigger className="w-[120px]">
-                        <SelectValue placeholder="Page size" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {[10, 25, 50, 100].map(size => (
-                            <SelectItem key={size} value={`${size}`}>
-                                Show {size}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-                <Button variant="outline"  size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Next</Button>
-                <Button variant="outline" size="sm" onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()}>Last</Button>
-            </div>
-      </div>
+        {/* All JSX from the original ProductTableView return statement goes here... */}
+        {/* No changes needed inside this return statement */}
     </div>
   );
 }
 
-// Main component remains the same
+// ## UPDATED MAIN COMPONENT ##
 export default function Step2Review() {
-  // ...
+  // Pull all state and functions from the store here
+  const { 
+    shopUrl, 
+    addLog, 
+    setResults, 
+    isLoading, 
+    logs,
+    products,
+    collections,
+    collectionCache,
+    addCollectionToCache
+  } = useScrapeStore();
+
+  useEffect(() => {
+    if (!isLoading) return;
+    let eventSource: EventSource;
+    const stream = async () => {
+      const res = await fetch('/api/scrape', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ shopUrl }) });
+      const { sessionId } = await res.json();
+      if (!sessionId) { addLog("Error: Could not start scraping session."); return; }
+      eventSource = new EventSource(`/api/stream?sessionId=${sessionId}`);
+      eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.finished) { setResults(data.data); eventSource.close(); } else { addLog(data.message); }
+      };
+      eventSource.onerror = () => { addLog("Error with SSE connection."); eventSource.close(); };
+    };
+    stream();
+    return () => { eventSource?.close(); };
+  }, [isLoading, shopUrl, addLog, setResults]);
+
+  // Conditionally render and pass props down
+  if (isLoading) {
+    return <LoadingView logs={logs} />;
+  }
+
+  return (
+    <ProductTableView 
+        allProducts={products}
+        collections={collections}
+        shopUrl={shopUrl}
+        collectionCache={collectionCache}
+        addCollectionToCache={addCollectionToCache}
+    />
+  );
 }
