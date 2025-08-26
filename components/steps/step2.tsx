@@ -11,10 +11,10 @@ import {
   flexRender,
   SortingState,
   ColumnFiltersState,
-  ColumnSizingState, // <-- Import this
+  Row,
 } from '@tanstack/react-table';
 import { useScrapeStore } from '@/store/useScrapeStore';
-import { columns, ProductRowData } from './columns';
+import { columns, ProductRowData, isVariant } from './columns';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -31,7 +31,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ShopifyProduct } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
-// (LoadingView component remains the same)
 function LoadingView() {
   const { logs } = useScrapeStore();
   return (
@@ -47,7 +46,6 @@ function LoadingView() {
   );
 }
 
-
 function ProductTableView() {
   const { products: allProducts, collections, shopUrl, collectionCache, addCollectionToCache } = useScrapeStore();
   const [displayProducts, setDisplayProducts] = useState<ShopifyProduct[]>(allProducts);
@@ -56,26 +54,23 @@ function ProductTableView() {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
-  
-  // Point #1: Add state to manage column sizes
-  const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({});
 
   useEffect(() => { setDisplayProducts(allProducts); }, [allProducts]);
 
   const table = useReactTable({
     data: displayProducts,
     columns,
-    state: { sorting, columnFilters, globalFilter, columnSizing }, // <-- Add columnSizing to state
-    getSubRows: (row) => row.variants && row.variants.length > 1 ? row.variants : undefined,
+    state: { sorting, columnFilters, globalFilter },
+    // FIX: Correctly check types before accessing properties
+    getSubRows: (row: Row<ProductRowData>) => {
+      if (!isVariant(row.original) && row.original.variants && row.original.variants.length > 1) {
+        return row.original.variants;
+      }
+      return undefined;
+    },
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
-    
-    // Point #2: Enable resizing and add the handler
-    enableColumnResizing: true,
-    columnResizeMode: 'onChange',
-    onColumnSizingChange: setColumnSizing,
-
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -87,8 +82,9 @@ function ProductTableView() {
   const availableVendors = useMemo(() => {
     const vendorCounts: { [key: string]: number } = {};
     filteredRows.forEach(row => {
-      if (row.depth === 0) {
-        const vendor = (row.original as ShopifyProduct).vendor;
+      // FIX: Use type guard to safely access properties
+      if (!isVariant(row.original)) {
+        const vendor = row.original.vendor;
         vendorCounts[vendor] = (vendorCounts[vendor] || 0) + 1;
       }
     });
@@ -98,8 +94,9 @@ function ProductTableView() {
   const availableProductTypes = useMemo(() => {
     const types = new Set<string>();
     filteredRows.forEach(row => {
-      if (row.depth === 0) {
-        types.add((row.original as ShopifyProduct).product_type);
+      // FIX: Use type guard to safely access properties
+      if (!isVariant(row.original)) {
+        types.add(row.original.product_type);
       }
     });
     return Array.from(types).sort();
@@ -150,14 +147,16 @@ function ProductTableView() {
             </Select>
             <div className="h-6 w-px bg-gray-300" />
             <Select onValueChange={value => table.getColumn('vendor')?.setFilterValue(value === 'all' ? '' : value)} value={table.getColumn('vendor')?.getFilterValue() as string || 'all'}>
-              <SelectTrigger className={cn("w-[180px]", table.getColumn('vendor')?.getFilterValue() && "border-2 border-primary")}><SelectValue placeholder="Filter by Vendor" /></SelectTrigger>
+              {/* FIX: Use !! to satisfy TypeScript type checking */}
+              <SelectTrigger className={cn("w-[180px]", !!table.getColumn('vendor')?.getFilterValue() && "border-2 border-primary")}><SelectValue placeholder="Filter by Vendor" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Vendors</SelectItem>
                 {availableVendors.map(vendor => <SelectItem key={vendor.name} value={vendor.name}>{vendor.name} ({vendor.count})</SelectItem>)}
               </SelectContent>
             </Select>
             <Select onValueChange={value => table.getColumn('product_type')?.setFilterValue(value === 'all' ? '' : value)} value={table.getColumn('product_type')?.getFilterValue() as string || 'all'}>
-              <SelectTrigger className={cn("w-[180px]", table.getColumn('product_type')?.getFilterValue() && "border-2 border-primary")}><SelectValue placeholder="Filter by Product Type" /></SelectTrigger>
+              {/* FIX: Use !! to satisfy TypeScript type checking */}
+              <SelectTrigger className={cn("w-[180px]", !!table.getColumn('product_type')?.getFilterValue() && "border-2 border-primary")}><SelectValue placeholder="Filter by Product Type" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Product Types</SelectItem>
                 {availableProductTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
@@ -170,31 +169,12 @@ function ProductTableView() {
         </div>
         <Input placeholder="Search all products..." value={globalFilter ?? ''} onChange={e => setGlobalFilter(e.target.value)} className="max-w-sm" />
       </div>
-
       <div className="rounded-md border overflow-x-auto">
-        <div className="bg-white relative">
+        <div className="bg-white relative min-w-[1500px]">
           {isTableLoading && ( <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10"><p className="text-lg">Loading Collection...</p></div> )}
-          <Table style={{ width: table.getTotalSize() }}>
-            <TableHeader>{table.getHeaderGroups().map(hg => (
-              <TableRow key={hg.id}>{hg.headers.map(header => (
-                <TableHead key={header.id} style={{ width: header.getSize() }} className="relative">
-                    {flexRender(header.column.columnDef.header, header.getContext())}
-                    {/* Point #3: Render the drag handle */}
-                    <div
-                      onMouseDown={header.getResizeHandler()}
-                      onTouchStart={header.getResizeHandler()}
-                      className="absolute top-0 right-0 h-full w-[5px] bg-blue-300 opacity-0 hover:opacity-100 cursor-col-resize select-none"
-                    />
-                </TableHead>
-              ))}</TableRow>
-            ))}</TableHeader>
-            <TableBody>{table.getRowModel().rows.map(row => (
-              <TableRow key={row.id}>{row.getVisibleCells().map(cell => (
-                <TableCell key={cell.id} style={{ width: cell.column.getSize() }} className="py-2 px-4 h-20">
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </TableCell>
-              ))}</TableRow>
-            ))}</TableBody>
+          <Table className="table-fixed w-full">
+            <TableHeader>{table.getHeaderGroups().map(hg => (<TableRow key={hg.id}>{hg.headers.map(h => (<TableHead key={h.id} style={{ width: `${h.getSize()}px` }}>{flexRender(h.column.columnDef.header, h.getContext())}</TableHead>))}</TableRow>))}</TableHeader>
+            <TableBody>{table.getRowModel().rows.map(row => (<TableRow key={row.id}>{row.getVisibleCells().map(cell => (<TableCell key={cell.id} style={{ width: `${cell.column.getSize()}px` }} className="py-2 px-4 h-20">{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>))}</TableRow>))}</TableBody>
           </Table>
         </div>
       </div>
@@ -209,7 +189,7 @@ function ProductTableView() {
   );
 }
 
-// (Step2Review component remains the same)
+// Main component that decides whether to show loading or the table
 export default function Step2Review() {
   const { shopUrl, addLog, setResults, isLoading } = useScrapeStore();
   useEffect(() => {
