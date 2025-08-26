@@ -9,8 +9,9 @@ const config = {
   theme: {
     extend: {
       colors: {
-        'brand-green-light': '#B8DDB6',
-        'brand-green-dark': '#6BBB77',
+        // ## UPDATED ##
+        'brand-green-light': 'var(--brand-green-light)',
+        'brand-green': 'var(--brand-green)',
       },
     },
   },

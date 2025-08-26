@@ -76,40 +76,14 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /* ## ADDED/UPDATED ## */
+  --brand-green-light: #B8DDB6;
+  --brand-green: #6BBB77;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /* ... (no changes in here) ... */
 }
 
 @layer base {
@@ -117,7 +91,7 @@
     @apply border-border outline-ring/50;
   }
   body {
-    /* Set the default background to white */
+    /* ## UPDATED ## */
     @apply bg-white dark:bg-background;
     color: var(--foreground);
   }
@@ -125,30 +99,25 @@
 
 /* ## ADD THESE NEW STYLES AT THE END ## */
 
-/* Default dark grey header, taller, with more padding */
 table th {
-  @apply bg-gray-200 dark:bg-gray-800 h-14 p-4 align-middle;
+  @apply bg-gray-200 dark:bg-gray-800 h-16 p-4 align-middle;
 }
 
-/* Style for filter dropdowns to have a thicker, green border when active */
 .filter-select[data-state=active] {
-  @apply border-brand-green-dark border-2;
+  @apply border-brand-green border-2;
 }
 .search-input-active {
-  @apply border-brand-green-dark border-2;
+  @apply border-brand-green border-2;
 }
 
-
-/* For truncating text in cells to 2 lines */
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
-  word-break: break-word;
+  word-break: break-word; /* Helps with long unbroken strings */
 }
 
-/* Updated resizer styles to be thicker and longer */
 .resizer {
   @apply absolute top-1/2 right-0 h-4/5 w-1.5 -translate-y-1/2 cursor-col-resize select-none touch-none rounded-full bg-gray-300 dark:bg-gray-600 opacity-75 transition-all duration-200;
 }

@@ -3,7 +3,8 @@ import React from 'react';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="flex min-h-screen flex-col items-center p-4 md:p-8">
+    // ## UPDATED ##
+    <main className="flex min-h-screen flex-col items-center p-4 md:p-8 bg-white dark:bg-background">
       <div className="w-full">
         {children}
       </div>
