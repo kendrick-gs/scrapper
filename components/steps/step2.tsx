@@ -30,8 +30,8 @@ import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ShopifyProduct, ShopifyCollection } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { XIcon } from 'lucide-react';
 
-// ## COMPLETE LoadingView COMPONENT ##
 function LoadingView({ logs }: { logs: string[] }) {
   return (
     <Card className="w-full max-w-2xl mx-auto">
@@ -46,7 +46,6 @@ function LoadingView({ logs }: { logs: string[] }) {
   );
 }
 
-// ## COMPLETE ProductTableView COMPONENT ##
 function ProductTableView({
     allProducts,
     collections,
@@ -96,30 +95,25 @@ function ProductTableView({
   
   const availableVendors = useMemo(() => {
     const vendorCounts: { [key: string]: number } = {};
-    filteredRows.forEach(row => {
-      if (row.depth === 0) {
-        const vendor = (row.original as ShopifyProduct).vendor;
-        vendorCounts[vendor] = (vendorCounts[vendor] || 0) + 1;
-      }
+    allProducts.forEach(prod => {
+        vendorCounts[prod.vendor] = (vendorCounts[prod.vendor] || 0) + 1;
     });
     return Object.keys(vendorCounts).map(name => ({ name, count: vendorCounts[name] })).sort((a,b) => a.name.localeCompare(b.name));
-  }, [filteredRows]);
+  }, [allProducts]);
 
   const availableProductTypes = useMemo(() => {
-    const types = new Set<string>();
-    filteredRows.forEach(row => {
-      if (row.depth === 0) {
-        types.add((row.original as ShopifyProduct).product_type);
-      }
-    });
+    const types = new Set<string>(allProducts.map(p => p.product_type));
     return Array.from(types).sort();
-  }, [filteredRows]);
+  }, [allProducts]);
 
   const handleCollectionSelect = async (collectionHandle: string) => {
-    setColumnFilters([]);
     const collection = collections.find(c => c.handle === collectionHandle);
     setSelectedCollection(collection ? { handle: collection.handle, title: collection.title } : null);
-    if (collectionHandle === 'all') { setDisplayProducts(allProducts); return; }
+    if (collectionHandle === 'all') { 
+        setDisplayProducts(allProducts);
+        table.resetColumnFilters(); 
+        return; 
+    }
     if (collectionCache[collectionHandle]) { setDisplayProducts(collectionCache[collectionHandle]); return; }
     setTableLoading(true);
     try {
@@ -134,7 +128,7 @@ function ProductTableView({
   
   const selectedRowCount = table.getRowModel().rows.filter(row => row.depth === 0).length;
   const storeHostname = useMemo(() => { try { return new URL(shopUrl).hostname; } catch { return 'N/A'; } }, [shopUrl]);
-  const hasActiveFilters = columnFilters.length > 0 || globalFilter !== '';
+  const hasActiveFilters = columnFilters.length > 0 || globalFilter !== '' || selectedCollection;
 
   return (
     <div className="w-full space-y-4">
@@ -150,154 +144,167 @@ function ProductTableView({
           <Button>Export Products (CSV)</Button>
         </div>
       </div>
-      <div className="flex justify-between items-center gap-4">
-        <div className="flex items-center gap-2">
+
+      {/* ## NEW FILTER BAR ## */}
+      <div className="flex items-center justify-between gap-4 h-10">
+        {/* Left-aligned filters */}
+        <div className="flex flex-grow items-center gap-4">
+          <div className="h-10 w-10 flex-shrink-0 rounded-md bg-brand-green-light" />
+          
+          <div className="relative w-full" style={{ flexBasis: '27.2%' }}>
+            <Input 
+              placeholder="Search..." 
+              value={globalFilter ?? ''} 
+              onChange={e => setGlobalFilter(e.target.value)} 
+              className={cn("h-10", globalFilter && "search-input-active")}
+            />
+            {globalFilter && (
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
+                onClick={() => setGlobalFilter('')}
+              >
+                <XIcon className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+
+          <div className="h-full w-2 flex-shrink-0 bg-brand-green-light rounded-full" />
+
+          <div className="w-full" style={{ flexBasis: '27.2%' }}>
             <Select onValueChange={handleCollectionSelect} value={selectedCollection?.handle || 'all'}>
-              <SelectTrigger className="filter-select"><SelectValue placeholder="Filter by Collection" /></SelectTrigger>
+              <SelectTrigger className={cn("h-10 w-full", selectedCollection && "filter-select")} data-state={selectedCollection ? 'active' : 'inactive'}>
+                  <SelectValue placeholder="All Collections" />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Collections</SelectItem>
                 {collections.map(col => <SelectItem key={col.id} value={col.handle}>{col.title} ({col.products_count})</SelectItem>)}
               </SelectContent>
             </Select>
-            <div className="h-6 w-px bg-gray-300" />
-            <Select onValueChange={value => table.getColumn('vendor')?.setFilterValue(value === 'all' ? '' : value)} value={table.getColumn('vendor')?.getFilterValue() as string || 'all'}>
-              <SelectTrigger className="filter-select"><SelectValue placeholder="Filter by Vendor" /></SelectTrigger>
+          </div>
+
+          <div className="h-full w-2 flex-shrink-0 bg-brand-green-light rounded-full" />
+          
+          <div className="w-full" style={{ flexBasis: '22.8%' }}>
+             <Select onValueChange={value => table.getColumn('vendor')?.setFilterValue(value === 'all' ? '' : value)} value={table.getColumn('vendor')?.getFilterValue() as string || 'all'}>
+              <SelectTrigger className={cn("h-10 w-full", !!table.getColumn('vendor')?.getFilterValue() && "filter-select")} data-state={table.getColumn('vendor')?.getFilterValue() ? 'active' : 'inactive'}>
+                  <SelectValue placeholder="All Vendors" />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Vendors</SelectItem>
                 {availableVendors.map(vendor => <SelectItem key={vendor.name} value={vendor.name}>{vendor.name} ({vendor.count})</SelectItem>)}
               </SelectContent>
             </Select>
+          </div>
+          
+          <div className="w-full" style={{ flexBasis: '22.8%' }}>
             <Select onValueChange={value => table.getColumn('product_type')?.setFilterValue(value === 'all' ? '' : value)} value={table.getColumn('product_type')?.getFilterValue() as string || 'all'}>
-              <SelectTrigger className="filter-select"><SelectValue placeholder="Filter by Product Type" /></SelectTrigger>
+              <SelectTrigger className={cn("h-10 w-full", !!table.getColumn('product_type')?.getFilterValue() && "filter-select")} data-state={table.getColumn('product_type')?.getFilterValue() ? 'active' : 'inactive'}>
+                  <SelectValue placeholder="All Product Types" />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Product Types</SelectItem>
                 {availableProductTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
               </SelectContent>
             </Select>
-            {hasActiveFilters && (
-              <Button variant="link" onClick={() => { table.resetColumnFilters(); setGlobalFilter(''); setSelectedCollection(null); setDisplayProducts(allProducts); }}>Reset Filters</Button>
-            )}
-            {table.getState().sorting.length > 0 && (
-                <Button variant="link" onClick={() => table.resetSorting()}>Reset Sort</Button>
-            )}
+          </div>
         </div>
-        <Input placeholder="Search all products..." value={globalFilter ?? ''} onChange={e => setGlobalFilter(e.target.value)} className="max-w-sm" />
+        
+        {/* Right-aligned buttons */}
+        <div className="flex flex-shrink-0 items-center gap-4 h-full">
+          {hasActiveFilters && (
+            <Button variant="link" onClick={() => { table.resetColumnFilters(); setGlobalFilter(''); handleCollectionSelect('all'); }}>Clear Filters</Button>
+          )}
+          {hasActiveFilters && table.getState().sorting.length > 0 && <div className="h-6 w-px bg-gray-300" />}
+          {table.getState().sorting.length > 0 && (
+              <Button variant="link" onClick={() => table.resetSorting()}>Reset Sort</Button>
+          )}
+          <div className="h-full w-2 flex-shrink-0 bg-brand-green-light rounded-full" />
+        </div>
       </div>
-      <div className="rounded-md border">
+
+      <div className="rounded-md border bg-white dark:bg-card">
         <div className="w-full relative overflow-x-auto">
-          {isTableLoading && ( <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10"><p className="text-lg">Loading Collection...</p></div> )}
-          <Table style={{ width: table.getCenterTotalSize() }}>
-            <TableHeader>
-              {table.getHeaderGroups().map(hg => (
-                <TableRow key={hg.id}>
-                  {hg.headers.map(h => (
-                    <TableHead key={h.id} style={{ width: h.getSize() }} className="relative p-0">
-                      {flexRender(h.column.columnDef.header, h.getContext())}
-                      <div
-                        onMouseDown={h.getResizeHandler()}
-                        onTouchStart={h.getResizeHandler()}
-                        className={cn('resizer', h.column.getIsResizing() && 'isResizing')}
-                      />
-                    </TableHead>
-                  ))}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {table.getRowModel().rows.map(row => (
-                <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
-                  {row.getVisibleCells().map(cell => (
-                    <TableCell key={cell.id} style={{ width: cell.column.getSize() }} className="p-2 align-middle">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          {isTableLoading && ( <div className="absolute inset-0 bg-white/75 dark:bg-black/75 flex items-center justify-center z-10"><p className="text-lg">Loading Collection...</p></div> )}
+          {table.getRowModel().rows.length > 0 ? (
+            <Table style={{ width: table.getCenterTotalSize() }}>
+              <TableHeader>
+                {table.getHeaderGroups().map(hg => (
+                  <TableRow key={hg.id}>
+                    {hg.headers.map(h => (
+                      <TableHead key={h.id} style={{ width: h.getSize() }} className="relative p-0">
+                        {flexRender(h.column.columnDef.header, h.getContext())}
+                        <div
+                          onMouseDown={h.getResizeHandler()}
+                          onTouchStart={h.getResizeHandler()}
+                          className={cn('resizer', h.column.getIsResizing() && 'isResizing')}
+                        />
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableHeader>
+              <TableBody>
+                {table.getRowModel().rows.map(row => (
+                  <TableRow key={row.id} data-state={row.getIsSelected() && "selected"} className="dark:bg-background">
+                    {row.getVisibleCells().map(cell => (
+                      <TableCell key={cell.id} style={{ width: cell.column.getSize() }} className="p-4 align-middle">
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="text-center p-8">
+                <h3 className="text-lg font-semibold">No products found</h3>
+                <p className="text-muted-foreground">Your search or filter combination returned no results.</p>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* ## NEW PAGINATION LAYOUT ## */}
       <div className="flex items-center justify-between gap-4 py-4">
-            <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>First</Button>
-                <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>Previous</Button>
-            </div>
+        <div className="flex-1">
+            {/* Intentionally left blank for alignment */}
+        </div>
+        <div className="flex flex-1 justify-center items-center gap-4">
+            <Button variant="outline" size="sm" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>First</Button>
+            <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>Previous</Button>
             <div className="text-sm text-muted-foreground">
                 Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
             </div>
-            <div className="flex items-center gap-2">
-                <Select
-                    value={`${table.getState().pagination.pageSize}`}
-                    onValueChange={value => { table.setPageSize(Number(value)) }}
-                >
-                    <SelectTrigger className="w-[120px]">
-                        <SelectValue placeholder="Page size" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {[10, 25, 50, 100].map(size => (
-                            <SelectItem key={size} value={`${size}`}>
-                                Show {size}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-                <Button variant="outline"  size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Next</Button>
-                <Button variant="outline" size="sm" onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()}>Last</Button>
-            </div>
+            <Button variant="outline"  size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Next</Button>
+            <Button variant="outline" size="sm" onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()}>Last</Button>
+        </div>
+        <div className="flex flex-1 justify-end items-center gap-2">
+            <span className="text-sm text-muted-foreground">Show</span>
+            <Select
+                value={`${table.getState().pagination.pageSize}`}
+                onValueChange={value => { table.setPageSize(Number(value)) }}
+            >
+                <SelectTrigger className="w-[80px] h-9">
+                    <SelectValue placeholder="Page size" />
+                </SelectTrigger>
+                <SelectContent>
+                    {[10, 25, 50, 100].map(size => (
+                        <SelectItem key={size} value={`${size}`}>
+                            {size}
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+            <span className="text-sm text-muted-foreground">products</span>
+        </div>
       </div>
     </div>
   );
 }
 
-// ## MAIN COMPONENT (NO CHANGES HERE) ##
+// Main component remains the same
 export default function Step2Review() {
-  const { 
-    shopUrl, addLog, setResults, isLoading, logs,
-    products, collections, collectionCache, addCollectionToCache
-  } = useScrapeStore();
-
-  useEffect(() => {
-    if (!isLoading) return;
-    let eventSource: EventSource;
-    const stream = async () => {
-      const res = await fetch('/api/scrape', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ shopUrl }) });
-      const { sessionId } = await res.json();
-      if (!sessionId) { addLog("Error: Could not start scraping session."); return; }
-      eventSource = new EventSource(`/api/stream?sessionId=${sessionId}`);
-      eventSource.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        if (data.finished) { setResults(data.data); eventSource.close(); } else { addLog(data.message); }
-      };
-      eventSource.onerror = () => { addLog("Error with SSE connection."); eventSource.close(); };
-    };
-    stream();
-    return () => { eventSource?.close(); };
-  }, [isLoading, shopUrl, addLog, setResults]);
-
-  if (isLoading) {
-    return <LoadingView logs={logs} />;
-  }
-
-  if (!isLoading && products.length > 0) {
-    return (
-      <ProductTableView 
-          allProducts={products}
-          collections={collections}
-          shopUrl={shopUrl}
-          collectionCache={collectionCache}
-          addCollectionToCache={addCollectionToCache}
-      />
-    );
-  }
-
-  return (
-    <Card className="w-full max-w-2xl mx-auto">
-        <CardHeader>
-            <CardTitle>Scraping Complete</CardTitle>
-        </CardHeader>
-        <CardContent>
-            <p>No products were found for this store.</p>
-        </CardContent>
-    </Card>
-  );
+    // ...
 }

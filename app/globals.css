@@ -117,28 +117,27 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    /* Set the default background to white */
+    @apply bg-white dark:bg-background;
+    color: var(--foreground);
   }
 }
 
-.resizer {
-  @apply absolute top-1/2 right-0 h-3/5 w-1 -translate-y-1/2 cursor-col-resize select-none touch-none rounded-full bg-gray-300 opacity-75 transition-all duration-200;
-}
+/* ## ADD THESE NEW STYLES AT THE END ## */
 
-.resizer.isResizing,
-th:hover > .resizer {
-  @apply bg-primary h-full opacity-100;
-}
-
-
+/* Default dark grey header, taller, with more padding */
 table th {
-  @apply bg-gray-100 dark:bg-gray-800;
+  @apply bg-gray-200 dark:bg-gray-800 h-14 p-4 align-middle;
 }
 
-/* Style for filter dropdowns */
-.filter-select {
-  @apply w-[180px] border-input focus:border-ring focus:ring-ring/50 focus:ring-[3px];
+/* Style for filter dropdowns to have a thicker, green border when active */
+.filter-select[data-state=active] {
+  @apply border-brand-green-dark border-2;
 }
+.search-input-active {
+  @apply border-brand-green-dark border-2;
+}
+
 
 /* For truncating text in cells to 2 lines */
 .line-clamp-2 {
@@ -146,11 +145,12 @@ table th {
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
+  word-break: break-word;
 }
 
-/* Resizer styles  */
+/* Updated resizer styles to be thicker and longer */
 .resizer {
-  @apply absolute top-1/2 right-0 h-3/5 w-1 -translate-y-1/2 cursor-col-resize select-none touch-none rounded-full bg-gray-300 opacity-75 transition-all duration-200;
+  @apply absolute top-1/2 right-0 h-4/5 w-1.5 -translate-y-1/2 cursor-col-resize select-none touch-none rounded-full bg-gray-300 dark:bg-gray-600 opacity-75 transition-all duration-200;
 }
 
 .resizer.isResizing,
