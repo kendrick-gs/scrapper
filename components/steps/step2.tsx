@@ -146,7 +146,7 @@ function ProductTableView({
 
         <div className="flex items-center justify-between gap-4 h-10">
           <div className="flex flex-grow items-center gap-4">
-            <div className="flex-grow" style={{ minWidth: '240px' }}>
+            <div className="flex-grow-[1.25]" style={{ minWidth: '240px' }}>
               <Select onValueChange={handleCollectionSelect} value={selectedCollection?.handle || 'all'}>
                 <SelectTrigger className={cn("h-10 w-full", selectedCollection && "filter-select")} data-state={selectedCollection ? 'active' : 'inactive'}>
                     <SelectValue placeholder="All Collections" />
@@ -226,7 +226,7 @@ function ProductTableView({
                 {table.getHeaderGroups().map(hg => (
                   <TableRow key={hg.id} className="hover:bg-gray-200 dark:hover:bg-gray-800">
                     {hg.headers.map(h => (
-                      <TableHead key={h.id} style={{ width: h.getSize() }} className="relative p-2">
+                      <TableHead key={h.id} style={{ width: h.getSize() }} className="relative p-0">
                         {flexRender(h.column.columnDef.header, h.getContext())}
                         <div
                           onMouseDown={h.getResizeHandler()}

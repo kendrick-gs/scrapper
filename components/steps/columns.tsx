@@ -15,24 +15,26 @@ export function isVariant(data: ProductRowData): data is ShopifyVariant {
     return 'sku' in data && 'product_id' in data;
 }
 
-// ## UPDATED: Button no longer fills the entire cell ##
 const SortableHeader = ({ column, title }: { column: any, title: string }) => {
     const sortDir = column.getIsSorted();
     return (
         <Button
             variant={sortDir ? "default" : "ghost"}
             onClick={() => column.toggleSorting(sortDir === "asc")}
+            // ## UPDATED: Button fills cell, padding is applied to inner div ##
+            className="w-full h-full p-0"
         >
-            <span>{title}</span>
-            <div className="ml-2 flex items-center -space-x-1">
-                <ArrowUp className={cn("h-4 w-4", sortDir === 'asc' ? 'text-primary-foreground' : 'text-muted-foreground/50')} />
-                <ArrowDown className={cn("h-4 w-4", sortDir === 'desc' ? 'text-primary-foreground' : 'text-muted-foreground/50')} />
+            <div className="flex items-center justify-between w-full px-4">
+                <span>{title}</span>
+                <div className="flex items-center -space-x-1">
+                    <ArrowUp className={cn("h-4 w-4", sortDir === 'asc' ? 'text-primary-foreground' : 'text-muted-foreground/50')} />
+                    <ArrowDown className={cn("h-4 w-4", sortDir === 'desc' ? 'text-primary-foreground' : 'text-muted-foreground/50')} />
+                </div>
             </div>
         </Button>
     )
 };
 
-// ## UPDATED: All cell logic fixed to show data for products AND variants ##
 export const columns: ColumnDef<ProductRowData>[] = [
   {
     accessorKey: 'handle',
@@ -48,7 +50,7 @@ export const columns: ColumnDef<ProductRowData>[] = [
               {row.getIsExpanded() ? '▼' : '►'}
             </button>
           ) : <span className="mr-2 w-4 inline-block"></span>}
-          <span className="line-clamp-2">{handle}</span>
+          <span className="line-clamp-2 font-medium">{handle}</span>
         </div>
       );
     },
@@ -59,12 +61,12 @@ export const columns: ColumnDef<ProductRowData>[] = [
     size: 350,
     cell: ({ row }) => {
       const title = row.original.title;
-      return <span className={cn("line-clamp-2", isVariant(row.original) && "text-muted-foreground")}>{title}</span>
+      return <span className={cn("line-clamp-2", isVariant(row.original) && "text-muted-foreground pl-4")}>{title}</span>
     }
   },
   {
     accessorKey: 'images',
-    header: () => <div className="font-medium">Images</div>,
+    header: () => <div className="px-4 text-left font-medium">Images</div>,
     size: 200,
     cell: ({ row }) => {
       if (isVariant(row.original)) return null;
@@ -105,20 +107,49 @@ export const columns: ColumnDef<ProductRowData>[] = [
   },
   {
     accessorKey: 'body_html',
-    header: () => <div className="font-medium">Body HTML</div>,
+    header: () => <div className="px-4 text-left font-medium">Body HTML</div>,
     size: 120,
-    cell: ({ row }) => { /* ... cell logic unchanged ... */ },
+    // ## FIXED: Restored missing cell logic ##
+    cell: ({ row }) => {
+        if (isVariant(row.original)) return null;
+        const bodyHtml = row.original.body_html;
+        if (!bodyHtml?.trim()) return null;
+        return (
+            <Dialog>
+                <DialogTrigger asChild><Button variant="outline" size="sm">View</Button></DialogTrigger>
+                <DialogContent className="max-w-3xl">
+                    <DialogHeader><DialogTitle>{row.original.title}</DialogTitle></DialogHeader>
+                    <div className="prose dark:prose-invert max-h-[70vh] overflow-y-auto" dangerouslySetInnerHTML={{ __html: bodyHtml }} />
+                </DialogContent>
+            </Dialog>
+        );
+    },
   },
   {
     accessorKey: 'tags',
-    header: () => <div className="font-medium">Tags</div>,
+    header: () => <div className="px-4 text-left font-medium">Tags</div>,
     size: 120,
-    cell: ({ row }) => { /* ... cell logic unchanged ... */ },
+    // ## FIXED: Restored missing cell logic ##
+    cell: ({ row }) => {
+        if (isVariant(row.original)) return null;
+        const tags = row.original.tags;
+        const tagArray: string[] = typeof tags === 'string' ? tags.split(',').map(tag => tag.trim()).filter(Boolean) : (Array.isArray(tags) ? tags.filter(Boolean) : []);
+        if (tagArray.length === 0) return null;
+        return (
+            <div className="flex flex-wrap gap-1">
+                {tagArray.slice(0, 2).map(tag => <Badge key={tag} variant="secondary">{tag}</Badge>)}
+                {tagArray.length > 2 && <Badge variant="outline">+{tagArray.length - 2}</Badge>}
+            </div>
+        );
+    }
   },
   {
     accessorKey: 'updated_at',
     header: ({ column }) => <SortableHeader column={column} title="Updated At" />,
     size: 150,
-    cell: ({ row }) => new Date(row.getValue('updated_at')).toLocaleDateString(),
+    cell: ({ row }) => {
+      const date = row.original.updated_at;
+      return new Date(date).toLocaleDateString();
+    },
   },
 ];
