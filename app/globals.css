@@ -60,10 +60,10 @@
   }
 }
 
-/* All other custom styles */
 table th {
-  @apply bg-gray-100 dark:bg-gray-800 h-16 p-4 align-middle;
+  @apply bg-gray-300 dark:bg-gray-800 h-16 p-0 align-middle; /* Also removed padding here to allow button to control it */
 }
+
 
 .filter-select[data-state=active] {
   @apply border-brand-green border-2;

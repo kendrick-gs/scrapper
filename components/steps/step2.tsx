@@ -33,7 +33,6 @@ import { cn } from '@/lib/utils';
 import { XIcon } from 'lucide-react';
 
 function LoadingView({ logs }: { logs: string[] }) {
-  // This component needs to return JSX
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader><CardTitle>Fetching Products...</CardTitle></CardHeader>
@@ -129,99 +128,99 @@ function ProductTableView({
   const storeHostname = useMemo(() => { try { return new URL(shopUrl).hostname; } catch { return 'N/A'; } }, [shopUrl]);
   const hasActiveFilters = columnFilters.length > 0 || globalFilter !== '' || !!selectedCollection;
 
-  // This component also needs to return JSX
   return (
     <div className="w-full space-y-4">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold">Product View - <span className="text-gray-500">{storeHostname}</span></h2>
-        <div className="flex items-center gap-4">
-          <p>
-            {selectedCollection 
-              ? <>Showing <strong>{selectedRowCount}</strong> products in "<strong>{selectedCollection.title}</strong>"</>
-              : <>Showing <strong>{selectedRowCount}</strong> of <strong>{allProducts.length}</strong> total products</>
-            }
-          </p>
-          <Button>Export Products (CSV)</Button>
+      <div className="w-full max-w-[1440px] mx-auto space-y-4">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-bold">Product View - <span className="text-gray-500">{storeHostname}</span></h2>
+          <div className="flex items-center gap-4">
+            <p>
+              {selectedCollection 
+                ? <>Showing <strong>{selectedRowCount}</strong> products in "<strong>{selectedCollection.title}</strong>"</>
+                : <>Showing <strong>{selectedRowCount}</strong> of <strong>{allProducts.length}</strong> total products</>
+              }
+            </p>
+            <Button>Export Products (CSV)</Button>
+          </div>
         </div>
-      </div>
 
-      <div className="flex items-center justify-between gap-4 h-10">
-        <div className="flex flex-grow items-center gap-4">
-          <div className="h-10 w-10 flex-shrink-0 rounded-md bg-brand-green-light" />
+        <div className="flex items-center justify-between gap-4 h-10">
+          <div className="flex flex-grow items-center gap-4">
+            <div className="h-10 w-10 flex-shrink-0 rounded-md bg-brand-green-light" />
+            
+            <div className="relative flex-grow-0 flex-shrink-0" style={{ width: '240px' }}>
+              <Input 
+                placeholder="Search" 
+                value={globalFilter ?? ''} 
+                onChange={e => setGlobalFilter(e.target.value)} 
+                className={cn("h-10", globalFilter && "search-input-active border-2 border-brand-green")}
+              />
+              {globalFilter && (
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 text-muted-foreground hover:text-foreground"
+                  onClick={() => setGlobalFilter('')}
+                >
+                  <XIcon className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+
+            <div className="h-6 w-2 flex-shrink-0 bg-brand-green-light rounded-full" />
+
+            <div className="flex-grow" style={{ minWidth: '240px' }}>
+              <Select onValueChange={handleCollectionSelect} value={selectedCollection?.handle || 'all'}>
+                <SelectTrigger className={cn("h-10 w-full", selectedCollection && "filter-select")} data-state={selectedCollection ? 'active' : 'inactive'}>
+                    <SelectValue placeholder="All Collections" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Collections</SelectItem>
+                  {collections.map(col => <SelectItem key={col.id} value={col.handle}>{col.title} ({col.products_count})</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="h-6 w-2 flex-shrink-0 bg-brand-green-light rounded-full" />
+            
+            <div className="flex-grow" style={{ minWidth: '200px' }}>
+               <Select onValueChange={value => table.getColumn('vendor')?.setFilterValue(value === 'all' ? '' : value)} value={table.getColumn('vendor')?.getFilterValue() as string || 'all'}>
+                <SelectTrigger className={cn("h-10 w-full", !!table.getColumn('vendor')?.getFilterValue() && "filter-select")} data-state={table.getColumn('vendor')?.getFilterValue() ? 'active' : 'inactive'}>
+                    <SelectValue placeholder="All Vendors" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Vendors</SelectItem>
+                  {availableVendors.map(vendor => <SelectItem key={vendor.name} value={vendor.name}>{vendor.name} ({vendor.count})</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="flex-grow" style={{ minWidth: '200px' }}>
+              <Select onValueChange={value => table.getColumn('product_type')?.setFilterValue(value === 'all' ? '' : value)} value={table.getColumn('product_type')?.getFilterValue() as string || 'all'}>
+                <SelectTrigger className={cn("h-10 w-full", !!table.getColumn('product_type')?.getFilterValue() && "filter-select")} data-state={table.getColumn('product_type')?.getFilterValue() ? 'active' : 'inactive'}>
+                    <SelectValue placeholder="All Product Types" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Product Types</SelectItem>
+                  {availableProductTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
           
-          <div className="relative flex-grow" style={{ flexBasis: '240px' }}>
-            <Input 
-              placeholder="Search" 
-              value={globalFilter ?? ''} 
-              onChange={e => setGlobalFilter(e.target.value)} 
-              className={cn("h-10", globalFilter && "search-input-active")}
-            />
-            {globalFilter && (
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 text-muted-foreground hover:text-foreground"
-                onClick={() => setGlobalFilter('')}
-              >
-                <XIcon className="h-4 w-4" />
-              </Button>
+          <div className="flex flex-shrink-0 items-center gap-4 h-full">
+            {hasActiveFilters && (
+              <Button variant="link" onClick={() => { table.resetColumnFilters(); setGlobalFilter(''); handleCollectionSelect('all'); }}>Clear Filters</Button>
             )}
+            {hasActiveFilters && table.getState().sorting.length > 0 && <div className="h-6 w-2 flex-shrink-0 bg-brand-green-light rounded-full" />}
+            {table.getState().sorting.length > 0 && (
+                <Button variant="link" onClick={() => table.resetSorting()}>Reset Sort</Button>
+            )}
+            <div className="h-full w-2 flex-shrink-0 bg-brand-green-light rounded-full" />
           </div>
-
-          <div className="h-full w-2 flex-shrink-0 bg-brand-green-light rounded-full" />
-
-          <div className="flex-grow" style={{ flexBasis: '240px' }}>
-            <Select onValueChange={handleCollectionSelect} value={selectedCollection?.handle || 'all'}>
-              <SelectTrigger className={cn("h-10 w-full", selectedCollection && "filter-select")} data-state={selectedCollection ? 'active' : 'inactive'}>
-                  <SelectValue placeholder="All Collections" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Collections</SelectItem>
-                {collections.map(col => <SelectItem key={col.id} value={col.handle}>{col.title} ({col.products_count})</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="h-full w-2 flex-shrink-0 bg-brand-green-light rounded-full" />
-          
-          <div className="flex-grow" style={{ flexBasis: '200px' }}>
-             <Select onValueChange={value => table.getColumn('vendor')?.setFilterValue(value === 'all' ? '' : value)} value={table.getColumn('vendor')?.getFilterValue() as string || 'all'}>
-              <SelectTrigger className={cn("h-10 w-full", !!table.getColumn('vendor')?.getFilterValue() && "filter-select")} data-state={table.getColumn('vendor')?.getFilterValue() ? 'active' : 'inactive'}>
-                  <SelectValue placeholder="All Vendors" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Vendors</SelectItem>
-                {availableVendors.map(vendor => <SelectItem key={vendor.name} value={vendor.name}>{vendor.name} ({vendor.count})</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="flex-grow" style={{ flexBasis: '200px' }}>
-            <Select onValueChange={value => table.getColumn('product_type')?.setFilterValue(value === 'all' ? '' : value)} value={table.getColumn('product_type')?.getFilterValue() as string || 'all'}>
-              <SelectTrigger className={cn("h-10 w-full", !!table.getColumn('product_type')?.getFilterValue() && "filter-select")} data-state={table.getColumn('product_type')?.getFilterValue() ? 'active' : 'inactive'}>
-                  <SelectValue placeholder="All Product Types" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Product Types</SelectItem>
-                {availableProductTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex-grow" style={{ flexBasis: '100%' }}></div>
-        </div>
-        
-        <div className="flex flex-shrink-0 items-center gap-4 h-full">
-          {hasActiveFilters && (
-            <Button variant="link" onClick={() => { table.resetColumnFilters(); setGlobalFilter(''); handleCollectionSelect('all'); }}>Clear Filters</Button>
-          )}
-          {hasActiveFilters && table.getState().sorting.length > 0 && <div className="h-6 w-px bg-gray-300" />}
-          {table.getState().sorting.length > 0 && (
-              <Button variant="link" onClick={() => table.resetSorting()}>Reset Sort</Button>
-          )}
-          <div className="h-full w-2 flex-shrink-0 bg-brand-green-light rounded-full" />
         </div>
       </div>
-
+      
       <div className="rounded-md border bg-gray-50 dark:bg-card">
         <div className="w-full relative overflow-x-auto">
           {isTableLoading && ( <div className="absolute inset-0 bg-white/75 dark:bg-black/75 flex items-center justify-center z-10"><p className="text-lg">Loading Collection...</p></div> )}
@@ -264,13 +263,13 @@ function ProductTableView({
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-4 py-4">
+      <div className="flex items-center justify-between gap-4 py-4 w-full">
         <div className="flex-1">
         </div>
-        <div className="flex flex-1 justify-center items-center gap-4">
+        <div className="flex flex-shrink-0 justify-center items-center gap-4">
             <Button variant="outline" size="sm" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>First</Button>
             <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>Previous</Button>
-            <div className="text-sm text-muted-foreground">
+            <div className="text-sm text-muted-foreground whitespace-nowrap">
                 Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
             </div>
             <Button variant="outline"  size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Next</Button>
@@ -311,7 +310,7 @@ export default function Step2Review() {
 
     const streamScrape = async () => {
       try {
-        const response = await fetch('/api/scrape-stream', { // Using your shorter folder name
+        const response = await fetch('/api/scrape-stream', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ shopUrl }),
@@ -336,15 +335,19 @@ export default function Step2Review() {
           for (const line of lines) {
             if (line.startsWith('data:')) {
               const jsonString = line.substring(5);
-              const data = JSON.parse(jsonString);
+              try {
+                const data = JSON.parse(jsonString);
 
-              if (data.finished) {
-                setResults(data.data);
-                return;
-              } else if (data.message) {
-                addLog(data.message);
-              } else if (data.error) {
-                addLog(`ERROR: ${data.error}`);
+                if (data.finished) {
+                  setResults(data.data);
+                  return;
+                } else if (data.message) {
+                  addLog(data.message);
+                } else if (data.error) {
+                  addLog(`ERROR: ${data.error}`);
+                }
+              } catch (e) {
+                  console.error("Failed to parse stream JSON:", jsonString);
               }
             }
           }

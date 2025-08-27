@@ -1,15 +1,7 @@
-'use client';
-
 import { ColumnDef } from '@tanstack/react-table';
 import { ShopifyProduct, ShopifyVariant } from '@/lib/types';
 import Image from 'next/image';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowUp, ArrowDown } from 'lucide-react';
@@ -21,15 +13,14 @@ export function isVariant(data: ProductRowData): data is ShopifyVariant {
     return 'sku' in data && 'product_id' in data;
 }
 
-// ## UPDATED SortableHeader COMPONENT ##
 const SortableHeader = ({ column, title }: { column: any, title: string }) => {
     const sortDir = column.getIsSorted();
     return (
         <Button
             variant={sortDir ? "default" : "ghost"}
             onClick={() => column.toggleSorting(sortDir === "asc")}
-            // This makes the button fill the entire header cell
-            className="w-full h-full justify-start px-2"
+            // ## UPDATED: Added px-4 for horizontal padding ##
+            className="w-full h-full justify-start px-4"
         >
             <span className="flex-grow text-left">{title}</span>
             <div className="ml-2 flex items-center -space-x-1">
