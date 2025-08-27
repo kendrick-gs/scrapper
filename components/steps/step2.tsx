@@ -144,9 +144,7 @@ function ProductTableView({
           </div>
         </div>
 
-        {/* ## UPDATED: Filter Bar Layout ## */}
         <div className="flex items-center justify-between gap-4 h-10">
-          {/* Left-aligned group */}
           <div className="flex flex-grow items-center gap-4">
             <div className="flex-grow" style={{ minWidth: '240px' }}>
               <Select onValueChange={handleCollectionSelect} value={selectedCollection?.handle || 'all'}>
@@ -160,7 +158,7 @@ function ProductTableView({
               </Select>
             </div>
 
-            <div className="h-6 w-2 flex-shrink-0 bg-brand-green-light rounded-full" />
+            <div className="h-10 w-2 flex-shrink-0 bg-brand-green-light rounded-full" />
             
             <div className="flex-grow" style={{ minWidth: '200px' }}>
                <Select onValueChange={value => table.getColumn('vendor')?.setFilterValue(value === 'all' ? '' : value)} value={table.getColumn('vendor')?.getFilterValue() as string || 'all'}>
@@ -189,19 +187,21 @@ function ProductTableView({
             {hasActiveFilters && (
               <Button variant="link" onClick={() => { table.resetColumnFilters(); setGlobalFilter(''); handleCollectionSelect('all'); }}>Clear Filters</Button>
             )}
-            {hasActiveFilters && table.getState().sorting.length > 0 && <div className="h-6 w-2 flex-shrink-0 bg-brand-green-light rounded-full" />}
+            {hasActiveFilters && table.getState().sorting.length > 0 && <div className="h-10 w-2 flex-shrink-0 bg-brand-green-light rounded-full" />}
             {table.getState().sorting.length > 0 && (
                 <Button variant="link" onClick={() => table.resetSorting()}>Reset Sort</Button>
             )}
           </div>
           
-          {/* Right-aligned group */}
           <div className="relative flex-shrink-0" style={{ width: '240px' }}>
             <Input 
               placeholder="Search" 
               value={globalFilter ?? ''} 
               onChange={e => setGlobalFilter(e.target.value)} 
-              className={cn("h-10", globalFilter && "search-input-active border-2 border-brand-green")}
+              className={cn(
+                "h-10", 
+                globalFilter && "border-2 border-brand-green ring-0 ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-brand-green"
+              )}
             />
             {globalFilter && (
               <Button 
@@ -226,7 +226,7 @@ function ProductTableView({
                 {table.getHeaderGroups().map(hg => (
                   <TableRow key={hg.id} className="hover:bg-gray-200 dark:hover:bg-gray-800">
                     {hg.headers.map(h => (
-                      <TableHead key={h.id} style={{ width: h.getSize() }} className="relative p-0">
+                      <TableHead key={h.id} style={{ width: h.getSize() }} className="relative p-2">
                         {flexRender(h.column.columnDef.header, h.getContext())}
                         <div
                           onMouseDown={h.getResizeHandler()}
