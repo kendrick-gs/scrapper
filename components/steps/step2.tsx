@@ -144,31 +144,10 @@ function ProductTableView({
           </div>
         </div>
 
+        {/* ## UPDATED: Filter Bar Layout ## */}
         <div className="flex items-center justify-between gap-4 h-10">
+          {/* Left-aligned group */}
           <div className="flex flex-grow items-center gap-4">
-            <div className="h-10 w-10 flex-shrink-0 rounded-md bg-brand-green-light" />
-            
-            <div className="relative flex-grow-0 flex-shrink-0" style={{ width: '240px' }}>
-              <Input 
-                placeholder="Search" 
-                value={globalFilter ?? ''} 
-                onChange={e => setGlobalFilter(e.target.value)} 
-                className={cn("h-10", globalFilter && "search-input-active border-2 border-brand-green")}
-              />
-              {globalFilter && (
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 text-muted-foreground hover:text-foreground"
-                  onClick={() => setGlobalFilter('')}
-                >
-                  <XIcon className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-
-            <div className="h-6 w-2 flex-shrink-0 bg-brand-green-light rounded-full" />
-
             <div className="flex-grow" style={{ minWidth: '240px' }}>
               <Select onValueChange={handleCollectionSelect} value={selectedCollection?.handle || 'all'}>
                 <SelectTrigger className={cn("h-10 w-full", selectedCollection && "filter-select")} data-state={selectedCollection ? 'active' : 'inactive'}>
@@ -180,7 +159,7 @@ function ProductTableView({
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="h-6 w-2 flex-shrink-0 bg-brand-green-light rounded-full" />
             
             <div className="flex-grow" style={{ minWidth: '200px' }}>
@@ -206,9 +185,7 @@ function ProductTableView({
                 </SelectContent>
               </Select>
             </div>
-          </div>
-          
-          <div className="flex flex-shrink-0 items-center gap-4 h-full">
+            
             {hasActiveFilters && (
               <Button variant="link" onClick={() => { table.resetColumnFilters(); setGlobalFilter(''); handleCollectionSelect('all'); }}>Clear Filters</Button>
             )}
@@ -216,7 +193,26 @@ function ProductTableView({
             {table.getState().sorting.length > 0 && (
                 <Button variant="link" onClick={() => table.resetSorting()}>Reset Sort</Button>
             )}
-            <div className="h-full w-2 flex-shrink-0 bg-brand-green-light rounded-full" />
+          </div>
+          
+          {/* Right-aligned group */}
+          <div className="relative flex-shrink-0" style={{ width: '240px' }}>
+            <Input 
+              placeholder="Search" 
+              value={globalFilter ?? ''} 
+              onChange={e => setGlobalFilter(e.target.value)} 
+              className={cn("h-10", globalFilter && "search-input-active border-2 border-brand-green")}
+            />
+            {globalFilter && (
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 text-muted-foreground hover:text-foreground"
+                onClick={() => setGlobalFilter('')}
+              >
+                <XIcon className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </div>
       </div>
