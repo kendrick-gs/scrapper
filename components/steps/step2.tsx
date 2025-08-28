@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -13,6 +13,7 @@ import {
   ColumnFiltersState,
   ColumnSizingState,
   ExpandedState,
+  Row,
 } from '@tanstack/react-table';
 import { useScrapeStore } from '@/store/useScrapeStore';
 import { columns, ProductRowData, isVariant } from './columns';
@@ -60,92 +61,161 @@ function ProductTableView({
     collectionCache: Record<string, ShopifyProduct[]>;
     addCollectionToCache: (handle: string, products: ShopifyProduct[]) => void;
 }) {
-  const [displayProducts, setDisplayProducts] = useState<ShopifyProduct[]>(allProducts);
-  const [isTableLoading, setTableLoading] = useState(false);
-  const [selectedCollection, setSelectedCollection] = useState<{ handle: string, title: string } | null>(null);
+  const [activeCollectionProducts, setActiveCollectionProducts] = useState<ShopifyProduct[] | null>(null);
+  const [isCollectionLoading, setCollectionLoading] = useState(false);
+  
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
   const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({});
   const [expanded, setExpanded] = useState<ExpandedState>({});
 
-  useEffect(() => { setDisplayProducts(allProducts); }, [allProducts]);
+  const baseProductData = activeCollectionProducts || allProducts;
+
+  // *** FIX: Custom filtering logic that preserves expandable structure ***
+  const tableData = useMemo(() => {
+    let products = [...baseProductData];
+
+    // Get filter values
+    const vendorFilter = columnFilters.find(f => f.id === 'vendor')?.value as string | undefined;
+    const productTypeFilter = columnFilters.find(f => f.id === 'product_type')?.value as string | undefined;
+
+    // Apply filters but preserve product structure for expansion
+    if (vendorFilter || productTypeFilter || globalFilter) {
+      products = products.filter(product => {
+        // Check if product matches filters
+        let productMatches = true;
+
+        if (vendorFilter && product.vendor !== vendorFilter) {
+          productMatches = false;
+        }
+        if (productTypeFilter && product.product_type !== productTypeFilter) {
+          productMatches = false;
+        }
+
+        // Global filter check
+        if (globalFilter) {
+          const lowerGlobalFilter = globalFilter.toLowerCase();
+          const productFieldsMatch = 
+            product.title.toLowerCase().includes(lowerGlobalFilter) ||
+            product.handle.toLowerCase().includes(lowerGlobalFilter) ||
+            product.vendor.toLowerCase().includes(lowerGlobalFilter) ||
+            product.product_type.toLowerCase().includes(lowerGlobalFilter);
+
+          const variantFieldsMatch = product.variants.some(variant => 
+            variant.title.toLowerCase().includes(lowerGlobalFilter) ||
+            (variant.sku && variant.sku.toLowerCase().includes(lowerGlobalFilter))
+          );
+
+          if (!productFieldsMatch && !variantFieldsMatch) {
+            productMatches = false;
+          }
+        }
+
+        return productMatches;
+      });
+    }
+
+    return products;
+  }, [baseProductData, columnFilters, globalFilter]);
+
+  // *** FIX: Update filter options based on current tableData instead of filteredData ***
+  const availableVendors = useMemo(() => {
+    const vendorCounts: { [key: string]: number } = {};
+    tableData.forEach(prod => {
+      vendorCounts[prod.vendor] = (vendorCounts[prod.vendor] || 0) + 1;
+    });
+    return Object.keys(vendorCounts).map(name => ({ name, count: vendorCounts[name] })).sort((a,b) => a.name.localeCompare(b.name));
+  }, [tableData]);
+
+  const availableProductTypes = useMemo(() => {
+    const types = new Set<string>(tableData.map(p => p.product_type));
+    return Array.from(types).sort();
+  }, [tableData]);
 
   const table = useReactTable({
-    data: displayProducts,
+    data: tableData,
     columns,
-    state: { sorting, columnFilters, globalFilter, columnSizing, expanded },
+    state: { sorting, columnSizing, expanded },
     onExpandedChange: setExpanded,
     onColumnSizingChange: setColumnSizing,
     columnResizeMode: 'onChange',
-    // ## ADDED: This preserves the parent-child relationship during filtering ##
-    filterFromLeafRows: true,
+    // *** IMPORTANT: Keep these settings for robust expandable rows ***
+    getRowId: (row) => isVariant(row) ? `variant-${row.id}` : `product-${row.id}`,
     getSubRows: (originalRow: ProductRowData) => {
-      if (
-        !isVariant(originalRow) &&
-        originalRow.variants &&
-        (originalRow.variants.length > 1 || 
-          (originalRow.variants.length === 1 && originalRow.variants[0].title !== 'Default Title')
-        )
-      ) {
+      if (!isVariant(originalRow) && originalRow.variants?.length > 0) {
         return originalRow.variants;
       }
       return undefined;
     },
     onSortingChange: setSorting,
-    // ## UPDATED: Reset expansion when filters change ##
-    onColumnFiltersChange: (updater) => {
-      setExpanded({});
-      setColumnFilters(updater);
-    },
-    onGlobalFilterChange: (updater) => {
-      setExpanded({});
-      setGlobalFilter(updater);
-    },
+    // Don't use TanStack's built-in filtering since we handle it manually
+    manualFiltering: true,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
     getExpandedRowModel: getExpandedRowModel(),
   });
   
-  const availableVendors = useMemo(() => {
-    const vendorCounts: { [key: string]: number } = {};
-    allProducts.forEach(prod => {
-        vendorCounts[prod.vendor] = (vendorCounts[prod.vendor] || 0) + 1;
-    });
-    return Object.keys(vendorCounts).map(name => ({ name, count: vendorCounts[name] })).sort((a,b) => a.name.localeCompare(b.name));
-  }, [allProducts]);
-
-  const availableProductTypes = useMemo(() => {
-    const types = new Set<string>(allProducts.map(p => p.product_type));
-    return Array.from(types).sort();
-  }, [allProducts]);
-
-  const handleCollectionSelect = async (collectionHandle: string) => {
+  // *** FIX: Robust handler for collection selection ***
+  const handleCollectionSelect = useCallback(async (collectionHandle: string | null) => {
     setExpanded({});
-    const collection = collections.find(c => c.handle === collectionHandle);
-    setSelectedCollection(collection ? { handle: collection.handle, title: collection.title } : null);
-    if (collectionHandle === 'all') { 
-        setDisplayProducts(allProducts);
-        table.resetColumnFilters(); 
-        return; 
+    if (!collectionHandle || collectionHandle === 'all') {
+      setActiveCollectionProducts(null);
+      return;
     }
-    if (collectionCache[collectionHandle]) { setDisplayProducts(collectionCache[collectionHandle]); return; }
-    setTableLoading(true);
+    
+    if (collectionCache[collectionHandle]) {
+      setActiveCollectionProducts(collectionCache[collectionHandle]);
+      return;
+    }
+
+    setCollectionLoading(true);
     try {
-      const res = await fetch('/api/collection-products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ shopUrl, collectionHandle }) });
+      const res = await fetch('/api/collection-products', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ shopUrl, collectionHandle }) 
+      });
       const data = await res.json();
       if (data.products) {
         addCollectionToCache(collectionHandle, data.products);
-        setDisplayProducts(data.products);
-      } else { throw new Error(data.error || 'Failed to fetch'); }
-    } catch (error) { console.error(error); alert('Could not load products.'); } finally { setTableLoading(false); }
-  };
+        setActiveCollectionProducts(data.products);
+      } else { 
+        throw new Error(data.error || 'Failed to fetch'); 
+      }
+    } catch (error) { 
+      console.error(error); 
+      alert('Could not load products for this collection.'); 
+    } finally { 
+      setCollectionLoading(false); 
+    }
+  }, [shopUrl, collectionCache, addCollectionToCache]);
+
+  const handleClearFilters = useCallback(() => {
+    setColumnFilters([]);
+    setGlobalFilter('');
+    handleCollectionSelect(null);
+    table.resetSorting(true);
+  }, [handleCollectionSelect, table]);
+
+  const selectedCollectionHandle = useMemo(() => {
+      if (!activeCollectionProducts) return 'all';
+      // This is a proxy to find the handle since we don't store it directly.
+      // A more robust solution might involve storing the selected handle in state.
+      const firstProductId = activeCollectionProducts[0]?.id;
+      for (const col of collections) {
+          if (collectionCache[col.handle]?.some(p => p.id === firstProductId)) {
+              return col.handle;
+          }
+      }
+      return 'all';
+  }, [activeCollectionProducts, collections, collectionCache]);
   
+  const selectedCollection = collections.find(c => c.handle === selectedCollectionHandle);
   const selectedRowCount = table.getRowModel().rows.filter(row => row.depth === 0).length;
   const storeHostname = useMemo(() => { try { return new URL(shopUrl).hostname; } catch { return 'N/A'; } }, [shopUrl]);
-  const hasActiveFilters = columnFilters.length > 0 || globalFilter !== '' || !!selectedCollection;
+  const hasActiveFilters = columnFilters.length > 0 || globalFilter !== '' || !!activeCollectionProducts;
 
   return (
     <div className="w-full space-y-4">
@@ -154,8 +224,8 @@ function ProductTableView({
           <h2 className="text-2xl font-bold">Product View - <span className="text-gray-500">{storeHostname}</span></h2>
           <div className="flex items-center gap-4">
             <p>
-              {selectedCollection 
-                ? <>Showing <strong>{selectedRowCount}</strong> products in "<strong>{selectedCollection.title}</strong>"</>
+              {activeCollectionProducts
+                ? <>Showing <strong>{selectedRowCount}</strong> products in "<strong>{selectedCollection?.title}</strong>"</>
                 : <>Showing <strong>{selectedRowCount}</strong> of <strong>{allProducts.length}</strong> total products</>
               }
             </p>
@@ -165,8 +235,8 @@ function ProductTableView({
         <div className="flex items-center justify-between gap-4 h-10">
           <div className="flex flex-grow items-center gap-4">
             <div className="flex-shrink-0" style={{ width: '240px' }}>
-              <Select onValueChange={handleCollectionSelect} value={selectedCollection?.handle || 'all'}>
-                <SelectTrigger className={cn("h-10 w-full", selectedCollection && "filter-select")} data-state={selectedCollection ? 'active' : 'inactive'}>
+              <Select onValueChange={(val) => handleCollectionSelect(val === 'all' ? null : val)} value={selectedCollectionHandle}>
+                <SelectTrigger className={cn("h-10 w-full", selectedCollectionHandle !== 'all' && "filter-select")}>
                     <SelectValue placeholder="All Collections" />
                 </SelectTrigger>
                 <SelectContent>
@@ -179,8 +249,19 @@ function ProductTableView({
             <div className="h-10 w-2 flex-shrink-0 bg-brand-green-light rounded-full" />
             
             <div className="flex-shrink-0" style={{ width: '200px' }}>
-               <Select onValueChange={table.getColumn('vendor')?.setFilterValue} value={table.getColumn('vendor')?.getFilterValue() as string || 'all'}>
-                <SelectTrigger className={cn("h-10 w-full", !!table.getColumn('vendor')?.getFilterValue() && "filter-select")} data-state={table.getColumn('vendor')?.getFilterValue() ? 'active' : 'inactive'}>
+               <Select 
+                 onValueChange={(value) => {
+                   setColumnFilters(prev => {
+                     const filtered = prev.filter(f => f.id !== 'vendor');
+                     if (value !== 'all') {
+                       filtered.push({ id: 'vendor', value });
+                     }
+                     return filtered;
+                   });
+                 }} 
+                 value={columnFilters.find(f => f.id === 'vendor')?.value as string || 'all'}
+               >
+                <SelectTrigger className={cn("h-10 w-full", !!columnFilters.find(f => f.id === 'vendor')?.value && "filter-select")}>
                     <SelectValue placeholder="All Vendors" />
                 </SelectTrigger>
                 <SelectContent>
@@ -191,8 +272,19 @@ function ProductTableView({
             </div>
             
             <div className="flex-shrink-0" style={{ width: '200px' }}>
-              <Select onValueChange={table.getColumn('product_type')?.setFilterValue} value={table.getColumn('product_type')?.getFilterValue() as string || 'all'}>
-                <SelectTrigger className={cn("h-10 w-full", !!table.getColumn('product_type')?.getFilterValue() && "filter-select")} data-state={table.getColumn('product_type')?.getFilterValue() ? 'active' : 'inactive'}>
+              <Select 
+                onValueChange={(value) => {
+                  setColumnFilters(prev => {
+                    const filtered = prev.filter(f => f.id !== 'product_type');
+                    if (value !== 'all') {
+                      filtered.push({ id: 'product_type', value });
+                    }
+                    return filtered;
+                  });
+                }} 
+                value={columnFilters.find(f => f.id === 'product_type')?.value as string || 'all'}
+              >
+                <SelectTrigger className={cn("h-10 w-full", !!columnFilters.find(f => f.id === 'product_type')?.value && "filter-select")}>
                     <SelectValue placeholder="All Product Types" />
                 </SelectTrigger>
                 <SelectContent>
@@ -203,7 +295,7 @@ function ProductTableView({
             </div>
             
             {hasActiveFilters && (
-              <Button variant="link" onClick={() => { table.resetColumnFilters(); setGlobalFilter(''); handleCollectionSelect('all'); }}>Clear Filters</Button>
+              <Button variant="link" onClick={handleClearFilters}>Clear Filters</Button>
             )}
             {hasActiveFilters && table.getState().sorting.length > 0 && <div className="h-10 w-2 flex-shrink-0 bg-brand-green-light rounded-full" />}
             {table.getState().sorting.length > 0 && (
@@ -213,7 +305,7 @@ function ProductTableView({
           
           <div className="relative flex-shrink-0" style={{ width: '240px' }}>
             <Input 
-              placeholder="Search" 
+              placeholder="Search..." 
               value={globalFilter ?? ''} 
               onChange={e => setGlobalFilter(e.target.value)}
               className={cn(
@@ -237,7 +329,7 @@ function ProductTableView({
       
       <div className="rounded-md border bg-gray-50 dark:bg-card">
         <div className="w-full relative overflow-x-auto">
-          {isTableLoading && ( <div className="absolute inset-0 bg-white/75 dark:bg-black/75 flex items-center justify-center z-10"><p className="text-lg">Loading Collection...</p></div> )}
+          {isCollectionLoading && ( <div className="absolute inset-0 bg-white/75 dark:bg-black/75 flex items-center justify-center z-10"><p className="text-lg">Loading Collection...</p></div> )}
           {table.getRowModel().rows.length > 0 ? (
             <Table style={{ width: table.getCenterTotalSize() }}>
               <TableHeader>
