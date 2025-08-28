@@ -96,13 +96,13 @@ function ProductTableView({
         // Global filter check
         if (globalFilter) {
           const lowerGlobalFilter = globalFilter.toLowerCase();
-          const productFieldsMatch = 
+          const productFieldsMatch =
             product.title.toLowerCase().includes(lowerGlobalFilter) ||
             product.handle.toLowerCase().includes(lowerGlobalFilter) ||
             product.vendor.toLowerCase().includes(lowerGlobalFilter) ||
             product.product_type.toLowerCase().includes(lowerGlobalFilter);
 
-          const variantFieldsMatch = product.variants.some(variant => 
+          const variantFieldsMatch = product.variants.some(variant =>
             variant.title.toLowerCase().includes(lowerGlobalFilter) ||
             (variant.sku && variant.sku.toLowerCase().includes(lowerGlobalFilter))
           );
@@ -143,7 +143,7 @@ function ProductTableView({
     // *** IMPORTANT: Keep these settings for robust expandable rows ***
     getRowId: (row) => isVariant(row) ? `variant-${row.id}` : `product-${row.id}`,
     getSubRows: (originalRow: ProductRowData) => {
-      if (!isVariant(originalRow) && originalRow.variants?.length > 0) {
+      if (!isVariant(originalRow) && originalRow.variants?.length > 1 && originalRow.variants[0].title !== "Default Title") {
         return originalRow.variants;
       }
       return undefined;
@@ -172,23 +172,23 @@ function ProductTableView({
 
     setCollectionLoading(true);
     try {
-      const res = await fetch('/api/collection-products', { 
-        method: 'POST', 
-        headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify({ shopUrl, collectionHandle }) 
+      const res = await fetch('/api/collection-products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shopUrl, collectionHandle })
       });
       const data = await res.json();
       if (data.products) {
         addCollectionToCache(collectionHandle, data.products);
         setActiveCollectionProducts(data.products);
-      } else { 
-        throw new Error(data.error || 'Failed to fetch'); 
+      } else {
+        throw new Error(data.error || 'Failed to fetch');
       }
-    } catch (error) { 
-      console.error(error); 
-      alert('Could not load products for this collection.'); 
-    } finally { 
-      setCollectionLoading(false); 
+    } catch (error) {
+      console.error(error);
+      alert('Could not load products for this collection.');
+    } finally {
+      setCollectionLoading(false);
     }
   }, [shopUrl, collectionCache, addCollectionToCache]);
 
@@ -213,9 +213,31 @@ function ProductTableView({
   }, [activeCollectionProducts, collections, collectionCache]);
   
   const selectedCollection = collections.find(c => c.handle === selectedCollectionHandle);
-  const selectedRowCount = table.getRowModel().rows.filter(row => row.depth === 0).length;
+  const selectedRowCount = tableData.length;
   const storeHostname = useMemo(() => { try { return new URL(shopUrl).hostname; } catch { return 'N/A'; } }, [shopUrl]);
   const hasActiveFilters = columnFilters.length > 0 || globalFilter !== '' || !!activeCollectionProducts;
+
+  const handleExport = async () => {
+    const response = await fetch('/api/export', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ products: tableData }),
+    });
+
+    if (response.ok) {
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'shopify_import.csv';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } else {
+      alert('Failed to export products.');
+    }
+  };
+
 
   return (
     <div className="w-full space-y-4">
@@ -229,7 +251,7 @@ function ProductTableView({
                 : <>Showing <strong>{selectedRowCount}</strong> of <strong>{allProducts.length}</strong> total products</>
               }
             </p>
-            <Button>Export Products (CSV)</Button>
+            <Button onClick={handleExport}>Export Products (CSV)</Button>
           </div>
         </div>
         <div className="flex items-center justify-between gap-4 h-10">
@@ -249,7 +271,7 @@ function ProductTableView({
             <div className="h-10 w-2 flex-shrink-0 bg-brand-green-light rounded-full" />
             
             <div className="flex-shrink-0" style={{ width: '200px' }}>
-               <Select 
+               <Select
                  onValueChange={(value) => {
                    setColumnFilters(prev => {
                      const filtered = prev.filter(f => f.id !== 'vendor');
@@ -258,7 +280,7 @@ function ProductTableView({
                      }
                      return filtered;
                    });
-                 }} 
+                 }}
                  value={columnFilters.find(f => f.id === 'vendor')?.value as string || 'all'}
                >
                 <SelectTrigger className={cn("h-10 w-full", !!columnFilters.find(f => f.id === 'vendor')?.value && "filter-select")}>
@@ -272,7 +294,7 @@ function ProductTableView({
             </div>
             
             <div className="flex-shrink-0" style={{ width: '200px' }}>
-              <Select 
+              <Select
                 onValueChange={(value) => {
                   setColumnFilters(prev => {
                     const filtered = prev.filter(f => f.id !== 'product_type');
@@ -281,7 +303,7 @@ function ProductTableView({
                     }
                     return filtered;
                   });
-                }} 
+                }}
                 value={columnFilters.find(f => f.id === 'product_type')?.value as string || 'all'}
               >
                 <SelectTrigger className={cn("h-10 w-full", !!columnFilters.find(f => f.id === 'product_type')?.value && "filter-select")}>
@@ -304,19 +326,19 @@ function ProductTableView({
           </div>
           
           <div className="relative flex-shrink-0" style={{ width: '240px' }}>
-            <Input 
-              placeholder="Search..." 
-              value={globalFilter ?? ''} 
+            <Input
+              placeholder="Search..."
+              value={globalFilter ?? ''}
               onChange={e => setGlobalFilter(e.target.value)}
               className={cn(
-                "h-10", 
+                "h-10",
                 globalFilter && "border-2 border-brand-green ring-0 ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-brand-green"
               )}
             />
             {globalFilter && (
-              <Button 
-                variant="ghost" 
-                size="icon" 
+              <Button
+                variant="ghost"
+                size="icon"
                 className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 text-muted-foreground hover:text-foreground"
                 onClick={() => setGlobalFilter('')}
               >
@@ -406,7 +428,7 @@ function ProductTableView({
 }
 
 export default function Step2Review() {
-  const { 
+  const {
     shopUrl, addLog, setResults, isLoading, logs,
     products, collections, collectionCache, addCollectionToCache, reset
   } = useScrapeStore();
@@ -474,7 +496,7 @@ export default function Step2Review() {
 
   if (!isLoading && products.length > 0) {
     return (
-      <ProductTableView 
+      <ProductTableView
           allProducts={products}
           collections={collections}
           shopUrl={shopUrl}

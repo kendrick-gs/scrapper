@@ -40,8 +40,8 @@ export const columns: ColumnDef<ProductRowData>[] = [
     size: 250,
     cell: ({ row }) => {
       const isParent = row.getCanExpand();
-      const handle = isVariant(row.original) 
-        ? (row.getParentRow()?.original as ShopifyProduct)?.handle 
+      const handle = isVariant(row.original)
+        ? (row.getParentRow()?.original as ShopifyProduct)?.handle
         : row.original.handle;
       return (
         <div style={{ paddingLeft: `${row.depth * 1.5}rem` }} className="flex items-center">
@@ -74,9 +74,21 @@ export const columns: ColumnDef<ProductRowData>[] = [
       return (
         <div className="flex flex-row flex-wrap items-center gap-1">
           {images.map((img) => (
-            <div key={img.id} className="relative h-12 w-12">
-              <Image src={img.src} alt={img.alt || 'Product image'} fill sizes="48px" className="rounded object-cover" />
-            </div>
+            <Dialog key={img.id}>
+              <DialogTrigger asChild>
+                <div className="relative h-12 w-12 cursor-pointer">
+                  <Image src={img.src} alt={img.alt || 'Product image'} fill sizes="48px" className="rounded object-cover" />
+                </div>
+              </DialogTrigger>
+              <DialogContent className="max-w-3xl">
+                <DialogHeader>
+                  <DialogTitle>{img.alt || 'Product Image'}</DialogTitle>
+                </DialogHeader>
+                <div className="relative h-96">
+                  <Image src={img.src} alt={img.alt || 'Product image'} fill sizes="100vw" className="object-contain" />
+                </div>
+              </DialogContent>
+            </Dialog>
           ))}
         </div>
       );
@@ -140,7 +152,7 @@ export const columns: ColumnDef<ProductRowData>[] = [
                         <DialogTrigger asChild><Badge variant="outline" className="cursor-pointer">+{tagArray.length - 2}</Badge></DialogTrigger>
                         <DialogContent>
                             <DialogHeader><DialogTitle>All Tags</DialogTitle></DialogHeader>
-                            <div className="flex flex-wrap gap-2">{tagArray.map(tag => (<Badge key={tag} variant="secondary">{tag}</Badge>))}</div> 
+                            <div className="flex flex-wrap gap-2">{tagArray.map(tag => (<Badge key={tag} variant="secondary">{tag}</Badge>))}</div>
                         </DialogContent>
                     </Dialog>
                 )}
