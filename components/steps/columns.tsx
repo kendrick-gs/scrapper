@@ -15,21 +15,19 @@ export function isVariant(data: ProductRowData): data is ShopifyVariant {
     return 'sku' in data && 'product_id' in data;
 }
 
+// ## FINAL HEADER COMPONENT ##
 const SortableHeader = ({ column, title }: { column: any, title: string }) => {
     const sortDir = column.getIsSorted();
     return (
         <Button
             variant={sortDir ? "default" : "ghost"}
             onClick={() => column.toggleSorting(sortDir === "asc")}
-            // ## UPDATED: Button fills cell, padding is applied to inner div ##
-            className="w-full h-full p-0"
+            className="w-full h-full justify-start"
         >
-            <div className="flex items-center justify-between w-full px-4">
-                <span>{title}</span>
-                <div className="flex items-center -space-x-1">
-                    <ArrowUp className={cn("h-4 w-4", sortDir === 'asc' ? 'text-primary-foreground' : 'text-muted-foreground/50')} />
-                    <ArrowDown className={cn("h-4 w-4", sortDir === 'desc' ? 'text-primary-foreground' : 'text-muted-foreground/50')} />
-                </div>
+            <span>{title}</span>
+            <div className="ml-auto flex items-center -space-x-1 pl-2">
+                <ArrowUp className={cn("h-4 w-4", sortDir === 'asc' ? 'text-primary-foreground' : 'text-muted-foreground/50')} />
+                <ArrowDown className={cn("h-4 w-4", sortDir === 'desc' ? 'text-primary-foreground' : 'text-muted-foreground/50')} />
             </div>
         </Button>
     )
@@ -42,7 +40,9 @@ export const columns: ColumnDef<ProductRowData>[] = [
     size: 250,
     cell: ({ row }) => {
       const isParent = row.getCanExpand();
-      const handle = isVariant(row.original) ? (row.getParentRow()?.original as ShopifyProduct)?.handle : row.original.handle;
+      const handle = isVariant(row.original) 
+        ? (row.getParentRow()?.original as ShopifyProduct)?.handle 
+        : row.original.handle;
       return (
         <div style={{ paddingLeft: `${row.depth * 1.5}rem` }} className="flex items-center">
           {isParent ? (
@@ -59,14 +59,13 @@ export const columns: ColumnDef<ProductRowData>[] = [
     accessorKey: 'title',
     header: ({ column }) => <SortableHeader column={column} title="Product Title" />,
     size: 350,
-    cell: ({ row }) => {
-      const title = row.original.title;
-      return <span className={cn("line-clamp-2", isVariant(row.original) && "text-muted-foreground pl-4")}>{title}</span>
+    cell: ({ row, getValue }) => {
+      return <span className={cn("line-clamp-2", isVariant(row.original) && "text-muted-foreground pl-4")}>{getValue() as string}</span>
     }
   },
   {
     accessorKey: 'images',
-    header: () => <div className="px-4 text-left font-medium">Images</div>,
+    header: 'Images',
     size: 200,
     cell: ({ row }) => {
       if (isVariant(row.original)) return null;
@@ -107,9 +106,8 @@ export const columns: ColumnDef<ProductRowData>[] = [
   },
   {
     accessorKey: 'body_html',
-    header: () => <div className="px-4 text-left font-medium">Body HTML</div>,
+    header: 'Body HTML',
     size: 120,
-    // ## FIXED: Restored missing cell logic ##
     cell: ({ row }) => {
         if (isVariant(row.original)) return null;
         const bodyHtml = row.original.body_html;
@@ -127,9 +125,8 @@ export const columns: ColumnDef<ProductRowData>[] = [
   },
   {
     accessorKey: 'tags',
-    header: () => <div className="px-4 text-left font-medium">Tags</div>,
+    header: 'Tags',
     size: 120,
-    // ## FIXED: Restored missing cell logic ##
     cell: ({ row }) => {
         if (isVariant(row.original)) return null;
         const tags = row.original.tags;
@@ -138,7 +135,15 @@ export const columns: ColumnDef<ProductRowData>[] = [
         return (
             <div className="flex flex-wrap gap-1">
                 {tagArray.slice(0, 2).map(tag => <Badge key={tag} variant="secondary">{tag}</Badge>)}
-                {tagArray.length > 2 && <Badge variant="outline">+{tagArray.length - 2}</Badge>}
+                {tagArray.length > 2 && (
+                    <Dialog>
+                        <DialogTrigger asChild><Badge variant="outline" className="cursor-pointer">+{tagArray.length - 2}</Badge></DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader><DialogTitle>All Tags</DialogTitle></DialogHeader>
+                            <div className="flex flex-wrap gap-2">{tagArray.map(tag => (<Badge key={tag} variant="secondary">{tag}</Badge>))}</div> 
+                        </DialogContent>
+                    </Dialog>
+                )}
             </div>
         );
     }

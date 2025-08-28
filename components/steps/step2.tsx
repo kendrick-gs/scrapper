@@ -12,6 +12,7 @@ import {
   SortingState,
   ColumnFiltersState,
   ColumnSizingState,
+  ExpandedState,
 } from '@tanstack/react-table';
 import { useScrapeStore } from '@/store/useScrapeStore';
 import { columns, ProductRowData, isVariant } from './columns';
@@ -66,24 +67,41 @@ function ProductTableView({
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
   const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({});
+  const [expanded, setExpanded] = useState<ExpandedState>({});
 
   useEffect(() => { setDisplayProducts(allProducts); }, [allProducts]);
 
   const table = useReactTable({
     data: displayProducts,
     columns,
-    state: { sorting, columnFilters, globalFilter, columnSizing },
+    state: { sorting, columnFilters, globalFilter, columnSizing, expanded },
+    onExpandedChange: setExpanded,
     onColumnSizingChange: setColumnSizing,
     columnResizeMode: 'onChange',
+    // ## ADDED: This preserves the parent-child relationship during filtering ##
+    filterFromLeafRows: true,
     getSubRows: (originalRow: ProductRowData) => {
-        if (!isVariant(originalRow) && originalRow.variants && originalRow.variants.length > 1) {
-            return originalRow.variants;
-        }
-        return undefined;
+      if (
+        !isVariant(originalRow) &&
+        originalRow.variants &&
+        (originalRow.variants.length > 1 || 
+          (originalRow.variants.length === 1 && originalRow.variants[0].title !== 'Default Title')
+        )
+      ) {
+        return originalRow.variants;
+      }
+      return undefined;
     },
     onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    onGlobalFilterChange: setGlobalFilter,
+    // ## UPDATED: Reset expansion when filters change ##
+    onColumnFiltersChange: (updater) => {
+      setExpanded({});
+      setColumnFilters(updater);
+    },
+    onGlobalFilterChange: (updater) => {
+      setExpanded({});
+      setGlobalFilter(updater);
+    },
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -105,6 +123,7 @@ function ProductTableView({
   }, [allProducts]);
 
   const handleCollectionSelect = async (collectionHandle: string) => {
+    setExpanded({});
     const collection = collections.find(c => c.handle === collectionHandle);
     setSelectedCollection(collection ? { handle: collection.handle, title: collection.title } : null);
     if (collectionHandle === 'all') { 
@@ -130,7 +149,7 @@ function ProductTableView({
 
   return (
     <div className="w-full space-y-4">
-      <div className="w-full max-w-[1440px] mx-auto space-y-4">
+      <div className="w-full max-w-[1440px] mx-auto space-y-4 px-4">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-bold">Product View - <span className="text-gray-500">{storeHostname}</span></h2>
           <div className="flex items-center gap-4">
@@ -143,10 +162,9 @@ function ProductTableView({
             <Button>Export Products (CSV)</Button>
           </div>
         </div>
-
         <div className="flex items-center justify-between gap-4 h-10">
           <div className="flex flex-grow items-center gap-4">
-            <div className="flex-grow-[1.25]" style={{ minWidth: '240px' }}>
+            <div className="flex-shrink-0" style={{ width: '240px' }}>
               <Select onValueChange={handleCollectionSelect} value={selectedCollection?.handle || 'all'}>
                 <SelectTrigger className={cn("h-10 w-full", selectedCollection && "filter-select")} data-state={selectedCollection ? 'active' : 'inactive'}>
                     <SelectValue placeholder="All Collections" />
@@ -160,8 +178,8 @@ function ProductTableView({
 
             <div className="h-10 w-2 flex-shrink-0 bg-brand-green-light rounded-full" />
             
-            <div className="flex-grow" style={{ minWidth: '200px' }}>
-               <Select onValueChange={value => table.getColumn('vendor')?.setFilterValue(value === 'all' ? '' : value)} value={table.getColumn('vendor')?.getFilterValue() as string || 'all'}>
+            <div className="flex-shrink-0" style={{ width: '200px' }}>
+               <Select onValueChange={table.getColumn('vendor')?.setFilterValue} value={table.getColumn('vendor')?.getFilterValue() as string || 'all'}>
                 <SelectTrigger className={cn("h-10 w-full", !!table.getColumn('vendor')?.getFilterValue() && "filter-select")} data-state={table.getColumn('vendor')?.getFilterValue() ? 'active' : 'inactive'}>
                     <SelectValue placeholder="All Vendors" />
                 </SelectTrigger>
@@ -172,8 +190,8 @@ function ProductTableView({
               </Select>
             </div>
             
-            <div className="flex-grow" style={{ minWidth: '200px' }}>
-              <Select onValueChange={value => table.getColumn('product_type')?.setFilterValue(value === 'all' ? '' : value)} value={table.getColumn('product_type')?.getFilterValue() as string || 'all'}>
+            <div className="flex-shrink-0" style={{ width: '200px' }}>
+              <Select onValueChange={table.getColumn('product_type')?.setFilterValue} value={table.getColumn('product_type')?.getFilterValue() as string || 'all'}>
                 <SelectTrigger className={cn("h-10 w-full", !!table.getColumn('product_type')?.getFilterValue() && "filter-select")} data-state={table.getColumn('product_type')?.getFilterValue() ? 'active' : 'inactive'}>
                     <SelectValue placeholder="All Product Types" />
                 </SelectTrigger>
@@ -197,7 +215,7 @@ function ProductTableView({
             <Input 
               placeholder="Search" 
               value={globalFilter ?? ''} 
-              onChange={e => setGlobalFilter(e.target.value)} 
+              onChange={e => setGlobalFilter(e.target.value)}
               className={cn(
                 "h-10", 
                 globalFilter && "border-2 border-brand-green ring-0 ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-brand-green"
@@ -226,7 +244,7 @@ function ProductTableView({
                 {table.getHeaderGroups().map(hg => (
                   <TableRow key={hg.id} className="hover:bg-gray-200 dark:hover:bg-gray-800">
                     {hg.headers.map(h => (
-                      <TableHead key={h.id} style={{ width: h.getSize() }} className="relative p-0">
+                      <TableHead key={h.id} style={{ width: h.getSize() }} className="relative px-4">
                         {flexRender(h.column.columnDef.header, h.getContext())}
                         <div
                           onMouseDown={h.getResizeHandler()}

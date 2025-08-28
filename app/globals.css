@@ -61,8 +61,10 @@
 }
 
 table th {
-  @apply bg-gray-300 dark:bg-gray-800 h-16 p-0 align-middle; /* Also removed padding here to allow button to control it */
+  @apply bg-gray-300 dark:bg-gray-800 h-16 text-left align-middle font-medium;
 }
+
+
 
 
 .filter-select[data-state=active] {
