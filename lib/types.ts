@@ -14,6 +14,8 @@ export interface ShopifyVariant {
   product_id: number;
   title: string;
   price: string;
+  compare_at_price?: string;
+  cost?: string;
   sku: string | null;
   created_at: string;
   updated_at: string;
@@ -30,6 +32,8 @@ export interface ShopifyProduct {
   created_at: string;
   updated_at: string;
   status: 'active' | 'archived' | 'draft';
+  seo_title?: string;
+  seo_description?: string;
   tags: string | string[]; // Tags can be a string or an array of strings
   images: ShopifyImage[];
   variants: ShopifyVariant[];
