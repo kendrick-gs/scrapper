@@ -17,20 +17,27 @@ export function isVariant(data: ProductRowData): data is ShopifyVariant {
 
 // ## FINAL HEADER COMPONENT ##
 const SortableHeader = ({ column, title }: { column: any, title: string }) => {
-    const sortDir = column.getIsSorted();
-    return (
-        <Button
-            variant={sortDir ? "default" : "ghost"}
-            onClick={() => column.toggleSorting(sortDir === "asc")}
-            className="w-full h-full justify-start"
-        >
-            <span>{title}</span>
-            <div className="ml-auto flex items-center -space-x-1 pl-2">
-                <ArrowUp className={cn("h-4 w-4", sortDir === 'asc' ? 'text-primary-foreground' : 'text-muted-foreground/50')} />
-                <ArrowDown className={cn("h-4 w-4", sortDir === 'desc' ? 'text-primary-foreground' : 'text-muted-foreground/50')} />
-            </div>
-        </Button>
-    )
+  const sortDir = column.getIsSorted();
+  const isActive = !!sortDir;
+  return (
+    <Button
+      variant="ghost"
+      onClick={() => column.toggleSorting(sortDir === "asc")}
+      className={cn(
+        "w-full h-full justify-start",
+        // Fill the header cell area and invert colors when active
+        isActive
+          ? "bg-gray-800 text-white hover:bg-gray-800"
+          : "text-gray-900 hover:bg-gray-200"
+      )}
+    >
+      <span className={cn(isActive ? "text-white" : "text-gray-900")}>{title}</span>
+      <div className="ml-auto flex items-center -space-x-1 pl-2">
+        <ArrowUp className={cn("h-4 w-4", sortDir === 'asc' ? (isActive ? 'text-white' : 'text-gray-900') : (isActive ? 'text-white/70' : 'text-gray-600'))} />
+        <ArrowDown className={cn("h-4 w-4", sortDir === 'desc' ? (isActive ? 'text-white' : 'text-gray-900') : (isActive ? 'text-white/70' : 'text-gray-600'))} />
+      </div>
+    </Button>
+  )
 };
 
 export const columns: ColumnDef<ProductRowData>[] = [
@@ -65,7 +72,7 @@ export const columns: ColumnDef<ProductRowData>[] = [
   },
   {
     accessorKey: 'images',
-    header: 'Images',
+    header: () => <span className="text-gray-900">Images</span>,
     size: 200,
     cell: ({ row }) => {
       if (isVariant(row.original)) return null;
@@ -118,7 +125,7 @@ export const columns: ColumnDef<ProductRowData>[] = [
   },
   {
     accessorKey: 'body_html',
-    header: 'Body HTML',
+    header: () => <span className="text-gray-900">Body HTML</span>,
     size: 120,
     cell: ({ row }) => {
         if (isVariant(row.original)) return null;
@@ -137,7 +144,7 @@ export const columns: ColumnDef<ProductRowData>[] = [
   },
   {
     accessorKey: 'tags',
-    header: 'Tags',
+    header: () => <span className="text-gray-900">Tags</span>,
     size: 120,
     cell: ({ row }) => {
         if (isVariant(row.original)) return null;

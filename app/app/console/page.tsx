@@ -8,8 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/useAuthStore';
-import { ArrowUpRight, Eye } from 'lucide-react';
-import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
+import { ArrowUpRight, Eye, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-react';
+// Removed mobile Collapsible; filters are always visible on mobile
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
@@ -54,7 +54,8 @@ export default function ConsolePage() {
   const [newListName, setNewListName] = useState('');
   const [lists, setLists] = useState<{ id: string; name: string }[]>([]);
   const [selectedListId, setSelectedListId] = useState<string>('');
-  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [alsoSavePresets, setAlsoSavePresets] = useState(true);
+  // Mobile filters are always visible; no toggle state
   const [listDialogOpen, setListDialogOpen] = useState(false);
 
   useEffect(() => {
@@ -170,17 +171,23 @@ export default function ConsolePage() {
     cell: ({ row }: any) => (
       <input type="checkbox" checked={row.getIsSelected()} onChange={row.getToggleSelectedHandler()} aria-label="Select Row" />
     ),
-    size: 32,
+    size: 36,
+    minSize: 36,
+    maxSize: 36,
+    enableResizing: false,
   }] as any), []);
 
   const actionColumn = useMemo(() => ([{
     id: 'view',
     header: () => (
-      <div className="text-right">
-        <Eye className="h-4 w-4 inline" aria-label="View" />
+      <div className="text-right text-gray-900">
+        <Eye className="h-4 w-4 inline text-gray-900" aria-label="View" />
       </div>
     ),
-    size: 60,
+    size: 48,
+    minSize: 48,
+    maxSize: 56,
+    enableResizing: false,
     cell: ({ row }: any) => {
       const product = isVariant(row.original) ? (row.getParentRow()?.original) : row.original;
       const url = `${product.__storeUrl?.replace(/\/$/, '')}/products/${product.handle}`;
@@ -220,9 +227,30 @@ export default function ConsolePage() {
     });
   }, []);
 
+  // Format host to main domain (strip protocol and leading www)
+  const formatHost = useCallback((value: string | undefined) => {
+    if (!value) return '';
+    let host = value;
+    try { host = new URL(value).hostname; } catch { /* value might already be a host */ }
+    return host.replace(/^www\./, '');
+  }, []);
+
+  // Optional Store column (shown before Handle) when NOT filtering per store
+  const showStoreColumn = storeFilter === 'all';
+  const storeColumn = useMemo(() => ([{
+    id: 'store',
+    header: () => (<span className="text-gray-900">Store</span>),
+    size: 180,
+    cell: ({ row }: any) => {
+      const p = isVariant(row.original) ? (row.getParentRow()?.original) : row.original;
+      const host = p?.__storeHost || p?.__storeUrl || '';
+      return <span className="text-gray-900">{formatHost(host)}</span>;
+    }
+  }] as any), [formatHost]);
+
   const table = useReactTable({
     data: tableData,
-    columns: [...selectColumn, ...consoleColumns, ...actionColumn],
+    columns: [...selectColumn, ...(showStoreColumn ? storeColumn : []), ...consoleColumns, ...actionColumn],
     state: { sorting, columnSizing, expanded, rowSelection },
     onExpandedChange: setExpanded,
     onColumnSizingChange: setColumnSizing,
@@ -286,7 +314,7 @@ export default function ConsolePage() {
 
   return (
     <div className="w-full max-w-[1440px] mx-auto px-0 space-y-3 md:space-y-4">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4">
+      <div className="flex items-center justify-between gap-3 md:gap-4">
         <div>
           <h2 className="text-2xl font-bold">Console</h2>
         </div>
@@ -294,17 +322,15 @@ export default function ConsolePage() {
           <div className="text-sm text-muted-foreground hidden md:block">
             Showing <strong>{selectedRowCount}</strong> of <strong>{totalBaseCount}</strong> products
           </div>
-          <Button variant="outline" size="sm" className="md:hidden" onClick={() => setFiltersOpen(v => !v)}>
-            {filtersOpen ? 'Hide Filters' : 'Show Filters'}
-          </Button>
+          {/* Mobile filters are always visible; no toggle */}
           <Button onClick={handleExport}>Export Products (CSV)</Button>
         </div>
       </div>
 
       {/* Desktop controls moved inside the table header */}
 
-      <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
-        <CollapsibleContent className="md:hidden space-y-3">
+      {/* Mobile filters always visible */}
+      <div className="md:hidden space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Select value={storeFilter} onValueChange={setStoreFilter}>
               <SelectTrigger className="h-10 w-full"><SelectValue placeholder="All Stores" /></SelectTrigger>
@@ -335,10 +361,7 @@ export default function ConsolePage() {
               </SelectContent>
             </Select>
           </div>
-          <div className="relative">
-            <input className={cn('h-10 px-3 border rounded-md w-full text-sm placeholder:text-muted-foreground', globalFilter && 'border-2 border-brand-green')} placeholder="Search products..." value={globalFilter} onChange={e => setGlobalFilter(e.target.value)} />
-            {globalFilter && (<Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => setGlobalFilter('')}>×</Button>)}
-          </div>
+          {/* Search input removed here; toolbar search handles it */}
           {activeFilterChips.length > 0 && (
             <div className="flex items-center gap-2 flex-wrap">
               {activeFilterChips.map(chip => (
@@ -351,8 +374,12 @@ export default function ConsolePage() {
               {table.getState().sorting.length > 0 && (<Button variant="link" onClick={() => table.resetSorting()}>Reset Sort</Button>)}
             </div>
           )}
-        </CollapsibleContent>
-      </Collapsible>
+      </div>
+
+      {/* Mobile: product count under filters, above table */}
+      <div className="md:hidden px-4 text-sm text-muted-foreground text-center">
+        Showing <strong>{selectedRowCount}</strong> of <strong>{totalBaseCount}</strong> products
+      </div>
 
       {/* Desktop filter toolbar above the table */}
       <div className="hidden md:flex items-center gap-3 flex-wrap">
@@ -413,16 +440,40 @@ export default function ConsolePage() {
           </Select>
         </div>
 
-        {(storeFilter !== 'all' || vendorFilter !== 'all' || typeFilter !== 'all' || collectionFilter !== 'all' || globalFilter) && (
-          <Button variant="link" onClick={() => { setStoreFilter('all'); setVendorFilter('all'); setTypeFilter('all'); setCollectionFilter('all'); setGlobalFilter(''); setExpanded({}); }}>Clear Filters</Button>
-        )}
       </div>
 
-      <Card className="py-0">
+      {/* Desktop: show active filter chips under the filters (same style as mobile), no Clear All button */}
+      {activeFilterChips.length > 0 && (
+        <div className="hidden md:flex items-center gap-2 flex-wrap">
+          {activeFilterChips.map(chip => (
+            <Badge key={chip.key} variant="secondary" className="flex items-center gap-2">
+              {chip.label}
+              <button onClick={chip.onClear} aria-label={`Clear ${chip.key}`}>×</button>
+            </Badge>
+          ))}
+          <Button
+            variant="link"
+            onClick={() => {
+              setStoreFilter('all');
+              setVendorFilter('all');
+              setTypeFilter('all');
+              setCollectionFilter('all');
+              setGlobalFilter('');
+              setExpanded({});
+            }}
+          >
+            Clear All
+          </Button>
+        </div>
+      )}
+
+      {/* Full-bleed wrapper so the table expands to the viewport width */}
+      <div className="full-bleed px-4 md:px-8">
+      <Card className="py-0 border-2 rounded-2xl overflow-hidden">
         <CardContent className="p-0 px-0">
           {/* Toolbar inside the table frame but visually separate from header */}
-          <div className="w-full px-3 py-2 bg-white dark:bg-background flex items-center gap-2">
-            <div className="relative" style={{ width: 320 }}>
+          <div className="w-full px-3 py-3 bg-white dark:bg-background flex flex-wrap items-center gap-x-2 gap-y-3 rounded-t-2xl">
+            <div className="relative w-full sm:w-[320px] order-2">
               <input
                 className={cn('h-8 px-3 border rounded-md w-full text-sm placeholder:text-muted-foreground', globalFilter && 'border-2 border-brand-green')}
                 placeholder="Search products..."
@@ -433,24 +484,30 @@ export default function ConsolePage() {
                 <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => setGlobalFilter('')}>×</Button>
               )}
             </div>
-            <Button size="sm" onClick={() => setListDialogOpen(true)} disabled={selectedCount === 0}>Add To List ({selectedCount})</Button>
-            <Button size="sm" variant="outline" onClick={() => setRowSelection({})} disabled={selectedCount === 0}>Clear</Button>
-            <Button size="sm" variant={allListedSelected ? 'outline' : 'default'} disabled={allListedSelected} onClick={() => {
-              const map: Record<string, boolean> = {};
-              table.getPrePaginationRowModel().rows.forEach(r => { map[r.id] = true; });
-              setRowSelection(map);
-            }}>Select All Products</Button>
-            {table.getState().sorting.length > 0 && (
-              <Button variant="link" onClick={() => table.resetSorting()}>Reset Sort</Button>
-            )}
+
+            {/* Row 3 (mobile): List actions */}
+            <div className="order-2 w-full sm:w-auto flex items-center gap-2">
+              <Button size="sm" onClick={() => setListDialogOpen(true)} disabled={selectedCount === 0}>Add To List ({selectedCount})</Button>
+              <Button size="sm" variant="outline" onClick={() => setRowSelection({})} disabled={selectedCount === 0}>Clear</Button>
+              <Button size="sm" variant={allListedSelected ? 'outline' : 'default'} disabled={allListedSelected} onClick={() => {
+                const map: Record<string, boolean> = {};
+                table.getPrePaginationRowModel().rows.forEach(r => { map[r.id] = true; });
+                setRowSelection(map);
+              }}>Select All Products</Button>
+              {table.getState().sorting.length > 0 && (
+                <Button variant="link" onClick={() => table.resetSorting()}>Reset Sort</Button>
+              )}
+            </div>
+
+            {/* Pagination moved to footer below table */}
 
             {/* List Selection Dialog */}
             <Dialog open={listDialogOpen} onOpenChange={setListDialogOpen}>
               <DialogContent>
                 <DialogHeader><DialogTitle>Add Selected Products To List</DialogTitle></DialogHeader>
-                <div className="space-y-3">
-                  <div>
-                    <div className="text-sm text-muted-foreground mb-1">Choose a list</div>
+              <div className="space-y-3">
+                <div>
+                  <div className="text-sm text-muted-foreground mb-1">Choose a list</div>
                     <Select value={selectedListId} onValueChange={setSelectedListId}>
                       <SelectTrigger className={cn('h-10 w-full', selectedListId && 'filter-select')}>
                         <SelectValue placeholder="Select a list" />
@@ -460,8 +517,12 @@ export default function ConsolePage() {
                         <SelectItem value="__new__">+ Create New…</SelectItem>
                       </SelectContent>
                     </Select>
-                  </div>
-                  {selectedListId === '__new__' && (
+                </div>
+                <div className="flex items-center gap-2">
+                  <input id="alsoPresets" type="checkbox" checked={alsoSavePresets} onChange={e=>setAlsoSavePresets(e.target.checked)} />
+                  <label htmlFor="alsoPresets" className="text-sm text-muted-foreground">Also add Vendors, Product Types, and Tags to Data Presets</label>
+                </div>
+                {selectedListId === '__new__' && (
                     <Input className="h-10 w-full text-sm placeholder:text-muted-foreground" placeholder="New list name" value={newListName} onChange={e=>setNewListName(e.target.value)} />
                   )}
                   <div className="flex justify-end gap-2 pt-2">
@@ -478,12 +539,21 @@ export default function ConsolePage() {
                     setNewListName('');
                   }
                   if (!targetListId) return;
-                  const selectedRows = table.getSelectedRowModel().rows;
-                  const productsToAdd = Array.from(new Map(selectedRows.map(r => {
-                    const p = isVariant(r.original) ? (r.getParentRow()?.original) : r.original;
-                    return [`${p.__storeHost || ''}:${p.handle}`, p];
-                  })).values());
-                  await fetch(`/api/lists/${targetListId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ products: productsToAdd }) });
+                              const selectedRows = table.getSelectedRowModel().rows;
+                              const productsToAdd = Array.from(new Map(selectedRows.map(r => {
+                                const base = isVariant(r.original) ? (r.getParentRow()?.original) : r.original;
+                                const ensuredHost = base?.__storeHost || (base?.__storeUrl ? formatHost(base.__storeUrl) : (storeFilter !== 'all' ? storeFilter : ''));
+                                const ensuredUrl = base?.__storeUrl || '';
+                                const p = { ...base, __storeHost: ensuredHost, __storeUrl: ensuredUrl };
+                                return [`${p.__storeHost || ''}:${p.handle}`, p];
+                              })).values());
+                              await fetch(`/api/lists/${targetListId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ products: productsToAdd }) });
+              if (alsoSavePresets) {
+                const vendors = Array.from(new Set(productsToAdd.map((p:any)=> (p.vendor ?? '').trim()).filter(Boolean)));
+                const productTypes = Array.from(new Set(productsToAdd.map((p:any)=> (p.product_type ?? '').trim()).filter(Boolean)));
+                const tags = Array.from(new Set(productsToAdd.flatMap((p:any)=> Array.isArray(p.tags) ? p.tags : (typeof p.tags==='string' ? p.tags.split(',').map((t:string)=>t.trim()) : [])).filter(Boolean)));
+                await fetch('/api/presets', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ vendors, productTypes, tags }) });
+              }
                   setRowSelection({});
                    setListDialogOpen(false);
                 }}>Add To List</Button>
@@ -497,18 +567,20 @@ export default function ConsolePage() {
             <Table style={{ width: table.getCenterTotalSize() }}>
               <TableHeader>
                 {table.getHeaderGroups().map(hg => (
-                  <TableRow key={hg.id} className="bg-gray-300 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-700">
+                  <TableRow key={hg.id} className="bg-gray-300 hover:bg-gray-300">
                     {hg.headers.map(h => (
                       <TableHead key={h.id} style={{ width: h.getSize() }} className={cn('relative px-4',
-                        h.column.id === 'view' && 'sticky right-0 bg-gray-300 dark:bg-gray-700 z-10',
-                        h.column.id === 'select' && 'sticky left-0 bg-gray-300 dark:bg-gray-700 z-10'
+                        h.column.id === 'view' && 'sticky right-0 bg-gray-300 z-10',
+                        h.column.id === 'select' && 'sticky left-0 bg-gray-300 z-10'
                       )}>
                         {flexRender(h.column.columnDef.header, h.getContext())}
-                        <div
-                          onMouseDown={h.getResizeHandler()}
-                          onTouchStart={h.getResizeHandler()}
-                          className={cn('resizer', h.column.getIsResizing() && 'isResizing')}
-                        />
+                        {!(h.column.id === 'select' || h.column.id === 'view') && (
+                          <div
+                            onMouseDown={h.getResizeHandler()}
+                            onTouchStart={h.getResizeHandler()}
+                            className={cn('resizer', h.column.getIsResizing() && 'isResizing')}
+                          />
+                        )}
                       </TableHead>
                     ))}
                   </TableRow>
@@ -519,8 +591,8 @@ export default function ConsolePage() {
                   <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'} className="dark:bg-background">
                     {row.getVisibleCells().map(cell => (
                       <TableCell key={cell.id} style={{ width: cell.column.getSize() }} className={cn('p-4 align-middle',
-                        cell.column.id === 'view' && 'sticky right-0 bg-background z-10',
-                        cell.column.id === 'select' && 'sticky left-0 bg-background z-10'
+                        cell.column.id === 'view' && 'sticky right-0 bg-card z-10',
+                        cell.column.id === 'select' && 'sticky left-0 bg-card z-10'
                       )}>
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </TableCell>
@@ -532,17 +604,29 @@ export default function ConsolePage() {
           </div>
         </CardContent>
       </Card>
+      </div>
 
-      <div className="flex items-center justify-between gap-4 py-4 w-full">
-        <div className="flex-1" />
-        <div className="flex flex-shrink-0 justify-center items-center gap-4">
-          <Button variant="outline" size="sm" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>First</Button>
-          <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>Previous</Button>
-          <div className="text-sm text-muted-foreground whitespace-nowrap">Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}</div>
-          <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Next</Button>
-          <Button variant="outline" size="sm" onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()}>Last</Button>
+      {/* Table footer pagination (desktop & mobile) */}
+      <div className="flex items-center gap-2 py-4 w-full">
+        {/* Center: nav + page number */}
+        <div className="flex-none flex items-center gap-2 justify-center mx-auto">
+          <Button variant="outline" size="icon" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()} aria-label="First page">
+            <ChevronsLeft className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="icon" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()} aria-label="Previous page">
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <span className="text-sm text-muted-foreground">Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}</span>
+          <Button variant="outline" size="icon" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()} aria-label="Next page">
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="icon" onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()} aria-label="Last page">
+            <ChevronsRight className="h-4 w-4" />
+          </Button>
         </div>
-        <div className="flex flex-1 justify-end items-center gap-2">
+
+        {/* Right: page size dropdown */}
+        <div className="flex-1 flex items-center justify-end gap-2">
           <span className="text-sm text-muted-foreground">Show</span>
           <Select value={`${table.getState().pagination.pageSize}`} onValueChange={value => table.setPageSize(Number(value))}>
             <SelectTrigger className="w-[80px] h-9"><SelectValue placeholder="Page size" /></SelectTrigger>
@@ -550,7 +634,6 @@ export default function ConsolePage() {
               {[10,25,50,100].map(size => (<SelectItem key={size} value={`${size}`}>{size}</SelectItem>))}
             </SelectContent>
           </Select>
-          <span className="text-sm text-muted-foreground">products</span>
         </div>
       </div>
 

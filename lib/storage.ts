@@ -7,6 +7,7 @@ const HISTORY_FILE = path.join(DATA_DIR, 'history.json');
 const STORES_FILE = path.join(DATA_DIR, 'stores.json');
 const CACHE_DIR = path.join(DATA_DIR, 'cache');
 const LISTS_FILE = path.join(DATA_DIR, 'lists.json');
+const PRESETS_FILE = path.join(DATA_DIR, 'presets.json');
 
 async function ensureDir(p: string) {
   await fs.mkdir(p, { recursive: true });
@@ -168,6 +169,98 @@ export async function addItemsToList(email: string, id: string, products: any[])
       existingKeys.add(key);
     }
   }
+  await writeJSON(LISTS_FILE, all);
+  return all[idx];
+}
+
+export async function removeItemsFromList(email: string, id: string, keys: string[]): Promise<UserList | null> {
+  const all = await readJSON<UserList[]>(LISTS_FILE, []);
+  const idx = all.findIndex(l => l.email === email && l.id === id);
+  if (idx === -1) return null;
+  const keySet = new Set(keys);
+  all[idx].items = all[idx].items.filter((p: any) => !keySet.has(`${p.__storeHost || ''}:${p.handle}`));
+  await writeJSON(LISTS_FILE, all);
+  return all[idx];
+}
+
+// Presets (per user)
+export type UserPresets = {
+  email: string;
+  vendors: string[];
+  productTypes: string[];
+  tags: string[];
+};
+
+async function getAllPresets(): Promise<UserPresets[]> {
+  return readJSON<UserPresets[]>(PRESETS_FILE, []);
+}
+
+async function saveAllPresets(all: UserPresets[]) {
+  await writeJSON(PRESETS_FILE, all);
+}
+
+export async function getPresets(email: string): Promise<UserPresets> {
+  const all = await getAllPresets();
+  let entry = all.find(p => p.email === email);
+  if (!entry) {
+    entry = { email, vendors: [], productTypes: [], tags: [] };
+    all.push(entry);
+    await saveAllPresets(all);
+  }
+  return entry;
+}
+
+export async function addToPresets(email: string, data: { vendors?: string[]; productTypes?: string[]; tags?: string[]; }) {
+  const all = await getAllPresets();
+  const idx = all.findIndex(p => p.email === email);
+  const entry: UserPresets = idx >= 0 ? all[idx] : { email, vendors: [], productTypes: [], tags: [] };
+  const unique = (arr: string[], add?: string[]) => Array.from(new Set([...(arr||[]), ...((add||[]).filter(Boolean))])).sort();
+  entry.vendors = unique(entry.vendors, data.vendors);
+  entry.productTypes = unique(entry.productTypes, data.productTypes);
+  entry.tags = unique(entry.tags, data.tags);
+  if (idx >= 0) all[idx] = entry; else all.push(entry);
+  await saveAllPresets(all);
+  return entry;
+}
+
+export async function removeFromPresets(email: string, kind: 'vendors'|'productTypes'|'tags', value: string) {
+  const all = await getAllPresets();
+  const idx = all.findIndex(p => p.email === email);
+  if (idx === -1) return null;
+  const entry = all[idx];
+  (entry as any)[kind] = ((entry as any)[kind] as string[]).filter((v: string) => v !== value);
+  await saveAllPresets(all);
+  return entry;
+}
+
+export async function renameInPresets(email: string, kind: 'vendors'|'productTypes'|'tags', from: string, to: string) {
+  const all = await getAllPresets();
+  const idx = all.findIndex(p => p.email === email);
+  if (idx === -1) return null;
+  const entry = all[idx];
+  const arr: string[] = (entry as any)[kind] || [];
+  const set = new Set(arr);
+  set.delete(from);
+  if (to) set.add(to);
+  (entry as any)[kind] = Array.from(set).sort();
+  await saveAllPresets(all);
+  return entry;
+}
+
+
+export async function updateItemsInList(email: string, id: string, updates: { key: string; data: any }[]): Promise<UserList | null> {
+  const all = await readJSON<UserList[]>(LISTS_FILE, []);
+  const idx = all.findIndex(l => l.email === email && l.id === id);
+  if (idx === -1) return null;
+  const map = new Map(updates.map(u => [u.key, u.data]));
+  all[idx].items = all[idx].items.map((p: any) => {
+    const k = `${p.__storeHost || ''}:${p.handle}`;
+    if (map.has(k)) {
+      const data = map.get(k)!;
+      return { ...p, ...data };
+    }
+    return p;
+  });
   await writeJSON(LISTS_FILE, all);
   return all[idx];
 }

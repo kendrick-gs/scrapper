@@ -366,10 +366,12 @@ function ProductTableView({
           </div>
         </div>
       </div>
-
-      <div className="rounded-md border bg-gray-50 dark:bg-card">
+      
+      {/* Full-bleed wrapper so the table expands to viewport width */}
+      <div className="w-screen -mx-4 md:-mx-8">
+      <div className="rounded-2xl border-2 bg-gray-50 dark:bg-card overflow-hidden">
         {/* Toolbar inside the table frame but outside horizontal scroll */}
-        <div className="w-full p-3 border-b bg-gray-100 dark:bg-muted flex items-center justify-start gap-3 sticky left-0 z-10">
+        <div className="w-full px-3 py-[18px] border-b bg-gray-100 dark:bg-muted flex items-center justify-start gap-3 sticky left-0 z-10">
           {table.getState().sorting.length > 0 && (
             <Button variant="link" onClick={() => table.resetSorting()}>Reset Sort</Button>
           )}
@@ -401,12 +403,12 @@ function ProductTableView({
             <Table style={{ width: table.getCenterTotalSize() }}>
               <TableHeader>
                 {table.getHeaderGroups().map(hg => (
-                  <TableRow key={hg.id} className="bg-gray-100 dark:bg-muted hover:bg-gray-200 dark:hover:bg-gray-800">
+                  <TableRow key={hg.id} className="bg-gray-300 hover:bg-gray-300">
                     {hg.headers.map((h, hIdx) => (
                       <TableHead
                         key={h.id}
                         style={{ width: h.getSize() }}
-                        className={cn('relative px-4', hIdx === 0 && 'sticky left-0 z-10 bg-gray-100 dark:bg-muted')}
+                        className={cn('relative px-4', hIdx === 0 && 'sticky left-0 z-10 bg-gray-300')}
                       >
                         {flexRender(h.column.columnDef.header, h.getContext())}
                         <div
@@ -426,7 +428,7 @@ function ProductTableView({
                       <TableCell
                         key={cell.id}
                         style={{ width: cell.column.getSize() }}
-                        className={cn('p-4 align-middle', cIdx === 0 && 'sticky left-0 z-10 bg-background')}
+                        className={cn('p-4 align-middle', cIdx === 0 && 'sticky left-0 z-10 bg-card')}
                       >
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </TableCell>
@@ -442,6 +444,7 @@ function ProductTableView({
             </div>
           )}
         </div>
+      </div>
       </div>
 
       <div className="flex items-center justify-between gap-4 py-4 w-full">
