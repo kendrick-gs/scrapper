@@ -1,27 +1,11 @@
 'use client';
 
-import { useScrapeStore } from '@/store/useScrapeStore';
-import Step1InputForm from '@/components/steps/step1'; // <-- Updated
-import Step2Review from '@/components/steps/step2';   // <-- Updated
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
 
 export default function HomePage() {
-  const step = useScrapeStore((state) => state.step);
-
-  const renderStep = () => {
-    switch (step) {
-      case 1:
-        return <Step1InputForm />;
-      case 2:
-        return <Step2Review />;
-      default:
-        return <Step1InputForm />;
-    }
-  };
-
-  return (
-    <AppShell>
-      {renderStep()}
-    </AppShell>
-  );
+  const router = useRouter();
+  useEffect(() => { router.replace('/app/start'); }, [router]);
+  return <AppShell>Redirecting…</AppShell>;
 }

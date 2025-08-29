@@ -33,6 +33,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ShopifyProduct, ShopifyCollection } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { XIcon } from 'lucide-react';
+import { useAuthStore } from '@/store/useAuthStore';
 
 function LoadingView({ logs }: { logs: string[] }) {
   return (
@@ -61,6 +62,7 @@ function ProductTableView({
     collectionCache: Record<string, ShopifyProduct[]>;
     addCollectionToCache: (handle: string, products: ShopifyProduct[]) => void;
 }) {
+  const user = useAuthStore(state => state.user);
   const [activeCollectionProducts, setActiveCollectionProducts] = useState<ShopifyProduct[] | null>(null);
   const [isCollectionLoading, setCollectionLoading] = useState(false);
   
@@ -86,11 +88,17 @@ function ProductTableView({
         // Check if product matches filters
         let productMatches = true;
 
-        if (vendorFilter && product.vendor !== vendorFilter) {
-          productMatches = false;
+        if (vendorFilter) {
+          const normalizedVendor = vendorFilter === EMPTY_VALUE ? '' : vendorFilter;
+          if ((product.vendor ?? '').trim() !== normalizedVendor) {
+            productMatches = false;
+          }
         }
-        if (productTypeFilter && product.product_type !== productTypeFilter) {
-          productMatches = false;
+        if (productTypeFilter) {
+          const normalizedType = productTypeFilter === EMPTY_VALUE ? '' : productTypeFilter;
+          if ((product.product_type ?? '').trim() !== normalizedType) {
+            productMatches = false;
+          }
         }
 
         // Global filter check
@@ -99,8 +107,8 @@ function ProductTableView({
           const productFieldsMatch =
             product.title.toLowerCase().includes(lowerGlobalFilter) ||
             product.handle.toLowerCase().includes(lowerGlobalFilter) ||
-            product.vendor.toLowerCase().includes(lowerGlobalFilter) ||
-            product.product_type.toLowerCase().includes(lowerGlobalFilter);
+            (product.vendor ?? '').toLowerCase().includes(lowerGlobalFilter) ||
+            (product.product_type ?? '').toLowerCase().includes(lowerGlobalFilter);
 
           const variantFieldsMatch = product.variants.some(variant =>
             variant.title.toLowerCase().includes(lowerGlobalFilter) ||
@@ -120,16 +128,24 @@ function ProductTableView({
   }, [baseProductData, columnFilters, globalFilter]);
 
   // *** FIX: Update filter options based on current tableData instead of filteredData ***
+  const EMPTY_VALUE = '__empty__';
   const availableVendors = useMemo(() => {
     const vendorCounts: { [key: string]: number } = {};
     tableData.forEach(prod => {
-      vendorCounts[prod.vendor] = (vendorCounts[prod.vendor] || 0) + 1;
+      const key = (prod.vendor ?? '').trim() || EMPTY_VALUE;
+      vendorCounts[key] = (vendorCounts[key] || 0) + 1;
     });
-    return Object.keys(vendorCounts).map(name => ({ name, count: vendorCounts[name] })).sort((a,b) => a.name.localeCompare(b.name));
+    return Object.keys(vendorCounts)
+      .map(name => ({ name, count: vendorCounts[name] }))
+      .sort((a,b) => a.name.localeCompare(b.name));
   }, [tableData]);
 
   const availableProductTypes = useMemo(() => {
-    const types = new Set<string>(tableData.map(p => p.product_type));
+    const types = new Set<string>();
+    tableData.forEach(p => {
+      const key = (p.product_type ?? '').trim() || EMPTY_VALUE;
+      types.add(key);
+    });
     return Array.from(types).sort();
   }, [tableData]);
 
@@ -158,9 +174,18 @@ function ProductTableView({
   });
   
   // *** FIX: Robust handler for collection selection ***
-  const handleCollectionSelect = useCallback(async (collectionHandle: string | null) => {
+  const handleCollectionSelect = useCallback(async (rawHandle: string | null) => {
+    if (!user) {
+      return; // not allowed when not logged in
+    }
     setExpanded({});
-    if (!collectionHandle || collectionHandle === 'all') {
+    if (rawHandle === null || rawHandle === 'all') {
+      setActiveCollectionProducts(null);
+      return;
+    }
+    const collectionHandle: string = rawHandle === EMPTY_VALUE ? '' : rawHandle;
+    if (collectionHandle === '') {
+      // A collection without a handle cannot be fetched reliably
       setActiveCollectionProducts(null);
       return;
     }
@@ -190,7 +215,7 @@ function ProductTableView({
     } finally {
       setCollectionLoading(false);
     }
-  }, [shopUrl, collectionCache, addCollectionToCache]);
+  }, [shopUrl, collectionCache, addCollectionToCache, user]);
 
   const handleClearFilters = useCallback(() => {
     setColumnFilters([]);
@@ -206,13 +231,13 @@ function ProductTableView({
       const firstProductId = activeCollectionProducts[0]?.id;
       for (const col of collections) {
           if (collectionCache[col.handle]?.some(p => p.id === firstProductId)) {
-              return col.handle;
+              return (col.handle ?? '').trim() || EMPTY_VALUE;
           }
       }
       return 'all';
   }, [activeCollectionProducts, collections, collectionCache]);
   
-  const selectedCollection = collections.find(c => c.handle === selectedCollectionHandle);
+  const selectedCollection = collections.find(c => ((c.handle ?? '').trim() || EMPTY_VALUE) === selectedCollectionHandle);
   const selectedRowCount = tableData.length;
   const storeHostname = useMemo(() => { try { return new URL(shopUrl).hostname; } catch { return 'N/A'; } }, [shopUrl]);
   const hasActiveFilters = columnFilters.length > 0 || globalFilter !== '' || !!activeCollectionProducts;
@@ -254,45 +279,60 @@ function ProductTableView({
             <Button onClick={handleExport}>Export Products (CSV)</Button>
           </div>
         </div>
-        <div className="flex items-center justify-between gap-4 h-10">
-          <div className="flex flex-grow items-center gap-4">
+        {/* Top filters stay above the table */}
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex flex-grow items-center gap-4 flex-wrap">
             <div className="flex-shrink-0" style={{ width: '240px' }}>
-              <Select onValueChange={(val) => handleCollectionSelect(val === 'all' ? null : val)} value={selectedCollectionHandle}>
+              <Select onValueChange={(val) => handleCollectionSelect(val === 'all' ? null : val)} value={selectedCollectionHandle} disabled={!user}>
                 <SelectTrigger className={cn("h-10 w-full", selectedCollectionHandle !== 'all' && "filter-select")}>
                     <SelectValue placeholder="All Collections" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Collections</SelectItem>
-                  {collections.map(col => <SelectItem key={col.id} value={col.handle}>{col.title} ({col.products_count})</SelectItem>)}
+                  {collections.map(col => {
+                    const value = (col.handle ?? '').trim() || EMPTY_VALUE;
+                    return (
+                      <SelectItem key={col.id} value={value}>
+                        {col.title} ({col.products_count})
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
+              {!user && (
+                <div className="text-xs text-muted-foreground mt-1">Login to filter by collection</div>
+              )}
             </div>
 
             <div className="h-10 w-2 flex-shrink-0 bg-brand-green-light rounded-full" />
-            
+
             <div className="flex-shrink-0" style={{ width: '200px' }}>
-               <Select
-                 onValueChange={(value) => {
-                   setColumnFilters(prev => {
-                     const filtered = prev.filter(f => f.id !== 'vendor');
-                     if (value !== 'all') {
-                       filtered.push({ id: 'vendor', value });
-                     }
-                     return filtered;
-                   });
-                 }}
-                 value={columnFilters.find(f => f.id === 'vendor')?.value as string || 'all'}
-               >
+              <Select
+                onValueChange={(value) => {
+                  setColumnFilters(prev => {
+                    const filtered = prev.filter(f => f.id !== 'vendor');
+                    if (value !== 'all') {
+                      filtered.push({ id: 'vendor', value });
+                    }
+                    return filtered;
+                  });
+                }}
+                value={columnFilters.find(f => f.id === 'vendor')?.value as string || 'all'}
+              >
                 <SelectTrigger className={cn("h-10 w-full", !!columnFilters.find(f => f.id === 'vendor')?.value && "filter-select")}>
                     <SelectValue placeholder="All Vendors" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Vendors</SelectItem>
-                  {availableVendors.map(vendor => <SelectItem key={vendor.name} value={vendor.name}>{vendor.name} ({vendor.count})</SelectItem>)}
+                  {availableVendors.map(vendor => (
+                    <SelectItem key={vendor.name} value={vendor.name}>
+                      {vendor.name === EMPTY_VALUE ? 'No Vendor' : vendor.name} ({vendor.count})
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="flex-shrink-0" style={{ width: '200px' }}>
               <Select
                 onValueChange={(value) => {
@@ -311,21 +351,29 @@ function ProductTableView({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Product Types</SelectItem>
-                  {availableProductTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
+                  {availableProductTypes.map(type => (
+                    <SelectItem key={type} value={type}>
+                      {type === EMPTY_VALUE ? 'No Product Type' : type}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
-            
+
             {hasActiveFilters && (
               <Button variant="link" onClick={handleClearFilters}>Clear Filters</Button>
             )}
-            {hasActiveFilters && table.getState().sorting.length > 0 && <div className="h-10 w-2 flex-shrink-0 bg-brand-green-light rounded-full" />}
-            {table.getState().sorting.length > 0 && (
-                <Button variant="link" onClick={() => table.resetSorting()}>Reset Sort</Button>
-            )}
           </div>
-          
-          <div className="relative flex-shrink-0" style={{ width: '240px' }}>
+        </div>
+      </div>
+
+      <div className="rounded-md border bg-gray-50 dark:bg-card">
+        {/* Toolbar inside the table frame but outside horizontal scroll */}
+        <div className="w-full p-3 border-b bg-gray-100 dark:bg-muted flex items-center justify-start gap-3 sticky left-0 z-10">
+          {table.getState().sorting.length > 0 && (
+            <Button variant="link" onClick={() => table.resetSorting()}>Reset Sort</Button>
+          )}
+          <div className="relative" style={{ width: '240px' }}>
             <Input
               placeholder="Search..."
               value={globalFilter ?? ''}
@@ -347,18 +395,19 @@ function ProductTableView({
             )}
           </div>
         </div>
-      </div>
-      
-      <div className="rounded-md border bg-gray-50 dark:bg-card">
         <div className="w-full relative overflow-x-auto">
           {isCollectionLoading && ( <div className="absolute inset-0 bg-white/75 dark:bg-black/75 flex items-center justify-center z-10"><p className="text-lg">Loading Collection...</p></div> )}
           {table.getRowModel().rows.length > 0 ? (
             <Table style={{ width: table.getCenterTotalSize() }}>
               <TableHeader>
                 {table.getHeaderGroups().map(hg => (
-                  <TableRow key={hg.id} className="hover:bg-gray-200 dark:hover:bg-gray-800">
-                    {hg.headers.map(h => (
-                      <TableHead key={h.id} style={{ width: h.getSize() }} className="relative px-4">
+                  <TableRow key={hg.id} className="bg-gray-100 dark:bg-muted hover:bg-gray-200 dark:hover:bg-gray-800">
+                    {hg.headers.map((h, hIdx) => (
+                      <TableHead
+                        key={h.id}
+                        style={{ width: h.getSize() }}
+                        className={cn('relative px-4', hIdx === 0 && 'sticky left-0 z-10 bg-gray-100 dark:bg-muted')}
+                      >
                         {flexRender(h.column.columnDef.header, h.getContext())}
                         <div
                           onMouseDown={h.getResizeHandler()}
@@ -373,8 +422,12 @@ function ProductTableView({
               <TableBody>
                 {table.getRowModel().rows.map(row => (
                   <TableRow key={row.id} data-state={row.getIsSelected() && "selected"} className="dark:bg-background">
-                    {row.getVisibleCells().map(cell => (
-                      <TableCell key={cell.id} style={{ width: cell.column.getSize() }} className="p-4 align-middle">
+                    {row.getVisibleCells().map((cell, cIdx) => (
+                      <TableCell
+                        key={cell.id}
+                        style={{ width: cell.column.getSize() }}
+                        className={cn('p-4 align-middle', cIdx === 0 && 'sticky left-0 z-10 bg-background')}
+                      >
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </TableCell>
                     ))}

@@ -1,5 +1,5 @@
-// kendrick-gs/scrapper/scrapper-a31e4028cc7f75eeeb406d17e6548fcd50443ca8/components/ui/table.tsx
 "use client"
+// kendrick-gs/scrapper/scrapper-a31e4028cc7f75eeeb406d17e6548fcd50443ca8/components/ui/table.tsx
 
 import * as React from "react"
 

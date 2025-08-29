@@ -1,3 +1,7 @@
+"use client";
+// Button
+// Ensure this directive stays at the very top.
+//
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
