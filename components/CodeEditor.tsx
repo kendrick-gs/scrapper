@@ -20,7 +20,6 @@ type Props = {
 
 export default function CodeEditor({ value, onChange, placeholder, className, language = 'markup' }: Props) {
   const [wrap, setWrap] = useState(true);
-  const [expanded, setExpanded] = useState(false);
 
   const lineCount = useMemo(() => Math.max(1, value?.split(/\n/).length || 1), [value]);
 
@@ -29,7 +28,7 @@ export default function CodeEditor({ value, onChange, placeholder, className, la
   }
 
   return (
-    <div className={cn("w-full", className)}>
+  <div className={cn("w-full relative", className)}>
       <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
         <div className="flex items-center gap-2">
           <span className="font-medium">HTML</span>
@@ -40,13 +39,10 @@ export default function CodeEditor({ value, onChange, placeholder, className, la
           <Button variant="outline" size="sm" onClick={() => setWrap((w) => !w)} aria-label="Toggle wrap">
             {wrap ? "No Wrap" : "Wrap"}
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setExpanded((e) => !e)} aria-label="Toggle expand">
-            {expanded ? "Collapse" : "Expand"}
-          </Button>
           <Button variant="outline" size="sm" onClick={copy} aria-label="Copy HTML">Copy</Button>
         </div>
       </div>
-      <div className={cn("rounded-md border bg-background", expanded ? "min-h-[320px]" : "min-h-[160px]")}
+      <div className={cn("rounded-md border bg-background transition-all min-h-[260px]")}
            style={{ overflow: "hidden" }}>
         <Editor
           value={value || ""}

@@ -28,6 +28,7 @@ import { columns as baseColumns, ProductRowData, isVariant } from '@/components/
 import ComboInput from '@/components/ComboInput';
 import CodeEditor from '@/components/CodeEditor';
 import BodyHtmlEditor from '@/components/BodyHtmlEditor';
+import TagsModalEditor from '@/components/TagsModalEditor';
 
 type MergedProduct = any & { __storeUrl?: string; __storeHost?: string };
 const EMPTY = '__empty__';
@@ -49,6 +50,7 @@ export default function ListViewPage() {
 
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({});
+  const [savedColumnSizing, setSavedColumnSizing] = useState<ColumnSizingState | null>(null);
   const [expanded, setExpanded] = useState<ExpandedState>({});
   const [rowSelection, setRowSelection] = useState({});
   const [editMode, setEditMode] = useState(false);
@@ -415,6 +417,37 @@ export default function ListViewPage() {
           }
         } as any;
       }
+      if (col.accessorKey === 'tags') {
+        return {
+          ...col,
+          cell: ({ row }: any) => {
+            if (isVariant(row.original)) return <span />;
+            const current: string[] = Array.isArray(row.original.tags)
+              ? (row.original.tags as string[])
+              : (typeof row.original.tags === 'string'
+                ? row.original.tags.split(',').map((t: string) => t.trim()).filter(Boolean)
+                : []);
+            if (!editMode) {
+              return <div className="flex flex-wrap gap-1 max-h-20 overflow-auto">{current.slice(0,8).map(t => <Badge key={t} variant="secondary" className="text-[10px] px-1 py-0.5">{t}</Badge>)}{current.length>8 && <span className="text-xs text-muted-foreground">+{current.length-8}</span>}</div>;
+            }
+            return (
+              <div className="flex items-center gap-2">
+                <TagsInput
+                  value={current}
+                  presets={presets.tags}
+                  mode="chips"
+                  onChange={(next) => saveEdit(row.original.id, { tags: next }, row.original)}
+                />
+                <TagsModalEditor
+                  value={current}
+                  presets={presets.tags}
+                  onSave={(next) => saveEdit(row.original.id, { tags: next }, row.original)}
+                />
+              </div>
+            );
+          }
+        } as any;
+      }
       return col;
     });
     // Append additional columns always; edit when editMode else read-only
@@ -646,7 +679,43 @@ export default function ListViewPage() {
           <div className="text-sm text-muted-foreground hidden md:block">
             Showing <strong>{selectedRowCount}</strong> of <strong>{totalBaseCount}</strong> products
           </div>
-          <Button variant={editMode ? 'outline' : 'default'} onClick={() => setEditMode((v) => !v)}>{editMode ? 'Preview Mode' : 'Edit Mode'}</Button>
+          <Button variant={editMode ? 'outline' : 'default'} onClick={() => {
+            setEditMode(v => {
+              if (!v) { // entering edit mode
+                setSavedColumnSizing(columnSizing); // keep current
+                // auto expand based on content length heuristics
+                const next: ColumnSizingState = { ...columnSizing };
+                const sample = tableData.slice(0, 200);
+                function calc(key: string, base: number, max: number) {
+                  let longest = 0;
+                  for (const p of sample) {
+                    const val = (p[key] || '').toString();
+                    if (val.length > longest) longest = val.length;
+                  }
+                  const px = Math.min(max, Math.max(base, longest * 8 + 40));
+                  next[key] = px;
+                }
+                // Body column intentionally excluded (only button) so it doesn't widen.
+                ['handle','title','vendor','product_type','seo_title','seo_description'].forEach(k => calc(k, 160, 600));
+                // Tags: compute width based on joined tags per product
+                let tagsLongest = 0;
+                for (const p of sample) {
+                  let tagStr = '';
+                  if (Array.isArray(p.tags)) tagStr = p.tags.join(', ');
+                  else if (typeof p.tags === 'string') tagStr = p.tags;
+                  if (tagStr.length > tagsLongest) tagsLongest = tagStr.length;
+                }
+                if (tagsLongest) {
+                  next['tags'] = Math.min(500, Math.max(180, tagsLongest * 7 + 40));
+                }
+                setColumnSizing(next);
+              } else {
+                // leaving edit mode restore
+                if (savedColumnSizing) setColumnSizing(savedColumnSizing);
+              }
+              return !v;
+            });
+          }}>{editMode ? 'Preview Mode' : 'Edit Mode'}</Button>
           <Button onClick={handleExport}>Export Products (CSV)</Button>
         </div>
       </div>
@@ -776,29 +845,29 @@ export default function ListViewPage() {
 
           {/* Bulk Edit toolbar */}
           {selectedCount > 1 && (
-            <div className="w-full px-3 py-3 bg-amber-50 border-t border-b border-amber-200 flex flex-wrap items-center gap-3">
-              <div className="text-sm font-medium text-amber-900">Bulk Edit {selectedCount} selected</div>
-              <div className="w-[200px]">
+            <div className="w-full px-3 py-3 bg-amber-50 border-t border-b border-amber-200 flex flex-wrap items-center gap-3 sticky top-0 z-30 dark:[color-scheme:light] [&_.bulk-light]:text-slate-900">
+              <div className="text-sm font-medium text-slate-900">Bulk Edit {selectedCount} selected</div>
+              <div className="w-[200px] bulk-light">
                 <ComboInput label="Vendor" value={bulkVendor} presets={presets.vendors} placeholder="Vendor" onChange={setBulkVendor} />
               </div>
-              <div className="w-[220px]">
+              <div className="w-[220px] bulk-light">
                 <ComboInput label="Product Type" value={bulkType} presets={presets.productTypes} placeholder="Product Type" onChange={setBulkType} />
               </div>
-              <div className="w-[160px]">
+              <div className="w-[160px] bulk-light">
                 <Select value={bulkStatus || 'draft'} onValueChange={(v) => setBulkStatus(v as any)}>
-                  <SelectTrigger className="h-8 w-full"><SelectValue placeholder="Status" /></SelectTrigger>
+                  <SelectTrigger className="h-8 w-full bg-white"><SelectValue placeholder="Status" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="draft">Draft</SelectItem>
                     <SelectItem value="active">Active</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <Button size="sm" onClick={applyBulk}>Apply</Button>
+              <Button size="sm" className="bg-black text-white hover:bg-black/90" onClick={applyBulk}>Apply</Button>
             </div>
           )}
 
           {/* Table */}
-          <div className="overflow-auto">
+          <div className={cn("overflow-auto", editMode && 'edit-mode-table')}>
             <Table style={{ width: table.getCenterTotalSize() }}>
               <TableHeader>
                 {table.getHeaderGroups().map(hg => (
@@ -823,7 +892,7 @@ export default function ListViewPage() {
               </TableHeader>
               <TableBody>
                 {table.getRowModel().rows.map(row => (
-                  <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'} className="dark:bg-background">
+                  <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'} className={cn('dark:bg-background', editMode && 'edit-row')}> 
                     {row.getVisibleCells().map(cell => (
                       <TableCell key={cell.id} style={{ width: cell.column.getSize() }} className={cn('p-4 align-middle',
                         cell.column.id === 'view' && 'sticky right-0 bg-card z-10',

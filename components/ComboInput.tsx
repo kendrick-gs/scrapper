@@ -75,10 +75,10 @@ export default function ComboInput({ label, value, onChange, presets = [], place
   }
 
   return (
-    <div ref={containerRef} className={cn("w-full", className)}>
+  <div ref={containerRef} className={cn("w-full relative combo-input-wrapper", className)}>
       <Input
         ref={inputRef}
-        className="h-8 w-full"
+    className="h-8 w-full bg-white dark:bg-[#222] text-slate-900 dark:text-white placeholder:text-slate-500 dark:placeholder:text-slate-400 border border-slate-300 dark:border-[#333]"
         placeholder={placeholder || label}
         value={query || current}
         onChange={(e) => {
@@ -91,14 +91,14 @@ export default function ComboInput({ label, value, onChange, presets = [], place
         disabled={disabled}
       />
       {open && suggestions.length > 0 && (
-        <div className="mt-1 max-h-56 w-full overflow-auto rounded-md border bg-popover text-popover-foreground shadow-md">
+        <div className="absolute z-50 mt-1 max-h-56 w-full overflow-auto rounded-md border border-slate-300 dark:border-[#333] bg-white dark:bg-[#222] text-slate-900 dark:text-white shadow-md">
           {suggestions.map((s, idx) => (
             <button
               key={s}
               type="button"
               className={cn(
-                "flex w-full items-center justify-between px-2 py-1.5 text-left text-sm hover:bg-accent",
-                idx === highlight && "bg-accent"
+                "flex w-full items-center justify-between px-2 py-1.5 text-left text-sm hover:bg-slate-100 dark:hover:bg-[#333]",
+                idx === highlight && "bg-slate-100 dark:bg-[#333]"
               )}
               onMouseEnter={() => setHighlight(idx)}
               onMouseDown={(e) => {

@@ -113,11 +113,11 @@ export default function TagsInput({ value, onChange, presets = [], placeholder =
   }
 
   return (
-    <div ref={containerRef} className={cn("w-full", className)}>
+  <div ref={containerRef} className={cn("w-full relative tags-input-wrapper", className)}>
       {mode === 'chips' ? (
-        <div
+    <div
           className={cn(
-            "min-h-10 w-full rounded-md border bg-background px-2 py-1 text-sm focus-within:ring-2 focus-within:ring-ring",
+            "min-h-10 w-full rounded-md border bg-white dark:bg-[#222] px-2 py-1 text-sm focus-within:ring-2 focus-within:ring-ring text-slate-900 dark:text-white border-slate-300 dark:border-[#333]",
             disabled && "opacity-60 pointer-events-none"
           )}
           onClick={() => inputRef.current?.focus()}
@@ -141,7 +141,7 @@ export default function TagsInput({ value, onChange, presets = [], placeholder =
             ))}
             <Input
               ref={inputRef}
-              className="h-7 flex-1 border-0 shadow-none focus-visible:ring-0 px-1"
+              className="h-7 flex-1 border-0 shadow-none focus-visible:ring-0 px-1 bg-transparent placeholder:text-slate-500 dark:placeholder:text-slate-400 text-slate-900 dark:text-white"
               placeholder={tags.length === 0 ? placeholder : ""}
               value={query}
               onChange={(e) => {
@@ -158,7 +158,7 @@ export default function TagsInput({ value, onChange, presets = [], placeholder =
       ) : (
         <Input
           ref={inputRef}
-          className="h-8 w-full"
+          className="h-8 w-full bg-white dark:bg-[#222] text-slate-900 dark:text-white placeholder:text-slate-500 dark:placeholder:text-slate-400 border border-slate-300 dark:border-[#333]"
           placeholder={placeholder}
           value={text}
           onChange={(e) => {
@@ -174,14 +174,14 @@ export default function TagsInput({ value, onChange, presets = [], placeholder =
       )}
 
       {open && suggestions.length > 0 && (
-        <div className="mt-1 max-h-56 w-full overflow-auto rounded-md border bg-popover text-popover-foreground shadow-md">
+        <div className="absolute z-50 mt-1 max-h-56 w-full overflow-auto rounded-md border border-slate-300 dark:border-[#333] bg-white dark:bg-[#222] text-slate-900 dark:text-white shadow-md">
           {suggestions.map((s, idx) => (
             <button
               key={s}
               type="button"
               className={cn(
-                "flex w-full items-center justify-between px-2 py-1.5 text-left text-sm hover:bg-accent",
-                idx === highlight && "bg-accent"
+                "flex w-full items-center justify-between px-2 py-1.5 text-left text-sm hover:bg-slate-100 dark:hover:bg-[#333]",
+                idx === highlight && "bg-slate-100 dark:bg-[#333]"
               )}
               onMouseEnter={() => setHighlight(idx)}
               onMouseDown={(e) => {
