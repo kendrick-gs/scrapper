@@ -55,26 +55,63 @@ export default function StoresPage() {
 
   // Add store mutation
   const addStoreMutation = useMutation({
-    mutationFn: async (shopUrl: string) => {
-      const res = await fetch('/api/stores', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shopUrl }),
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || 'Failed to add store');
+    mutationFn: async (shopUrls: string[]) => {
+      const results = [];
+      console.log(`🔄 Adding ${shopUrls.length} store(s)...`);
+      
+      for (let i = 0; i < shopUrls.length; i++) {
+        const shopUrl = shopUrls[i].trim();
+        if (!shopUrl) continue;
+        
+        console.log(`📡 [${i + 1}/${shopUrls.length}] Adding store: ${shopUrl}`);
+        
+        try {
+          const startTime = Date.now();
+          const res = await fetch('/api/stores', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ shopUrl }),
+          });
+          
+          const duration = Date.now() - startTime;
+          
+          if (!res.ok) {
+            const error = await res.json().catch(() => ({}));
+            const errorMsg = error.error || 'Failed to add store';
+            console.error(`❌ [${i + 1}/${shopUrls.length}] Failed to add ${shopUrl}: ${errorMsg} (${duration}ms)`);
+            results.push({ shopUrl, error: errorMsg });
+          } else {
+            const data = await res.json();
+            console.log(`✅ [${i + 1}/${shopUrls.length}] Successfully added ${shopUrl} (${duration}ms)`);
+            results.push({ shopUrl, success: true, data });
+          }
+        } catch (error) {
+          const errorMsg = error instanceof Error ? error.message : 'Network error';
+          console.error(`❌ [${i + 1}/${shopUrls.length}] Network error adding ${shopUrl}: ${errorMsg}`);
+          results.push({ shopUrl, error: errorMsg });
+        }
       }
-      return res.json();
+      
+      return results;
     },
-    onSuccess: () => {
+    onSuccess: (results) => {
       queryClient.invalidateQueries({ queryKey: ['stores'] });
       setNewStoreUrl('');
       setIsCreateDialogOpen(false);
-      console.log("Store added successfully!");
+      
+      const successCount = results.filter(r => r.success).length;
+      const failedCount = results.filter(r => r.error).length;
+      
+      console.log(`🎉 Store addition complete! ${successCount} stores added successfully, ${failedCount} failed.`);
+      
+      if (failedCount > 0) {
+        console.warn(`⚠️  ${failedCount} store(s) failed to add. Check the errors above for details.`);
+      } else {
+        console.log("✨ All stores added successfully!");
+      }
     },
     onError: (error: Error) => {
-      console.error('Failed to add store:', error.message);
+      console.error('💥 Critical error during bulk store addition:', error.message);
     },
   });
 
@@ -182,11 +219,24 @@ export default function StoresPage() {
   });
 
   const handleAddStore = () => {
-    if (!newStoreUrl.trim()) {
-      console.warn("Please enter a store URL");
+    const urls = newStoreUrl
+      .split('\n')
+      .map(url => url.trim())
+      .filter(url => url.length > 0);
+    
+    if (urls.length === 0) {
+      console.warn("Please enter at least one store URL");
       return;
     }
-    addStoreMutation.mutate(newStoreUrl.trim());
+    
+    // Validate URLs
+    const invalidUrls = urls.filter(url => !url.match(/^https?:\/\/.+/));
+    if (invalidUrls.length > 0) {
+      console.warn("Invalid URLs detected:", invalidUrls);
+      return;
+    }
+    
+    addStoreMutation.mutate(urls);
   };
 
   const handleDeleteStore = (shopUrl: string) => {
@@ -248,29 +298,30 @@ export default function StoresPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex w-full items-center gap-2">
-            <Input
-              type="url"
-              placeholder="https://your-store.myshopify.com"
-              value={newStoreUrl}
-              onChange={(e) => setNewStoreUrl(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleAddStore();
-                }
-              }}
-            />
+          <div className="flex w-full items-start gap-2">
+            <div className="flex-1">
+              <textarea
+                placeholder="Enter store URLs (one per line):&#10;https://store1.myshopify.com&#10;https://store2.myshopify.com&#10;https://store3.myshopify.com"
+                value={newStoreUrl}
+                onChange={(e) => setNewStoreUrl(e.target.value)}
+                className="w-full min-h-[100px] px-3 py-2 text-sm border border-input bg-background rounded-md resize-y focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                rows={4}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Enter one store URL per line. Supports multiple stores at once.
+              </p>
+            </div>
             <Button
               onClick={handleAddStore}
               disabled={addStoreMutation.isPending || !newStoreUrl.trim()}
-              className="bg-brand-green hover:bg-brand-green-light text-white"
+              className="bg-brand-green hover:bg-brand-green-light text-white self-start"
             >
               {addStoreMutation.isPending ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (
                 <Plus className="h-4 w-4 mr-2" />
               )}
-              Add Store
+              Add Store{newStoreUrl.trim().split('\n').filter(url => url.trim()).length > 1 ? 's' : ''}
             </Button>
           </div>
           {addStoreMutation.isError && (
@@ -496,20 +547,19 @@ export default function StoresPage() {
           <div className="space-y-4">
             <div>
               <label htmlFor="store-url" className="text-sm font-medium text-foreground">
-                Store URL
+                Store URLs
               </label>
-              <Input
+              <textarea
                 id="store-url"
-                type="url"
-                placeholder="https://your-store.myshopify.com"
+                placeholder="Enter store URLs (one per line):&#10;https://store1.myshopify.com&#10;https://store2.myshopify.com"
                 value={newStoreUrl}
                 onChange={(e) => setNewStoreUrl(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleAddStore();
-                  }
-                }}
+                className="w-full min-h-[100px] px-3 py-2 text-sm border border-input bg-background rounded-md resize-y focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent mt-1"
+                rows={4}
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                Enter one store URL per line. Supports multiple stores at once.
+              </p>
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
@@ -525,7 +575,7 @@ export default function StoresPage() {
                 ) : (
                   <Plus className="h-4 w-4 mr-2" />
                 )}
-                Add Store
+                Add Store{newStoreUrl.trim().split('\n').filter(url => url.trim()).length > 1 ? 's' : ''}
               </Button>
             </div>
           </div>
