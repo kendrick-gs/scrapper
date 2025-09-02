@@ -8,7 +8,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Moon, Sun, SunMoon } from 'lucide-react';
 import { CacheIndicator, CacheProvider } from '@/components/CacheIndicator';
-import { PerformanceMonitor } from '@/components/PerformanceMonitor';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, loading, error, login, register, logout } = useAuth();
@@ -99,7 +98,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
         {children}
         {error && <div className="text-red-500 text-sm mt-2 p-2 bg-red-50 dark:bg-red-900/20 rounded-md">{error}</div>}
-        <PerformanceMonitor />
       </main>
     </CacheProvider>
   );
