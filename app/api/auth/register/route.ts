@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Valid email is required' }, { status: 400 });
     }
     await addUser(email);
-    setSessionCookie(email);
+    await setSessionCookie(email);
     return NextResponse.json({ ok: true, user: { email } });
   } catch (e: any) {
     return NextResponse.json({ error: 'Registration failed', details: e.message }, { status: 500 });

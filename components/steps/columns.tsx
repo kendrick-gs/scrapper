@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowUp, ArrowDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { HtmlEditor } from '@/components/HtmlEditor';
+import { CachedImage } from '@/lib/cache-client';
 
 export type ProductRowData = ShopifyProduct | ShopifyVariant;
 
@@ -73,18 +75,24 @@ export const columns: ColumnDef<ProductRowData>[] = [
   {
     accessorKey: 'images',
     header: () => <span className="text-gray-900">Images</span>,
-    size: 200,
+    size: 250, // Increased size to show more images
     cell: ({ row }) => {
       if (isVariant(row.original)) return null;
       const images = row.original.images;
       if (!images || images.length === 0) return null;
       return (
-        <div className="flex flex-row flex-wrap items-center gap-1">
-          {images.map((img) => (
+        <div className="flex flex-row flex-wrap items-center gap-1 overflow-hidden">
+          {images.slice(0, 6).map((img, index) => (
             <Dialog key={img.id}>
               <DialogTrigger asChild>
-                <div className="relative h-12 w-12 cursor-pointer">
-                  <Image src={img.src} alt={img.alt || 'Product image'} fill sizes="48px" className="rounded object-cover" />
+                <div className="relative h-10 w-10 cursor-pointer flex-shrink-0">
+                  <CachedImage
+                    src={img.src}
+                    alt={img.alt || 'Product image'}
+                    fill
+                    sizes="40px"
+                    className="rounded object-cover hover:scale-105 transition-transform"
+                  />
                 </div>
               </DialogTrigger>
               <DialogContent className="max-w-3xl">
@@ -92,11 +100,22 @@ export const columns: ColumnDef<ProductRowData>[] = [
                   <DialogTitle>{img.alt || 'Product Image'}</DialogTitle>
                 </DialogHeader>
                 <div className="relative h-96">
-                  <Image src={img.src} alt={img.alt || 'Product image'} fill sizes="100vw" className="object-contain" />
+                  <CachedImage
+                    src={img.src}
+                    alt={img.alt || 'Product image'}
+                    fill
+                    sizes="100vw"
+                    className="object-contain"
+                  />
                 </div>
               </DialogContent>
             </Dialog>
           ))}
+          {images.length > 6 && (
+            <div className="h-10 w-10 bg-gray-200 dark:bg-gray-700 rounded flex items-center justify-center text-xs font-medium flex-shrink-0">
+              +{images.length - 6}
+            </div>
+          )}
         </div>
       );
     },
@@ -132,13 +151,16 @@ export const columns: ColumnDef<ProductRowData>[] = [
         const bodyHtml = row.original.body_html;
         if (!bodyHtml?.trim()) return null;
         return (
-            <Dialog>
-                <DialogTrigger asChild><Button variant="outline" size="sm">View</Button></DialogTrigger>
-                <DialogContent className="max-w-3xl">
-                    <DialogHeader><DialogTitle>{row.original.title}</DialogTitle></DialogHeader>
-                    <div className="prose dark:prose-invert max-h-[70vh] overflow-y-auto" dangerouslySetInnerHTML={{ __html: bodyHtml }} />
-                </DialogContent>
-            </Dialog>
+            <HtmlEditor
+                title={row.original.title || 'Product'}
+                initialHtml={bodyHtml}
+                onSave={(newHtml) => {
+                    // This would need to be handled by the parent component
+                    // For now, we'll just log it
+                    console.log('HTML updated:', newHtml);
+                }}
+                trigger={<Button variant="outline" size="sm">Edit HTML</Button>}
+            />
         );
     },
   },

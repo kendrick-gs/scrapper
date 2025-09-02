@@ -6,13 +6,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import TagsInput from '@/components/TagsInput';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/useAuthStore';
 import { ArrowUpRight, Eye, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   useReactTable,
   getCoreRowModel,
@@ -25,10 +24,7 @@ import {
   ExpandedState,
 } from '@tanstack/react-table';
 import { columns as baseColumns, ProductRowData, isVariant } from '@/components/steps/columns';
-import ComboInput from '@/components/ComboInput';
-import CodeEditor from '@/components/CodeEditor';
-import BodyHtmlEditor from '@/components/BodyHtmlEditor';
-import TagsModalEditor from '@/components/TagsModalEditor';
+import { HtmlEditor } from '@/components/HtmlEditor';
 
 type MergedProduct = any & { __storeUrl?: string; __storeHost?: string };
 const EMPTY = '__empty__';
@@ -50,15 +46,11 @@ export default function ListViewPage() {
 
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({});
-  const [savedColumnSizing, setSavedColumnSizing] = useState<ColumnSizingState | null>(null);
   const [expanded, setExpanded] = useState<ExpandedState>({});
   const [rowSelection, setRowSelection] = useState({});
   const [editMode, setEditMode] = useState(false);
   const [edits, setEdits] = useState<Record<string, any>>({});
   const [presets, setPresets] = useState<{ vendors: string[]; productTypes: string[]; tags: string[] }>({ vendors: [], productTypes: [], tags: [] });
-  const [bulkVendor, setBulkVendor] = useState('');
-  const [bulkType, setBulkType] = useState('');
-  const [bulkStatus, setBulkStatus] = useState<'draft'|'active'|''>('');
 
   useEffect(() => {
     const load = async () => {
@@ -87,17 +79,6 @@ export default function ListViewPage() {
     };
     loadPresets();
   }, [user?.email]);
-
-  const addPresetValue = useCallback(async (kind: 'vendors'|'productTypes'|'tags', val: string) => {
-    const v = (val || '').trim();
-    if (!v) return;
-    const existing = (presets as any)[kind] as string[];
-    if (existing.includes(v)) return;
-    setPresets((p) => ({ ...p, [kind]: [...existing, v].sort() }));
-    try {
-      await fetch('/api/presets', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [kind]: [v] }) });
-    } catch {}
-  }, [presets]);
 
   const tableData = useMemo(() => {
     const merged = allProducts.map((p: any) => ({ ...p, ...(edits[p.id] || {}) }));
@@ -197,7 +178,7 @@ export default function ListViewPage() {
   const consoleColumns = useMemo(() => {
     // Start from base columns but remove Updated At for lists view
     const base = baseColumns.filter((c: any) => c.accessorKey !== 'updated_at');
-    const mapped = base.map((col: any) => {
+    return base.map((col: any) => {
       if (col.accessorKey === 'handle') {
         return {
           ...col,
@@ -247,18 +228,22 @@ export default function ListViewPage() {
           ...col,
           cell: ({ row }: any) => {
             if (isVariant(row.original)) return <span className="text-muted-foreground" />;
-            const current = (row.original.vendor ?? '').trim();
+            const current = (row.original.vendor ?? '').trim() || EMPTY;
             return (
-              <ComboInput
-                label="Vendor"
+              <Select
                 value={current}
-                presets={presets.vendors}
-                placeholder="Select or add vendor"
-                onChange={(val) => {
-                  saveEdit(row.original.id, { vendor: val }, row.original);
-                  if (val) addPresetValue('vendors', val);
-                }}
-              />
+                onValueChange={(value) => saveEdit(row.original.id, { vendor: value === EMPTY ? '' : value }, row.original)}
+              >
+                <SelectTrigger className="h-8 w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem key={EMPTY} value={EMPTY}>No Vendor</SelectItem>
+                  {availableVendors.map(v => (
+                    <SelectItem key={`vendor-${v.name}`} value={v.name}>{v.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             );
           }
         } as any;
@@ -268,86 +253,22 @@ export default function ListViewPage() {
           ...col,
           cell: ({ row }: any) => {
             if (isVariant(row.original)) return <span className="text-muted-foreground" />;
-            const current = (row.original.product_type ?? '').trim();
+            const current = (row.original.product_type ?? '').trim() || EMPTY;
             return (
-              <ComboInput
-                label="Product Type"
+              <Select
                 value={current}
-                presets={presets.productTypes}
-                placeholder="Select or add product type"
-                onChange={(val) => {
-                  saveEdit(row.original.id, { product_type: val }, row.original);
-                  if (val) addPresetValue('productTypes', val);
-                }}
-              />
-            );
-          }
-        } as any;
-      }
-      if (editMode && col.accessorKey === 'images') {
-        return {
-          ...col,
-          cell: ({ row }: any) => {
-            if (isVariant(row.original)) return <span />;
-            const images = (row.original.images || []) as any[];
-            const addImage = async (url: string) => {
-              const src = (url || '').trim();
-              if (!src) return;
-              const next = [...images, { id: Date.now(), product_id: row.original.id, src, alt: '' }];
-              saveEdit(row.original.id, { images: next }, row.original);
-            };
-            const removeImage = (id: number) => {
-              const next = images.filter((img: any) => img.id !== id);
-              saveEdit(row.original.id, { images: next }, row.original);
-            };
-            return (
-              <div className="space-y-2">
-                <div className="flex flex-wrap gap-2 items-center">
-                  {images.map((img: any) => (
-                    <div key={img.id} className="relative h-12 w-12">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={img.src} alt={img.alt || 'Image'} className="h-12 w-12 rounded object-cover border" />
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <button
-                            className="absolute left-0 bottom-0 h-5 w-5 rounded bg-white/90 border flex items-center justify-center text-[10px]"
-                            title="Preview"
-                            aria-label="Preview image"
-                          >
-                            👁
-                          </button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-3xl">
-                          <DialogHeader><DialogTitle>Image Preview</DialogTitle></DialogHeader>
-                          <div className="relative h-96">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={img.src} alt={img.alt || 'Image'} className="h-full w-full object-contain" />
-                          </div>
-                        </DialogContent>
-                      </Dialog>
-                      <button
-                        className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-background border text-xs"
-                        aria-label="Remove image"
-                        onClick={() => removeImage(img.id)}
-                      >
-                        ×
-                      </button>
-                    </div>
+                onValueChange={(value) => saveEdit(row.original.id, { product_type: value === EMPTY ? '' : value }, row.original)}
+              >
+                <SelectTrigger className="h-8 w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem key={EMPTY} value={EMPTY}>No Product Type</SelectItem>
+                  {availableProductTypes.map(t => (
+                    <SelectItem key={`ptype-${t}`} value={t}>{t}</SelectItem>
                   ))}
-                </div>
-                <div className="flex items-center gap-2">
-                  <Input
-                    className="h-8 flex-1"
-                    placeholder="Paste image URL and press Enter"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        addImage((e.target as HTMLInputElement).value);
-                        (e.target as HTMLInputElement).value = '';
-                      }
-                    }}
-                  />
-                </div>
-              </div>
+                </SelectContent>
+              </Select>
             );
           }
         } as any;
@@ -359,15 +280,12 @@ export default function ListViewPage() {
             if (isVariant(row.original)) return <span />;
             const price = row.original?.variants?.[0]?.price || row.original.price || '';
             return (
-              <div className="flex items-center gap-1">
-                <span className="text-muted-foreground">$</span>
-                <Input
-                  className="h-8"
-                  type="number"
-                  value={price}
-                  onChange={(e) => saveEdit(row.original.id, { variants: [{ ...(row.original.variants?.[0] || {}), price: e.target.value }] }, row.original)}
-                />
-              </div>
+              <Input
+                className="h-8"
+                type="number"
+                value={price}
+                onChange={(e) => saveEdit(row.original.id, { variants: [{ ...(row.original.variants?.[0] || {}), price: e.target.value }] }, row.original)}
+              />
             );
           }
         } as any;
@@ -377,191 +295,36 @@ export default function ListViewPage() {
           ...col,
           cell: ({ row }: any) => {
             if (isVariant(row.original)) return <span />;
-            const current: string[] = Array.isArray(row.original.tags)
-              ? (row.original.tags as string[])
-              : (typeof row.original.tags === 'string'
-                ? row.original.tags.split(',').map((t: string) => t.trim()).filter(Boolean)
-                : []);
+            const tags = Array.isArray(row.original.tags) ? row.original.tags.join(', ') : (row.original.tags || '');
             return (
-              <TagsInput
-                value={current}
-                presets={presets.tags}
-                mode="simple"
-                onChange={(next) => saveEdit(row.original.id, { tags: next }, row.original)}
+              <textarea
+                className="h-24 w-full border rounded-md px-2 py-1 text-sm"
+                value={tags}
+                onChange={(e) => saveEdit(row.original.id, { tags: e.target.value }, row.original)}
               />
             );
           }
         } as any;
       }
-      if (col.accessorKey === 'body_html') {
+      if (editMode && col.accessorKey === 'body_html') {
         return {
           ...col,
           cell: ({ row }: any) => {
             if (isVariant(row.original)) return <span />;
             const body = row.original.body_html || '';
-            if (!editMode) return (
-              <Dialog>
-                <DialogTrigger asChild><Button variant="outline" size="sm">View</Button></DialogTrigger>
-                <DialogContent className="max-w-3xl">
-                  <DialogHeader><DialogTitle>{row.original.title}</DialogTitle></DialogHeader>
-                  <div className="prose dark:prose-invert max-h-[70vh] overflow-y-auto" dangerouslySetInnerHTML={{ __html: body }} />
-                </DialogContent>
-              </Dialog>
-            );
             return (
-              <BodyHtmlEditor
-                value={body}
-                onSave={async (next) => saveEdit(row.original.id, { body_html: next }, row.original)}
+              <HtmlEditor
+                title={row.original.title || 'Product'}
+                initialHtml={body}
+                onSave={(newHtml) => saveEdit(row.original.id, { body_html: newHtml }, row.original)}
+                trigger={<Button variant="outline" size="sm">Edit HTML</Button>}
               />
-            );
-          }
-        } as any;
-      }
-      if (col.accessorKey === 'tags') {
-        return {
-          ...col,
-          cell: ({ row }: any) => {
-            if (isVariant(row.original)) return <span />;
-            const current: string[] = Array.isArray(row.original.tags)
-              ? (row.original.tags as string[])
-              : (typeof row.original.tags === 'string'
-                ? row.original.tags.split(',').map((t: string) => t.trim()).filter(Boolean)
-                : []);
-            if (!editMode) {
-              return <div className="flex flex-wrap gap-1 max-h-20 overflow-auto">{current.slice(0,8).map(t => <Badge key={t} variant="secondary" className="text-[10px] px-1 py-0.5">{t}</Badge>)}{current.length>8 && <span className="text-xs text-muted-foreground">+{current.length-8}</span>}</div>;
-            }
-            return (
-              <div className="flex items-center gap-2">
-                <TagsInput
-                  value={current}
-                  presets={presets.tags}
-                  mode="chips"
-                  onChange={(next) => saveEdit(row.original.id, { tags: next }, row.original)}
-                />
-                <TagsModalEditor
-                  value={current}
-                  presets={presets.tags}
-                  onSave={(next) => saveEdit(row.original.id, { tags: next }, row.original)}
-                />
-              </div>
             );
           }
         } as any;
       }
       return col;
     });
-    // Append additional columns always; edit when editMode else read-only
-    mapped.push(
-      {
-        accessorKey: 'seo_title',
-        header: () => <span className="text-gray-900">SEO Title</span>,
-        size: 220,
-        cell: ({ row }: any) => {
-          if (isVariant(row.original)) return <span />;
-          const val = (row.original as any).seo_title || '';
-          const count = val.length;
-          if (!editMode) return <span className="line-clamp-2" title={val}>{val}</span>;
-          return (
-            <div className="relative">
-              <Input
-                className="h-8 pr-12"
-                maxLength={70}
-                value={val}
-                onChange={(e) => saveEdit(row.original.id, { seo_title: e.target.value }, row.original)}
-              />
-              <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">{count}/70</span>
-            </div>
-          );
-        }
-      } as any,
-      {
-        accessorKey: 'seo_description',
-        header: () => <span className="text-gray-900">SEO Description</span>,
-        size: 300,
-        cell: ({ row }: any) => {
-          if (isVariant(row.original)) return <span />;
-          const val = (row.original as any).seo_description || '';
-          const count = val.length;
-          if (!editMode) return <span className="line-clamp-2" title={val}>{val}</span>;
-          return (
-            <div className="relative">
-              <textarea
-                className="h-24 w-full border rounded-md px-2 py-1 text-sm pr-12"
-                maxLength={160}
-                value={val}
-                onChange={(e) => saveEdit(row.original.id, { seo_description: e.target.value }, row.original)}
-              />
-              <span className="pointer-events-none absolute right-2 top-2 text-xs text-muted-foreground">{count}/160</span>
-            </div>
-          );
-        }
-      } as any,
-      {
-        id: 'compare_at_price',
-        header: () => <span className="text-gray-900">Compare At Price</span>,
-        size: 140,
-        cell: ({ row }: any) => {
-          if (isVariant(row.original)) return <span />;
-          const v0 = row.original.variants?.[0] || {};
-          if (!editMode) return v0.compare_at_price ? <span>${v0.compare_at_price}</span> : <span />;
-          return (
-            <div className="flex items-center gap-1">
-              <span className="text-muted-foreground">$</span>
-              <Input
-                className="h-8"
-                type="number"
-                value={v0.compare_at_price || ''}
-                onChange={(e) => saveEdit(row.original.id, { variants: [{ ...v0, compare_at_price: e.target.value }] }, row.original)}
-              />
-            </div>
-          );
-        }
-      } as any,
-      {
-        id: 'cost',
-        header: () => <span className="text-gray-900">Cost per item</span>,
-        size: 140,
-        cell: ({ row }: any) => {
-          if (isVariant(row.original)) return <span />;
-          const v0 = row.original.variants?.[0] || {};
-          if (!editMode) return v0.cost ? <span>${v0.cost}</span> : <span />;
-          return (
-            <div className="flex items-center gap-1">
-              <span className="text-muted-foreground">$</span>
-              <Input
-                className="h-8"
-                type="number"
-                value={v0.cost || ''}
-                onChange={(e) => saveEdit(row.original.id, { variants: [{ ...v0, cost: e.target.value }] }, row.original)}
-              />
-            </div>
-          );
-        }
-      } as any,
-      {
-        accessorKey: 'status',
-        header: () => <span className="text-gray-900">Status</span>,
-        size: 120,
-        cell: ({ row }: any) => {
-          if (isVariant(row.original)) return <span />;
-          const current = (row.original.status || 'draft') as 'active'|'draft'|'archived';
-          if (!editMode) return <span className="capitalize">{current}</span>;
-          return (
-            <Select
-              value={current}
-              onValueChange={(value) => saveEdit(row.original.id, { status: value }, row.original)}
-            >
-              <SelectTrigger className="h-8 w-full"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="draft">Draft</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-              </SelectContent>
-            </Select>
-          );
-        }
-      } as any,
-    );
-    return mapped;
   }, [editMode]);
 
   const table = useReactTable({
@@ -622,35 +385,6 @@ export default function ListViewPage() {
 
   const selectedCount = table.getSelectedRowModel().rows.length;
 
-  const applyBulk = useCallback(async () => {
-    const rows = table.getSelectedRowModel().rows;
-    const updates: { key: string; data: any }[] = [];
-    for (const r of rows) {
-      const base: any = isVariant(r.original) ? (r.getParentRow()?.original) : r.original;
-      const host = base?.__storeHost || (base?.__storeUrl ? (() => { try { return new URL(base.__storeUrl).hostname; } catch { return base.__storeUrl; } })() : '');
-      const key = `${host || ''}:${base.handle}`;
-      const data: any = {};
-      if (bulkVendor.trim()) data.vendor = bulkVendor.trim();
-      if (bulkType.trim()) data.product_type = bulkType.trim();
-      if (bulkStatus) data.status = bulkStatus;
-      if (Object.keys(data).length > 0) updates.push({ key, data });
-    }
-    if (updates.length === 0) return;
-    if (!confirm(`Apply updates to ${rows.length} product(s)?`)) return;
-    const res = await fetch(`/api/lists/${listId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ updates }) });
-    const data = await res.json();
-    if (res.ok) {
-      setAllProducts((data.list?.items || []).map((p: any) => ({ ...p })));
-      setRowSelection({});
-      setBulkVendor(''); setBulkType(''); setBulkStatus('');
-      // add any new presets
-      if (bulkVendor.trim()) addPresetValue('vendors', bulkVendor.trim());
-      if (bulkType.trim()) addPresetValue('productTypes', bulkType.trim());
-    } else {
-      alert(data.error || 'Failed to apply bulk updates');
-    }
-  }, [table, bulkVendor, bulkType, bulkStatus, listId, addPresetValue]);
-
   const removeSelected = useCallback(async () => {
     const selectedRows = table.getSelectedRowModel().rows;
     const keys = Array.from(new Set(selectedRows.map(r => {
@@ -679,43 +413,7 @@ export default function ListViewPage() {
           <div className="text-sm text-muted-foreground hidden md:block">
             Showing <strong>{selectedRowCount}</strong> of <strong>{totalBaseCount}</strong> products
           </div>
-          <Button variant={editMode ? 'outline' : 'default'} onClick={() => {
-            setEditMode(v => {
-              if (!v) { // entering edit mode
-                setSavedColumnSizing(columnSizing); // keep current
-                // auto expand based on content length heuristics
-                const next: ColumnSizingState = { ...columnSizing };
-                const sample = tableData.slice(0, 200);
-                function calc(key: string, base: number, max: number) {
-                  let longest = 0;
-                  for (const p of sample) {
-                    const val = (p[key] || '').toString();
-                    if (val.length > longest) longest = val.length;
-                  }
-                  const px = Math.min(max, Math.max(base, longest * 8 + 40));
-                  next[key] = px;
-                }
-                // Body column intentionally excluded (only button) so it doesn't widen.
-                ['handle','title','vendor','product_type','seo_title','seo_description'].forEach(k => calc(k, 160, 600));
-                // Tags: compute width based on joined tags per product
-                let tagsLongest = 0;
-                for (const p of sample) {
-                  let tagStr = '';
-                  if (Array.isArray(p.tags)) tagStr = p.tags.join(', ');
-                  else if (typeof p.tags === 'string') tagStr = p.tags;
-                  if (tagStr.length > tagsLongest) tagsLongest = tagStr.length;
-                }
-                if (tagsLongest) {
-                  next['tags'] = Math.min(500, Math.max(180, tagsLongest * 7 + 40));
-                }
-                setColumnSizing(next);
-              } else {
-                // leaving edit mode restore
-                if (savedColumnSizing) setColumnSizing(savedColumnSizing);
-              }
-              return !v;
-            });
-          }}>{editMode ? 'Preview Mode' : 'Edit Mode'}</Button>
+          <Button variant={editMode ? 'outline' : 'default'} onClick={() => setEditMode((v) => !v)}>{editMode ? 'Done' : 'Edit Mode'}</Button>
           <Button onClick={handleExport}>Export Products (CSV)</Button>
         </div>
       </div>
@@ -843,31 +541,8 @@ export default function ListViewPage() {
             </div>
           </div>
 
-          {/* Bulk Edit toolbar */}
-          {selectedCount > 1 && (
-            <div className="w-full px-3 py-3 bg-amber-50 border-t border-b border-amber-200 flex flex-wrap items-center gap-3 sticky top-0 z-30 dark:[color-scheme:light] [&_.bulk-light]:text-slate-900">
-              <div className="text-sm font-medium text-slate-900">Bulk Edit {selectedCount} selected</div>
-              <div className="w-[200px] bulk-light">
-                <ComboInput label="Vendor" value={bulkVendor} presets={presets.vendors} placeholder="Vendor" onChange={setBulkVendor} />
-              </div>
-              <div className="w-[220px] bulk-light">
-                <ComboInput label="Product Type" value={bulkType} presets={presets.productTypes} placeholder="Product Type" onChange={setBulkType} />
-              </div>
-              <div className="w-[160px] bulk-light">
-                <Select value={bulkStatus || 'draft'} onValueChange={(v) => setBulkStatus(v as any)}>
-                  <SelectTrigger className="h-8 w-full bg-white"><SelectValue placeholder="Status" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="draft">Draft</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button size="sm" className="bg-black text-white hover:bg-black/90" onClick={applyBulk}>Apply</Button>
-            </div>
-          )}
-
           {/* Table */}
-          <div className={cn("overflow-auto", editMode && 'edit-mode-table')}>
+          <div className="overflow-auto">
             <Table style={{ width: table.getCenterTotalSize() }}>
               <TableHeader>
                 {table.getHeaderGroups().map(hg => (
@@ -892,7 +567,7 @@ export default function ListViewPage() {
               </TableHeader>
               <TableBody>
                 {table.getRowModel().rows.map(row => (
-                  <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'} className={cn('dark:bg-background', editMode && 'edit-row')}> 
+                  <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'} className="dark:bg-background">
                     {row.getVisibleCells().map(cell => (
                       <TableCell key={cell.id} style={{ width: cell.column.getSize() }} className={cn('p-4 align-middle',
                         cell.column.id === 'view' && 'sticky right-0 bg-card z-10',

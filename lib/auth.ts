@@ -40,9 +40,9 @@ export function verifyToken(token: string): SessionPayload | null {
   }
 }
 
-export function setSessionCookie(email: string) {
+export async function setSessionCookie(email: string) {
   const token = signToken(email);
-  cookies().set(COOKIE_NAME, token, {
+  (await cookies()).set(COOKIE_NAME, token, {
     httpOnly: true,
     sameSite: 'lax',
     path: '/',
@@ -50,8 +50,8 @@ export function setSessionCookie(email: string) {
   });
 }
 
-export function clearSessionCookie() {
-  cookies().set(COOKIE_NAME, '', { httpOnly: true, path: '/', maxAge: 0 });
+export async function clearSessionCookie() {
+  (await cookies()).set(COOKIE_NAME, '', { httpOnly: true, path: '/', maxAge: 0 });
 }
 
 export function getUserFromRequest(req: NextRequest): string | null {
@@ -61,8 +61,8 @@ export function getUserFromRequest(req: NextRequest): string | null {
   return payload?.email || null;
 }
 
-export function getUserFromCookies(): string | null {
-  const token = cookies().get(COOKIE_NAME)?.value;
+export async function getUserFromCookies(): Promise<string | null> {
+  const token = (await cookies()).get(COOKIE_NAME)?.value;
   if (!token) return null;
   const payload = verifyToken(token);
   return payload?.email || null;

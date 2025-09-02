@@ -280,9 +280,9 @@ function ProductTableView({
           </div>
         </div>
         {/* Top filters stay above the table */}
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex flex-grow items-center gap-4 flex-wrap">
-            <div className="flex-shrink-0" style={{ width: '240px' }}>
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 flex-wrap">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 flex-wrap w-full lg:w-auto">
+            <div className="flex-shrink-0 w-full sm:w-[240px]">
               <Select onValueChange={(val) => handleCollectionSelect(val === 'all' ? null : val)} value={selectedCollectionHandle} disabled={!user}>
                 <SelectTrigger className={cn("h-10 w-full", selectedCollectionHandle !== 'all' && "filter-select")}>
                     <SelectValue placeholder="All Collections" />
@@ -304,9 +304,9 @@ function ProductTableView({
               )}
             </div>
 
-            <div className="h-10 w-2 flex-shrink-0 bg-brand-green-light rounded-full" />
+            <div className="h-2 lg:h-10 w-full lg:w-2 flex-shrink-0 bg-brand-green-light rounded-full lg:rounded-none" />
 
-            <div className="flex-shrink-0" style={{ width: '200px' }}>
+            <div className="flex-shrink-0 w-full sm:w-[200px]">
               <Select
                 onValueChange={(value) => {
                   setColumnFilters(prev => {
@@ -333,7 +333,7 @@ function ProductTableView({
               </Select>
             </div>
 
-            <div className="flex-shrink-0" style={{ width: '200px' }}>
+            <div className="flex-shrink-0 w-full sm:w-[200px]">
               <Select
                 onValueChange={(value) => {
                   setColumnFilters(prev => {
@@ -371,11 +371,11 @@ function ProductTableView({
       <div className="w-screen -mx-4 md:-mx-8">
       <div className="rounded-2xl border-2 bg-gray-50 dark:bg-card overflow-hidden">
         {/* Toolbar inside the table frame but outside horizontal scroll */}
-        <div className="w-full px-3 py-[18px] border-b bg-gray-100 dark:bg-muted flex items-center justify-start gap-3 sticky left-0 z-10">
+        <div className="w-full px-3 py-[18px] border-b bg-gray-100 dark:bg-muted flex flex-col sm:flex-row items-start sm:items-center justify-start gap-3 sticky left-0 z-10">
           {table.getState().sorting.length > 0 && (
             <Button variant="link" onClick={() => table.resetSorting()}>Reset Sort</Button>
           )}
-          <div className="relative" style={{ width: '240px' }}>
+          <div className="relative w-full sm:w-[240px]">
             <Input
               placeholder="Search..."
               value={globalFilter ?? ''}
@@ -447,20 +447,20 @@ function ProductTableView({
       </div>
       </div>
 
-      <div className="flex items-center justify-between gap-4 py-4 w-full">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4 w-full">
         <div className="flex-1">
         </div>
-        <div className="flex flex-shrink-0 justify-center items-center gap-4">
+        <div className="flex flex-wrap justify-center items-center gap-2">
             <Button variant="outline" size="sm" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>First</Button>
             <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>Previous</Button>
-            <div className="text-sm text-muted-foreground whitespace-nowrap">
+            <div className="text-sm text-muted-foreground whitespace-nowrap px-2">
                 Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
             </div>
             <Button variant="outline"  size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Next</Button>
             <Button variant="outline" size="sm" onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()}>Last</Button>
         </div>
         <div className="flex flex-1 justify-end items-center gap-2">
-            <span className="text-sm text-muted-foreground">Show</span>
+            <span className="text-sm text-muted-foreground hidden sm:inline">Show</span>
             <Select
                 value={`${table.getState().pagination.pageSize}`}
                 onValueChange={value => { table.setPageSize(Number(value)) }}
@@ -476,7 +476,7 @@ function ProductTableView({
                     ))}
                 </SelectContent>
             </Select>
-            <span className="text-sm text-muted-foreground">products</span>
+            <span className="text-sm text-muted-foreground hidden sm:inline">products</span>
         </div>
       </div>
     </div>

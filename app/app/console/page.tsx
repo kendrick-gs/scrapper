@@ -542,11 +542,12 @@ export default function ConsolePage() {
                               const selectedRows = table.getSelectedRowModel().rows;
                               const productsToAdd = Array.from(new Map(selectedRows.map(r => {
                                 const base = isVariant(r.original) ? (r.getParentRow()?.original) : r.original;
+                                if (!base || !('handle' in base)) return null; // Skip invalid entries
                                 const ensuredHost = base?.__storeHost || (base?.__storeUrl ? formatHost(base.__storeUrl) : (storeFilter !== 'all' ? storeFilter : ''));
                                 const ensuredUrl = base?.__storeUrl || '';
                                 const p = { ...base, __storeHost: ensuredHost, __storeUrl: ensuredUrl };
-                                return [`${p.__storeHost || ''}:${p.handle}`, p];
-                              })).values());
+                                return [`${p.__storeHost || ''}:${p.handle}`, p] as const;
+                              }).filter((entry): entry is NonNullable<typeof entry> => entry !== null)).values());
                               await fetch(`/api/lists/${targetListId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ products: productsToAdd }) });
               if (alsoSavePresets) {
                 const vendors = Array.from(new Set(productsToAdd.map((p:any)=> (p.vendor ?? '').trim()).filter(Boolean)));

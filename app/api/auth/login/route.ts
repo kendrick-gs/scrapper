@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
     if (!email || !users.includes(email)) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
-    setSessionCookie(email);
+    await setSessionCookie(email);
     return NextResponse.json({ ok: true, user: { email } });
   } catch (e: any) {
     return NextResponse.json({ error: 'Login failed', details: e.message }, { status: 500 });

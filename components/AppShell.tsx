@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Moon, Sun, SunMoon } from 'lucide-react';
+import { CacheIndicator } from '@/components/CacheIndicator';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, loading, error, refresh, login, register, logout } = useAuthStore();
@@ -42,51 +43,54 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   return (
-    <main className="flex min-h-screen flex-col items-center p-4 md:p-8 bg-white dark:bg-background">
-      <div className="w-full max-w-[1440px] flex items-center justify-between mb-4">
-        <nav className="flex items-center gap-4 text-sm">
-          <Link href="/app/start" className={pathname?.startsWith('/app/start') ? 'font-medium' : 'text-muted-foreground'}>Start</Link>
+    <main className="flex min-h-screen flex-col items-center p-2 sm:p-4 md:p-8 bg-white dark:bg-background">
+      <div className="w-full max-w-[1440px] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+        <nav className="flex flex-wrap items-center gap-2 sm:gap-4 text-sm">
+          <Link href="/app/start" className={pathname?.startsWith('/app/start') ? 'font-medium text-brand-green' : 'text-muted-foreground hover:text-foreground'}>Start</Link>
           {user && (
             <>
-              <Link href="/app/console" className={pathname?.startsWith('/app/console') ? 'font-medium' : 'text-muted-foreground'}>Console</Link>
-              <Link href="/app/stores" className={pathname?.startsWith('/app/stores') ? 'font-medium' : 'text-muted-foreground'}>Stores</Link>
-              <Link href="/app/lists" className={pathname?.startsWith('/app/lists') ? 'font-medium' : 'text-muted-foreground'}>Lists</Link>
-              <Link href="/app/presets" className={pathname?.startsWith('/app/presets') ? 'font-medium' : 'text-muted-foreground'}>Data Presets</Link>
+              <Link href="/app/console" className={pathname?.startsWith('/app/console') ? 'font-medium text-brand-green' : 'text-muted-foreground hover:text-foreground'}>Console</Link>
+              <Link href="/app/stores" className={pathname?.startsWith('/app/stores') ? 'font-medium text-brand-green' : 'text-muted-foreground hover:text-foreground'}>Stores</Link>
+              <Link href="/app/lists" className={pathname?.startsWith('/app/lists') ? 'font-medium text-brand-green' : 'text-muted-foreground hover:text-foreground'}>Lists</Link>
+              <Link href="/app/presets" className={pathname?.startsWith('/app/presets') ? 'font-medium text-brand-green' : 'text-muted-foreground hover:text-foreground'}>Data Presets</Link>
             </>
           )}
         </nav>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
           <button
             aria-label="Toggle theme"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md border bg-transparent hover:bg-muted transition-colors"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-md border bg-transparent hover:bg-muted transition-colors self-end sm:self-auto"
             onClick={() => setTheme(prev => (prev === 'dark' ? 'light' : 'dark'))}
             title={mounted ? (theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode') : 'Toggle theme'}
           >
             {mounted ? (theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />) : <SunMoon className="h-4 w-4" />}
           </button>
         {!user ? (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto">
             <Input
               type="email"
               value={email}
               placeholder="you@example.com"
               onChange={(e) => setEmail(e.target.value)}
-              className="h-9 w-64"
+              className="h-9 w-full sm:w-64"
             />
-            <Button size="sm" disabled={loading} onClick={() => login(email)}>Login</Button>
-            <Button size="sm" variant="outline" disabled={loading} onClick={() => register(email)}>Register</Button>
+            <div className="flex gap-2 w-full sm:w-auto">
+              <Button size="sm" disabled={loading} onClick={() => login(email)} className="flex-1 sm:flex-none">Login</Button>
+              <Button size="sm" variant="outline" disabled={loading} onClick={() => register(email)} className="flex-1 sm:flex-none">Register</Button>
+            </div>
           </div>
         ) : (
-          <div className="flex items-center gap-3 text-sm">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 text-sm w-full sm:w-auto">
+            <CacheIndicator />
             <span className="text-muted-foreground">Signed in as</span>
-            <span className="font-medium">{user.email}</span>
+            <span className="font-medium truncate">{user.email}</span>
             <Button size="sm" variant="outline" onClick={() => logout()}>Logout</Button>
           </div>
         )}
         </div>
       </div>
       {children}
-      {error && <div className="text-red-500 text-sm mt-2">{error}</div>}
+      {error && <div className="text-red-500 text-sm mt-2 p-2 bg-red-50 dark:bg-red-900/20 rounded-md">{error}</div>}
     </main>
   );
 }

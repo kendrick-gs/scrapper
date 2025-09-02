@@ -61,6 +61,20 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* Performance optimizations */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Improve scrolling performance */
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Optimize images */
+  img {
+    image-rendering: -webkit-optimize-contrast;
   }
 }
 
@@ -80,8 +94,25 @@ table th {
   @apply bg-gray-300 h-16 text-left align-middle font-medium text-gray-900;
 }
 
+/* Resizer styles for table columns */
+.resizer {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: 5px;
+  background: rgba(0, 0, 0, 0.5);
+  cursor: col-resize;
+  user-select: none;
+  touch-action: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
 
-
+.resizer:hover,
+.resizer.isResizing {
+  opacity: 1;
+}
 
 .filter-select[data-state=active] {
   @apply border-brand-green border-2;
@@ -99,6 +130,43 @@ table th {
   word-break: break-word;
 }
 
+/* Loading states */
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 1.5s ease-in-out infinite;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200px 100%;
+}
+
+.dark .animate-shimmer {
+  background: linear-gradient(90deg, #2a2a2a 25%, #3a3a3a 50%, #2a2a2a 75%);
+  background-size: 200px 100%;
+}
+
+/* Mobile optimizations */
+@media (max-width: 640px) {
+  .mobile-stack {
+    flex-direction: column;
+  }
+
+  .mobile-full {
+    width: 100%;
+  }
+}
+
+/* Focus styles for accessibility */
+.focus-visible:focus-visible {
+  @apply ring-2 ring-brand-green ring-offset-2;
+}
+
 .resizer {
   @apply absolute top-1/2 right-0 h-4/5 w-1.5 -translate-y-1/2 cursor-col-resize select-none touch-none rounded-full bg-white opacity-75 transition-all duration-200;
 }
@@ -107,31 +175,3 @@ table th {
 th:hover > .resizer {
   @apply bg-gray-400 h-full opacity-100;
 }
-
-/* Edit Mode: ensure text field backgrounds white in light theme for contrast */
-.edit-mode-table input[type="text"],
-.edit-mode-table input[type="number"],
-.edit-mode-table textarea,
-.edit-mode-table .combo-input-wrapper input,
-.edit-mode-table .tags-input-wrapper input,
-.edit-mode-table .tags-input-wrapper,
-.edit-mode-table .tags-input-wrapper .badge,
-.edit-mode-table .edit-row select,
-.edit-mode-table .edit-row .shadcn-input {
-  @apply bg-white dark:bg-[#222] text-slate-900 dark:text-white border-slate-300 dark:border-[#333];
-}
-
-.edit-mode-table .tags-input-wrapper .badge {
-  @apply bg-slate-200 dark:bg-[#333] text-slate-700 dark:text-slate-200;
-}
-
-/* Dark mode placeholders for vendor/type/tag combo inputs */
-.dark .combo-input-wrapper input::placeholder,
-.dark .tags-input-wrapper input::placeholder,
-.dark .tags-input-wrapper textarea::placeholder {
-  color: #f8f8f8 !important;
-  opacity: 0.7;
-}
-
-/* Force visible placeholder text on forced light color scheme containers in dark mode */
-.dark [color-scheme="light"] input::placeholder { color: #667085 !important; }
