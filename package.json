@@ -1,6 +1,6 @@
 {
   "name": "scrapper",
-  "version": "0.1.0",
+  "version": "1.6.1",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -9,13 +9,17 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@next/font": "^14.2.15",
     "@radix-ui/react-collapsible": "^1.1.12",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-progress": "^1.1.7",
     "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-slot": "^1.2.3",
+    "@radix-ui/react-toast": "^1.2.15",
+    "@radix-ui/react-tooltip": "^1.2.8",
+    "@tanstack/react-query": "^5.85.9",
+    "@tanstack/react-query-devtools": "^5.85.9",
     "@tanstack/react-table": "^8.21.3",
+    "@types/redis": "^4.0.10",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.541.0",
@@ -24,10 +28,10 @@
     "papaparse": "^5.5.3",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "redis": "^5.8.2",
     "swr": "^2.3.6",
     "tailwind-merge": "^3.3.1",
-    "uuid": "^11.1.0",
-    "zustand": "^5.0.8"
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

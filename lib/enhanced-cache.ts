@@ -37,7 +37,12 @@ class EnhancedCache {
   }
 
   set(key: string, data: any, ttl = 3600000) { // 1 hour default TTL
-    this.cache.set(key, { data, timestamp: Date.now(), ttl });
+    // Validate TTL - ensure it's a positive number
+    const validTtl = (typeof ttl === 'number' && ttl > 0 && !isNaN(ttl))
+      ? ttl
+      : 3600000; // Default to 1 hour if invalid
+
+    this.cache.set(key, { data, timestamp: Date.now(), ttl: validTtl });
     this.saveToStorage();
   }
 

@@ -5,45 +5,41 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { cache, imageCache } from '@/lib/enhanced-cache';
+import { enhancedCache, redisImageCache } from '@/lib/enhanced-redis-cache';
 import { Trash2, Database, Image, RefreshCw } from 'lucide-react';
-import { useScrapeStore } from '@/store/useScrapeStore';
+import { useQuery } from '@tanstack/react-query';
 
 export function CacheManager() {
-  const [cacheStats, setCacheStats] = useState(cache.getStats());
-  const [imageCacheSize, setImageCacheSize] = useState(0);
   const [isClearing, setIsClearing] = useState(false);
-  const { collectionCache } = useScrapeStore();
 
-  useEffect(() => {
-    // Update image cache size
-    setImageCacheSize(imageCache.getCacheSize ? imageCache.getCacheSize() : 0);
+  const { data: cacheStats, refetch: refetchCacheStats } = useQuery({
+    queryKey: ['cache', 'stats'],
+    queryFn: () => enhancedCache.getStats(),
+    refetchInterval: 5000,
+  });
 
-    // Update cache stats periodically
-    const interval = setInterval(() => {
-      setCacheStats(cache.getStats());
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, []);
+  const { data: imageStats } = useQuery({
+    queryKey: ['cache', 'images', 'stats'],
+    queryFn: () => redisImageCache.getStats(),
+    refetchInterval: 5000,
+  });
 
   const handleClearCache = async (type: 'all' | 'data' | 'images') => {
     setIsClearing(true);
     try {
       switch (type) {
         case 'all':
-          cache.clear();
-          imageCache.clear();
+          await enhancedCache.clear();
+          await redisImageCache.clear();
           break;
         case 'data':
-          cache.clear();
+          await enhancedCache.clear();
           break;
         case 'images':
-          imageCache.clear();
+          await redisImageCache.clear();
           break;
       }
-      setCacheStats(cache.getStats());
-      setImageCacheSize(0);
+      refetchCacheStats();
     } catch (error) {
       console.error('Failed to clear cache:', error);
     } finally {
@@ -51,7 +47,7 @@ export function CacheManager() {
     }
   };
 
-  const totalCacheItems = cacheStats.size + Object.keys(collectionCache).length;
+  const totalCacheItems = (cacheStats?.size || 0) + (imageStats?.localSize || 0);
   const cacheUsage = Math.min((totalCacheItems / 1000) * 100, 100); // Assume 1000 items max
 
   return (
@@ -77,14 +73,14 @@ export function CacheManager() {
           <div className="flex items-center gap-2">
             <Database className="h-4 w-4 text-muted-foreground" />
             <div>
-              <div className="font-medium">{cacheStats.size}</div>
+              <div className="font-medium">{cacheStats?.size || 0}</div>
               <div className="text-muted-foreground">Data Items</div>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <Image className="h-4 w-4 text-muted-foreground" />
             <div>
-              <div className="font-medium">{imageCacheSize}</div>
+              <div className="font-medium">{imageStats?.localSize || 0}</div>
               <div className="text-muted-foreground">Images</div>
             </div>
           </div>
@@ -95,7 +91,7 @@ export function CacheManager() {
             variant="outline"
             size="sm"
             onClick={() => handleClearCache('data')}
-            disabled={isClearing || cacheStats.size === 0}
+            disabled={isClearing || (cacheStats?.size || 0) === 0}
             className="w-full"
           >
             <Trash2 className="h-4 w-4 mr-2" />
@@ -105,7 +101,7 @@ export function CacheManager() {
             variant="outline"
             size="sm"
             onClick={() => handleClearCache('images')}
-            disabled={isClearing || imageCacheSize === 0}
+            disabled={isClearing || (imageStats?.localSize || 0) === 0}
             className="w-full"
           >
             <Trash2 className="h-4 w-4 mr-2" />
@@ -115,7 +111,7 @@ export function CacheManager() {
             variant="destructive"
             size="sm"
             onClick={() => handleClearCache('all')}
-            disabled={isClearing || (cacheStats.size === 0 && imageCacheSize === 0)}
+            disabled={isClearing || ((cacheStats?.size || 0) === 0 && (imageStats?.localSize || 0) === 0)}
             className="w-full"
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${isClearing ? 'animate-spin' : ''}`} />

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromRequest } from '@/lib/auth';
-import { addItemsToList, getList, removeItemsFromList, updateItemsInList } from '@/lib/storage';
+import { addItemsToList, getList, removeItemsFromList, updateItemsInList } from '@/lib/redis-storage';
 
 export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   const email = getUserFromRequest(req);

@@ -1,21 +1,20 @@
 'use client';
 
 import { useState } from 'react';
-import { useScrapeStore } from '@/store/useScrapeStore';
+import { useScrapeState } from '@/hooks/useScrape';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { useAuthStore } from '@/store/useAuthStore';
+import { useAuth } from '@/hooks/useAuth';
 // HistoryPanel removed from Start page as requested
 import { StreamImportDialog } from '@/components/StreamImportDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 export default function Step1InputForm() {
   const [url, setUrl] = useState('');
-  const setShopUrl = useScrapeStore((state) => state.setShopUrl);
-  const startScraping = useScrapeStore((state) => state.startScraping);
+  const { setShopUrl, startScraping } = useScrapeState();
   const [error, setError] = useState('');
-  const user = useAuthStore((s) => s.user);
+  const { user } = useAuth();
   const [busy, setBusy] = useState(false);
   const [showStream, setShowStream] = useState(false);
   const [streamForce, setStreamForce] = useState(true);

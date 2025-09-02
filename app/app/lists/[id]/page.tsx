@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
-import { useAuthStore } from '@/store/useAuthStore';
+import { useAuth } from '@/hooks/useAuth';
 import { ArrowUpRight, Eye, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -32,7 +32,7 @@ const EMPTY = '__empty__';
 export default function ListViewPage() {
   const params = useParams<{ id: string }>();
   const listId = params?.id as string;
-  const user = useAuthStore(s => s.user);
+  const { user } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');

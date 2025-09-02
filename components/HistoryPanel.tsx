@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { useAuthStore } from '@/store/useAuthStore';
-import { useScrapeStore } from '@/store/useScrapeStore';
+import { useMemo } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { useScrapeState } from '@/hooks/useScrape';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { useQuery } from '@tanstack/react-query';
 
 type HistoryItem = {
   email: string;
@@ -15,34 +16,20 @@ type HistoryItem = {
 };
 
 export function HistoryPanel() {
-  const user = useAuthStore((s) => s.user);
-  const [loading, setLoading] = useState(false);
-  const [items, setItems] = useState<HistoryItem[]>([]);
-  const setShopUrl = useScrapeStore((s) => s.setShopUrl);
-  const startScraping = useScrapeStore((s) => s.startScraping);
+  const { user } = useAuth();
+  const { setShopUrl, startScraping } = useScrapeState();
 
-  const fetchHistory = async () => {
-    setLoading(true);
-    try {
+  const { data: historyData, isLoading, refetch } = useQuery({
+    queryKey: ['history'],
+    queryFn: async () => {
       const res = await fetch('/api/history');
       const data = await res.json();
-      setItems(Array.isArray(data.history) ? data.history : []);
-    } catch {
-      setItems([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+      return Array.isArray(data.history) ? data.history : [];
+    },
+    enabled: !!user,
+  });
 
-  useEffect(() => {
-    if (user) {
-      fetchHistory();
-    } else {
-      setItems([]);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.email]);
-
+  const items = historyData || [];
   const sorted = useMemo(() => {
     return [...items].sort((a, b) => b.date.localeCompare(a.date));
   }, [items]);
@@ -53,8 +40,8 @@ export function HistoryPanel() {
     <Card className="w-full max-w-[900px] mx-auto mt-6">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Import History</CardTitle>
-        <Button variant="outline" size="sm" onClick={fetchHistory} disabled={loading}>
-          {loading ? 'Loading...' : 'Refresh'}
+        <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isLoading}>
+          {isLoading ? 'Loading...' : 'Refresh'}
         </Button>
       </CardHeader>
       <CardContent>

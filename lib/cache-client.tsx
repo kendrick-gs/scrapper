@@ -1,22 +1,22 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { cache, imageCache } from './enhanced-cache';
+import { enhancedCache, redisImageCache } from './enhanced-redis-cache';
 import Image from 'next/image';
 import { cn } from './utils';
 
-// React hook for cache management
+// React hook for Redis cache management
 export function useCache<T>(key: string, ttl?: number) {
-  const [data, setData] = useState<T | null>(() => cache.get(key));
+  const [data, setData] = useState<T | null>(() => enhancedCache.getSync(key));
   const [loading, setLoading] = useState(false);
 
-  const setCachedData = useCallback((newData: T, customTtl?: number) => {
-    cache.set(key, newData, customTtl || ttl);
+  const setCachedData = useCallback(async (newData: T, customTtl?: number) => {
+    await enhancedCache.set(key, newData, customTtl || ttl);
     setData(newData);
   }, [key, ttl]);
 
-  const clearCache = useCallback(() => {
-    cache.delete(key);
+  const clearCache = useCallback(async () => {
+    await enhancedCache.delete(key);
     setData(null);
   }, [key]);
 
@@ -29,15 +29,21 @@ export function useCache<T>(key: string, ttl?: number) {
   };
 }
 
-// Enhanced Image component with caching
-export function CachedImage({ src, alt, className, fill, ...props }: { src: string; alt: string; className?: string; fill?: boolean; [key: string]: any }) {
+// Enhanced Image component with Redis caching
+export const CachedImage: React.FC<{
+  src: string;
+  alt: string;
+  className?: string;
+  fill?: boolean;
+  [key: string]: any;
+}> = ({ src, alt, className, fill, ...props }) => {
   const [cachedSrc, setCachedSrc] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadImage = async () => {
       try {
-        const cached = await imageCache.preloadImage(src);
+        const cached = await redisImageCache.preloadImage(src);
         setCachedSrc(cached);
       } catch (error) {
         console.warn('Failed to cache image:', error);
@@ -65,4 +71,4 @@ export function CachedImage({ src, alt, className, fill, ...props }: { src: stri
       {...props}
     />
   );
-}
+};

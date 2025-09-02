@@ -15,7 +15,7 @@ import {
   ExpandedState,
   Row,
 } from '@tanstack/react-table';
-import { useScrapeStore } from '@/store/useScrapeStore';
+import { useScrapeState, useScrapeProducts, useScrapeMutation } from '@/hooks/useScrape';
 import { columns, ProductRowData, isVariant } from './columns';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -33,7 +33,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ShopifyProduct, ShopifyCollection } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { XIcon } from 'lucide-react';
-import { useAuthStore } from '@/store/useAuthStore';
+import { useAuth } from '@/hooks/useAuth';
 
 function LoadingView({ logs }: { logs: string[] }) {
   return (
@@ -62,7 +62,7 @@ function ProductTableView({
     collectionCache: Record<string, ShopifyProduct[]>;
     addCollectionToCache: (handle: string, products: ShopifyProduct[]) => void;
 }) {
-  const user = useAuthStore(state => state.user);
+  const { user } = useAuth();
   const [activeCollectionProducts, setActiveCollectionProducts] = useState<ShopifyProduct[] | null>(null);
   const [isCollectionLoading, setCollectionLoading] = useState(false);
   
@@ -484,93 +484,70 @@ function ProductTableView({
 }
 
 export default function Step2Review() {
-  const {
-    shopUrl, addLog, setResults, isLoading, logs,
-    products, collections, collectionCache, addCollectionToCache, reset
-  } = useScrapeStore();
+  const { shopUrl } = useScrapeState();
+  const { user } = useAuth();
+  const scrapeMutation = useScrapeMutation();
+  const [logs, setLogs] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Use React Query to get products data
+  const { data: scrapeData, isLoading: isQueryLoading } = useScrapeProducts(shopUrl, isLoading);
+
+  const products = scrapeData?.products || [];
+  const collections = scrapeData?.collections || [];
+  const vendors = scrapeData?.vendors || [];
+  const productTypes = scrapeData?.productTypes || [];
+
+  const addLog = useCallback((log: string) => {
+    setLogs(prev => [...prev, log]);
+  }, []);
+
+  const handleScrape = async () => {
+    setIsLoading(true);
+    setLogs([]);
+
+    try {
+      await scrapeMutation.mutateAsync(shopUrl);
+    } catch (error) {
+      addLog(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    if (!isLoading) return;
+    if (shopUrl && !scrapeData && !isQueryLoading) {
+      handleScrape();
+    }
+  }, [shopUrl, scrapeData, isQueryLoading]);
 
-    const streamScrape = async () => {
-      try {
-        const response = await fetch('/api/scrape-stream', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ shopUrl }),
-        });
-
-        if (!response.body) {
-          throw new Error("Response body is null");
-        }
-
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n\n');
-          buffer = lines.pop() || '';
-
-          for (const line of lines) {
-            if (line.startsWith('data:')) {
-              const jsonString = line.substring(5);
-              try {
-                const data = JSON.parse(jsonString);
-
-                if (data.finished) {
-                  setResults(data.data);
-                  return;
-                } else if (data.message) {
-                  addLog(data.message);
-                } else if (data.error) {
-                  addLog(`ERROR: ${data.error}`);
-                }
-              } catch (e) {
-                  console.error("Failed to parse stream JSON:", jsonString);
-              }
-            }
-          }
-        }
-      } catch (error) {
-        console.error("Failed to stream scrape:", error);
-        addLog(`A critical error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      }
-    };
-
-    streamScrape();
-
-  }, [isLoading, shopUrl, addLog, setResults, reset]);
-
-  if (isLoading) {
+  if (isLoading || isQueryLoading) {
     return <LoadingView logs={logs} />;
   }
 
-  if (!isLoading && products.length > 0) {
+  if (products.length > 0) {
     return (
       <ProductTableView
-          allProducts={products}
-          collections={collections}
-          shopUrl={shopUrl}
-          collectionCache={collectionCache}
-          addCollectionToCache={addCollectionToCache}
+        allProducts={products}
+        collections={collections}
+        shopUrl={shopUrl}
+        collectionCache={{}}
+        addCollectionToCache={() => {}}
       />
     );
   }
 
   return (
     <Card className="w-full max-w-2xl mx-auto">
-        <CardHeader>
-            <CardTitle>Scraping Complete</CardTitle>
-        </CardHeader>
-        <CardContent>
-            <p>No products were found for this store.</p>
-            <Button onClick={reset} className="mt-4">Start Over</Button>
-        </CardContent>
+      <CardHeader>
+        <CardTitle>Ready to Scrape</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p>Enter a Shopify store URL to begin scraping products.</p>
+        <Button onClick={() => window.location.href = '/app/start'} className="mt-4">
+          Go Back
+        </Button>
+      </CardContent>
     </Card>
   );
 }

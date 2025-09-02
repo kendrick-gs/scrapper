@@ -7,11 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
-import { useAuthStore } from '@/store/useAuthStore';
-import { ArrowUpRight, Eye, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-react';
-// Removed mobile Collapsible; filters are always visible on mobile
+import { useAuth } from '@/hooks/useAuth';
+import { ArrowUpRight, Eye, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, Loader2, RefreshCw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Progress } from '@/components/ui/progress';
 import {
   useReactTable,
   getCoreRowModel,
@@ -24,6 +24,7 @@ import {
   ExpandedState,
 } from '@tanstack/react-table';
 import { columns as baseColumns, ProductRowData, isVariant } from '@/components/steps/columns';
+import { LoadingOverlay, LoadingSpinner, LoadingTableRow, EmptyState } from '@/components/LoadingStates';
 
 type StoreMeta = { shopUrl: string; lastUpdated?: string; productCount?: number; collectionCount?: number };
 type MergedProduct = any & { __storeUrl: string; __storeHost: string };
@@ -31,14 +32,21 @@ type MergedProduct = any & { __storeUrl: string; __storeHost: string };
 const EMPTY = '__empty__';
 
 export default function ConsolePage() {
-  const user = useAuthStore(s => s.user);
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
   const [stores, setStores] = useState<StoreMeta[]>([]);
   const [allProducts, setAllProducts] = useState<MergedProduct[]>([]);
   const [allCollections, setAllCollections] = useState<any[]>([]);
   const [overrideProducts, setOverrideProducts] = useState<MergedProduct[] | null>(null);
   const [isCollectionLoading, setCollectionLoading] = useState(false);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [totalProducts, setTotalProducts] = useState(0);
+  const [loadedProducts, setLoadedProducts] = useState(0);
 
   const [storeFilter, setStoreFilter] = useState<string>('all');
   const [vendorFilter, setVendorFilter] = useState<string>('all');
@@ -55,34 +63,79 @@ export default function ConsolePage() {
   const [lists, setLists] = useState<{ id: string; name: string }[]>([]);
   const [selectedListId, setSelectedListId] = useState<string>('');
   const [alsoSavePresets, setAlsoSavePresets] = useState(true);
-  // Mobile filters are always visible; no toggle state
   const [listDialogOpen, setListDialogOpen] = useState(false);
 
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true); setError('');
-      try {
-        const res = await fetch('/api/console-data');
-        const data = await res.json();
-        setStores(data.stores || []);
+  // Load initial data with pagination
+  const loadData = useCallback(async (page = 1, append = false) => {
+    if (!append) setLoading(true);
+    else setLoadingMore(true);
+
+    setError('');
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: '100',
+        store: storeFilter
+      });
+
+      const res = await fetch(`/api/console-data?${params}`);
+      if (!res.ok) throw new Error('Failed to load data');
+
+      const data = await res.json();
+
+      setStores(data.stores || []);
+      setAllCollections(data.collections || []);
+      setTotalProducts(data.totalProducts || 0);
+      setHasMore(data.hasMore || false);
+      setLoadedProducts(data.loadedProducts || 0);
+
+      if (append) {
+        setAllProducts(prev => [...prev, ...(data.products || [])]);
+      } else {
         setAllProducts(data.products || []);
-        setAllCollections(data.collections || []);
-      } catch (e: any) {
-        setError(e.message || 'Failed to load');
-      } finally {
-        setLoading(false);
       }
-    };
-    load();
-  }, [user?.email]);
+
+      setCurrentPage(page);
+    } catch (e: any) {
+      setError(e.message || 'Failed to load data');
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  }, [storeFilter]);
+
+  // Load more products
+  const loadMore = useCallback(() => {
+    if (hasMore && !loadingMore) {
+      loadData(currentPage + 1, true);
+    }
+  }, [hasMore, loadingMore, currentPage, loadData]);
+
+  // Initial load
+  useEffect(() => {
+    loadData(1, false);
+  }, [loadData]);
+
+  // Reload when store filter changes
+  useEffect(() => {
+    if (storeFilter !== 'all') {
+      loadData(1, false);
+    }
+  }, [storeFilter, loadData]);
 
   useEffect(() => {
     const fetchLists = async () => {
-      const r = await fetch('/api/lists');
-      const d = await r.json();
-      setLists(d.lists || []);
+      try {
+        const r = await fetch('/api/lists');
+        const d = await r.json();
+        setLists(d.lists || []);
+      } catch (error) {
+        console.error('Failed to fetch lists:', error);
+      }
     };
-    fetchLists();
+    if (user?.email) {
+      fetchLists();
+    }
   }, [user?.email]);
 
   const tableData = useMemo(() => {
@@ -314,16 +367,55 @@ export default function ConsolePage() {
 
   return (
     <div className="w-full max-w-[1440px] mx-auto px-0 space-y-3 md:space-y-4">
+      {/* Loading overlay */}
+      {(loading || loadingMore) && (
+        <LoadingOverlay
+          title={loading ? 'Loading Products...' : 'Loading More Products...'}
+          description={loading ? 'Fetching data from stores' : `Loading page ${currentPage + 1}`}
+          progress={totalProducts > 0 ? {
+            current: loadedProducts,
+            total: totalProducts
+          } : undefined}
+        />
+      )}
+
+      {/* Refresh button */}
       <div className="flex items-center justify-between gap-3 md:gap-4">
         <div>
           <h2 className="text-2xl font-bold">Console</h2>
+          {totalProducts > 0 && (
+            <p className="text-sm text-muted-foreground">
+              {totalProducts.toLocaleString()} total products • {loadedProducts.toLocaleString()} loaded
+              {hasMore && <span className="text-brand-green"> • More available</span>}
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => loadData(1, false)}
+            disabled={loading}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          {hasMore && !loadingMore && (
+            <Button
+              variant="outline"
+              onClick={loadMore}
+              className="flex items-center gap-2"
+            >
+              Load More
+            </Button>
+          )}
           <div className="text-sm text-muted-foreground hidden md:block">
             Showing <strong>{selectedRowCount}</strong> of <strong>{totalBaseCount}</strong> products
           </div>
-          {/* Mobile filters are always visible; no toggle */}
-          <Button onClick={handleExport}>Export Products (CSV)</Button>
+          <Button onClick={handleExport} disabled={loading || tableData.length === 0}>
+            Export Products (CSV)
+          </Button>
         </div>
       </div>
 
@@ -479,23 +571,58 @@ export default function ConsolePage() {
                 placeholder="Search products..."
                 value={globalFilter}
                 onChange={e => setGlobalFilter(e.target.value)}
+                disabled={loading}
               />
               {globalFilter && (
-                <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => setGlobalFilter('')}>×</Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-foreground"
+                  onClick={() => setGlobalFilter('')}
+                  disabled={loading}
+                >
+                  ×
+                </Button>
               )}
             </div>
 
             {/* Row 3 (mobile): List actions */}
             <div className="order-2 w-full sm:w-auto flex items-center gap-2">
-              <Button size="sm" onClick={() => setListDialogOpen(true)} disabled={selectedCount === 0}>Add To List ({selectedCount})</Button>
-              <Button size="sm" variant="outline" onClick={() => setRowSelection({})} disabled={selectedCount === 0}>Clear</Button>
-              <Button size="sm" variant={allListedSelected ? 'outline' : 'default'} disabled={allListedSelected} onClick={() => {
-                const map: Record<string, boolean> = {};
-                table.getPrePaginationRowModel().rows.forEach(r => { map[r.id] = true; });
-                setRowSelection(map);
-              }}>Select All Products</Button>
+              <Button
+                size="sm"
+                onClick={() => setListDialogOpen(true)}
+                disabled={selectedCount === 0 || loading}
+              >
+                Add To List ({selectedCount})
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setRowSelection({})}
+                disabled={selectedCount === 0 || loading}
+              >
+                Clear
+              </Button>
+              <Button
+                size="sm"
+                variant={allListedSelected ? 'outline' : 'default'}
+                disabled={allListedSelected || loading}
+                onClick={() => {
+                  const map: Record<string, boolean> = {};
+                  table.getPrePaginationRowModel().rows.forEach(r => { map[r.id] = true; });
+                  setRowSelection(map);
+                }}
+              >
+                Select All Products
+              </Button>
               {table.getState().sorting.length > 0 && (
-                <Button variant="link" onClick={() => table.resetSorting()}>Reset Sort</Button>
+                <Button
+                  variant="link"
+                  onClick={() => table.resetSorting()}
+                  disabled={loading}
+                >
+                  Reset Sort
+                </Button>
               )}
             </div>
 
@@ -565,6 +692,16 @@ export default function ConsolePage() {
           </div>
 
           <div className="overflow-auto">
+            {/* Collection loading indicator */}
+            {isCollectionLoading && (
+              <div className="px-4 py-3 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-200 dark:border-blue-800">
+                <div className="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300">
+                  <LoadingSpinner size="sm" />
+                  <span>Loading collection products...</span>
+                </div>
+              </div>
+            )}
+
             <Table style={{ width: table.getCenterTotalSize() }}>
               <TableHeader>
                 {table.getHeaderGroups().map(hg => (
@@ -588,18 +725,49 @@ export default function ConsolePage() {
                 ))}
               </TableHeader>
               <TableBody>
-                {table.getRowModel().rows.map(row => (
-                  <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'} className="dark:bg-background">
-                    {row.getVisibleCells().map(cell => (
-                      <TableCell key={cell.id} style={{ width: cell.column.getSize() }} className={cn('p-4 align-middle',
-                        cell.column.id === 'view' && 'sticky right-0 bg-card z-10',
-                        cell.column.id === 'select' && 'sticky left-0 bg-card z-10'
-                      )}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))}
+                {loading ? (
+                  <LoadingTableRow colSpan={table.getAllColumns().length} text="Loading products..." />
+                ) : table.getRowModel().rows.length === 0 ? (
+                  <tr>
+                    <td colSpan={table.getAllColumns().length} className="h-32">
+                      <EmptyState
+                        title="No products found"
+                        description={
+                          storeFilter !== 'all'
+                            ? 'Try selecting a different store or clearing filters.'
+                            : 'No products available. Try refreshing or check your store connections.'
+                        }
+                        action={
+                          storeFilter !== 'all'
+                            ? {
+                                label: 'Clear All Filters',
+                                onClick: () => {
+                                  setStoreFilter('all');
+                                  setVendorFilter('all');
+                                  setTypeFilter('all');
+                                  setCollectionFilter('all');
+                                  setGlobalFilter('');
+                                }
+                              }
+                            : undefined
+                        }
+                      />
+                    </td>
+                  </tr>
+                ) : (
+                  table.getRowModel().rows.map(row => (
+                    <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'} className="dark:bg-background">
+                      {row.getVisibleCells().map(cell => (
+                        <TableCell key={cell.id} style={{ width: cell.column.getSize() }} className={cn('p-4 align-middle',
+                          cell.column.id === 'view' && 'sticky right-0 bg-card z-10',
+                          cell.column.id === 'select' && 'sticky left-0 bg-card z-10'
+                        )}>
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>

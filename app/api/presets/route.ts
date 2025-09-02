@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromRequest } from '@/lib/auth';
-import { addToPresets, getPresets, removeFromPresets, renameInPresets } from '@/lib/storage';
+import { addToPresets, getPresets, removeFromPresets } from '@/lib/redis-storage';
 
 export async function GET(req: NextRequest) {
   const email = getUserFromRequest(req);
@@ -32,8 +32,7 @@ export async function PUT(req: NextRequest) {
   if (!email) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const { kind, from, to } = await req.json();
   if (!kind || !from) return NextResponse.json({ error: 'kind and from required' }, { status: 400 });
-  const updated = await renameInPresets(email, kind, from, to);
-  if (!updated) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-  return NextResponse.json({ ok: true, presets: updated });
+  // Rename functionality not implemented in Redis storage yet
+  return NextResponse.json({ error: 'Rename not implemented' }, { status: 501 });
 }
 
