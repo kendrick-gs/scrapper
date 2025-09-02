@@ -128,36 +128,56 @@ export default function StoresPage() {
   const refreshAllStoresMutation = useMutation({
     mutationFn: async () => {
       const results = [];
-      for (const store of stores) {
+      console.log(`🔄 Starting refresh of ${stores.length} stores...`);
+      
+      for (let i = 0; i < stores.length; i++) {
+        const store = stores[i];
+        console.log(`📡 [${i + 1}/${stores.length}] Refreshing store: ${store.shopUrl}`);
+        
         try {
+          const startTime = Date.now();
           const res = await fetch('/api/stores/refresh', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ shopUrl: store.shopUrl }),
           });
+          
+          const duration = Date.now() - startTime;
+          
           if (!res.ok) {
             const error = await res.json().catch(() => ({}));
-            results.push({ shopUrl: store.shopUrl, error: error.error || 'Failed to refresh' });
+            const errorMsg = error.error || 'Failed to refresh';
+            console.error(`❌ [${i + 1}/${stores.length}] Failed to refresh ${store.shopUrl}: ${errorMsg} (${duration}ms)`);
+            results.push({ shopUrl: store.shopUrl, error: errorMsg });
           } else {
-            results.push({ shopUrl: store.shopUrl, success: true });
+            const data = await res.json();
+            console.log(`✅ [${i + 1}/${stores.length}] Successfully refreshed ${store.shopUrl} - ${data.productCount || 0} products, ${data.collectionCount || 0} collections (${duration}ms)`);
+            results.push({ shopUrl: store.shopUrl, success: true, data });
           }
         } catch (error) {
-          results.push({ shopUrl: store.shopUrl, error: 'Network error' });
+          const errorMsg = error instanceof Error ? error.message : 'Network error';
+          console.error(`❌ [${i + 1}/${stores.length}] Network error refreshing ${store.shopUrl}: ${errorMsg}`);
+          results.push({ shopUrl: store.shopUrl, error: errorMsg });
         }
       }
+      
       return results;
     },
     onSuccess: (results) => {
       queryClient.invalidateQueries({ queryKey: ['stores'] });
+      const successCount = results.filter(r => r.success).length;
       const failedCount = results.filter(r => r.error).length;
+      
+      console.log(`🎉 Refresh complete! ${successCount} stores refreshed successfully, ${failedCount} failed.`);
+      
       if (failedCount > 0) {
-        console.warn(`${failedCount} store(s) failed to refresh`);
+        console.warn(`⚠️  ${failedCount} store(s) failed to refresh. Check the errors above for details.`);
       } else {
-        console.log("All stores refreshed successfully!");
+        console.log("✨ All stores refreshed successfully!");
       }
     },
     onError: (error: Error) => {
-      console.error('Failed to refresh stores:', error.message);
+      console.error('💥 Critical error during bulk refresh:', error.message);
     },
   });
 
