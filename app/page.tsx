@@ -6,6 +6,6 @@ import { AppShell } from '@/components/AppShell';
 
 export default function HomePage() {
   const router = useRouter();
-  useEffect(() => { router.replace('/app/start'); }, [router]);
+  useEffect(() => { router.replace('/app/start'); }, []);
   return <AppShell>Redirecting…</AppShell>;
 }

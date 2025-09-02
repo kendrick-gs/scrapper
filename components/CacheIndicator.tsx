@@ -30,14 +30,14 @@ export const useCacheUpdate = () => {
 
 // Cache Provider component
 export const CacheProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [lastUpdate, setLastUpdate] = useState(Date.now());
+  const [updateCounter, setUpdateCounter] = useState(0);
 
   const triggerUpdate = () => {
-    setLastUpdate(Date.now());
+    setUpdateCounter(prev => prev + 1);
   };
 
   return (
-    <CacheContext.Provider value={{ triggerUpdate, lastUpdate }}>
+    <CacheContext.Provider value={{ triggerUpdate, lastUpdate: updateCounter }}>
       {children}
     </CacheContext.Provider>
   );

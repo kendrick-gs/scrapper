@@ -11,16 +11,12 @@ import { CacheIndicator, CacheProvider } from '@/components/CacheIndicator';
 import { PerformanceMonitor } from '@/components/PerformanceMonitor';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { user, loading, error, refresh, login, register, logout } = useAuth();
+  const { user, loading, error, login, register, logout } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   // Initialize to a stable value to avoid hydration mismatch; detect real theme after mount
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
 
   useEffect(() => {
     setMounted(true);
