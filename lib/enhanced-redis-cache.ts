@@ -98,6 +98,31 @@ export class EnhancedRedisCache {
     }
   }
 
+  // Synchronous get method for client-side usage
+  getSync(key: string): any | null {
+    // This is a simplified synchronous version for client-side
+    // In a real implementation, you might want to use localStorage or IndexedDB
+    return null;
+  }
+
+  // Preload image method for caching images
+  async preloadImage(url: string): Promise<string> {
+    if (!this.redis) return url;
+
+    try {
+      // Check if image is already cached
+      const cached = await this.get(`image:${url}`);
+      if (cached) return cached;
+
+      // For now, just return the original URL
+      // In a real implementation, you would download and cache the image
+      return url;
+    } catch (error) {
+      console.error('Image preload error:', error);
+      return url;
+    }
+  }
+
   async disconnect(): Promise<void> {
     if (!this.redis) return;
     await this.redis.disconnect();

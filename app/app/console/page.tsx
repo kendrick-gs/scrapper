@@ -368,21 +368,21 @@ export default function ConsolePage() {
   return (
     <div className="w-full max-w-[1440px] mx-auto px-0 space-y-3 md:space-y-4">
       {/* Loading overlay */}
-      {(loading || loadingMore) && (
-        <LoadingOverlay
-          title={loading ? 'Loading Products...' : 'Loading More Products...'}
-          description={loading ? 'Fetching data from stores' : `Loading page ${currentPage + 1}`}
-          progress={totalProducts > 0 ? {
-            current: loadedProducts,
-            total: totalProducts
-          } : undefined}
-        />
-      )}
-
-      {/* Refresh button */}
-      <div className="flex items-center justify-between gap-3 md:gap-4">
-        <div>
-          <h2 className="text-2xl font-bold">Console</h2>
+      <LoadingOverlay
+        loading={loading || loadingMore}
+        title={loading ? 'Loading Products...' : 'Loading More Products...'}
+        description={loading ? 'Fetching data from stores' : `Loading page ${currentPage + 1}`}
+        progress={totalProducts > 0 ? {
+          current: loadedProducts,
+          total: totalProducts
+        } : undefined}
+      >
+        {/* Main content goes here */}
+        <div className="space-y-6">
+          {/* Refresh button */}
+          <div className="flex items-center justify-between gap-3 md:gap-4">
+            <div>
+              <h2 className="text-2xl font-bold">Console</h2>
           {totalProducts > 0 && (
             <p className="text-sm text-muted-foreground">
               {totalProducts.toLocaleString()} total products • {loadedProducts.toLocaleString()} loaded
@@ -739,16 +739,19 @@ export default function ConsolePage() {
                         }
                         action={
                           storeFilter !== 'all'
-                            ? {
-                                label: 'Clear All Filters',
-                                onClick: () => {
+                            ? <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
                                   setStoreFilter('all');
                                   setVendorFilter('all');
                                   setTypeFilter('all');
                                   setCollectionFilter('all');
                                   setGlobalFilter('');
-                                }
-                              }
+                                }}
+                              >
+                                Clear All Filters
+                              </Button>
                             : undefined
                         }
                       />
@@ -808,6 +811,8 @@ export default function ConsolePage() {
 
       {loading && <div className="mt-4 text-sm text-muted-foreground">Loading...</div>}
       {error && <div className="mt-4 text-sm text-red-500">{error}</div>}
+        </div>
+      </LoadingOverlay>
     </div>
   );
 }

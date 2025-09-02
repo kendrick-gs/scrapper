@@ -68,10 +68,14 @@ export function CacheIndicator() {
         redisImageCache.getStats(),
       ]);
 
-      setCacheStats({
-        ...cacheStats,
-        imageStats,
-      });
+      setCacheStats(prev => ({
+        ...prev,
+        imageStats: {
+          localSize: imageStats.keys,
+          redisSize: imageStats.memory,
+          loadingCount: 0, // We'll track this separately if needed
+        },
+      }));
     } catch (error) {
       console.error('Failed to get cache stats:', error);
     } finally {

@@ -13,6 +13,7 @@ import { PerformanceMonitor } from '@/components/PerformanceMonitor';
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, loading, error, refresh, login, register, logout } = useAuth();
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   // Initialize to a stable value to avoid hydration mismatch; detect real theme after mount
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [mounted, setMounted] = useState(false);
@@ -69,16 +70,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </button>
             {!user ? (
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto">
-                <Input
-                  type="email"
-                  value={email}
-                  placeholder="you@example.com"
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="h-9 w-full sm:w-64"
-                />
+                <div className="flex flex-col gap-2 w-full sm:w-auto">
+                  <Input
+                    type="email"
+                    value={email}
+                    placeholder="you@example.com"
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="h-9 w-full sm:w-64"
+                  />
+                  <Input
+                    type="password"
+                    value={password}
+                    placeholder="Password"
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="h-9 w-full sm:w-64"
+                  />
+                </div>
                 <div className="flex gap-2 w-full sm:w-auto">
-                  <Button size="sm" disabled={loading} onClick={() => login(email)} className="flex-1 sm:flex-none">Login</Button>
-                  <Button size="sm" variant="outline" disabled={loading} onClick={() => register(email)} className="flex-1 sm:flex-none">Register</Button>
+                  <Button size="sm" disabled={loading} onClick={() => login(email, password)} className="flex-1 sm:flex-none">Login</Button>
+                  <Button size="sm" variant="outline" disabled={loading} onClick={() => register(email, password)} className="flex-1 sm:flex-none">Register</Button>
                 </div>
               </div>
             ) : (

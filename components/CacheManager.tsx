@@ -47,7 +47,7 @@ export function CacheManager() {
     }
   };
 
-  const totalCacheItems = (cacheStats?.size || 0) + (imageStats?.localSize || 0);
+  const totalCacheItems = (cacheStats?.keys || 0) + (imageStats?.keys || 0);
   const cacheUsage = Math.min((totalCacheItems / 1000) * 100, 100); // Assume 1000 items max
 
   return (
@@ -73,14 +73,14 @@ export function CacheManager() {
           <div className="flex items-center gap-2">
             <Database className="h-4 w-4 text-muted-foreground" />
             <div>
-              <div className="font-medium">{cacheStats?.size || 0}</div>
+              <div className="font-medium">{cacheStats?.keys || 0}</div>
               <div className="text-muted-foreground">Data Items</div>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <Image className="h-4 w-4 text-muted-foreground" />
             <div>
-              <div className="font-medium">{imageStats?.localSize || 0}</div>
+              <div className="font-medium">{imageStats?.keys || 0}</div>
               <div className="text-muted-foreground">Images</div>
             </div>
           </div>
@@ -91,7 +91,7 @@ export function CacheManager() {
             variant="outline"
             size="sm"
             onClick={() => handleClearCache('data')}
-            disabled={isClearing || (cacheStats?.size || 0) === 0}
+            disabled={isClearing || (cacheStats?.keys || 0) === 0}
             className="w-full"
           >
             <Trash2 className="h-4 w-4 mr-2" />
@@ -101,7 +101,7 @@ export function CacheManager() {
             variant="outline"
             size="sm"
             onClick={() => handleClearCache('images')}
-            disabled={isClearing || (imageStats?.localSize || 0) === 0}
+            disabled={isClearing || (imageStats?.keys || 0) === 0}
             className="w-full"
           >
             <Trash2 className="h-4 w-4 mr-2" />
@@ -111,7 +111,7 @@ export function CacheManager() {
             variant="destructive"
             size="sm"
             onClick={() => handleClearCache('all')}
-            disabled={isClearing || ((cacheStats?.size || 0) === 0 && (imageStats?.localSize || 0) === 0)}
+            disabled={isClearing || ((cacheStats?.keys || 0) === 0 && (imageStats?.keys || 0) === 0)}
             className="w-full"
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${isClearing ? 'animate-spin' : ''}`} />

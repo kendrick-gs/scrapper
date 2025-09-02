@@ -1,17 +1,46 @@
 import React from 'react';
 import { Loader2 } from 'lucide-react';
 
-export function LoadingOverlay({ children, loading }: { children: React.ReactNode; loading: boolean }) {
+export function LoadingOverlay({
+  children,
+  loading,
+  title,
+  description,
+  progress
+}: {
+  children: React.ReactNode;
+  loading: boolean;
+  title?: string;
+  description?: string;
+  progress?: { current: number; total: number };
+}) {
   if (!loading) return <>{children}</>;
 
   return (
     <div className="relative">
       {children}
-      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          <span>Loading...</span>
+      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center z-50 p-6">
+        <div className="flex items-center gap-2 text-muted-foreground mb-4">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span className="text-lg font-medium">{title || 'Loading...'}</span>
         </div>
+        {description && (
+          <p className="text-sm text-muted-foreground text-center mb-4">{description}</p>
+        )}
+        {progress && (
+          <div className="w-full max-w-xs">
+            <div className="flex justify-between text-xs text-muted-foreground mb-1">
+              <span>{progress.current}</span>
+              <span>{progress.total}</span>
+            </div>
+            <div className="w-full bg-muted rounded-full h-2">
+              <div
+                className="bg-primary h-2 rounded-full transition-all duration-300"
+                style={{ width: `${(progress.current / progress.total) * 100}%` }}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -31,14 +60,17 @@ export function LoadingSpinner({ size = 'default' }: { size?: 'sm' | 'default' |
   );
 }
 
-export function LoadingTableRow({ columns = 4 }: { columns?: number }) {
+export function LoadingTableRow({ columns = 4, colSpan, text }: { columns?: number; colSpan?: number; text?: string }) {
+  const actualColumns = colSpan || columns;
+
   return (
     <tr>
-      {Array.from({ length: columns }).map((_, i) => (
-        <td key={i} className="py-3 px-4">
-          <div className="h-4 bg-muted animate-pulse rounded"></div>
-        </td>
-      ))}
+      <td colSpan={actualColumns} className="py-8 text-center">
+        <div className="flex items-center justify-center gap-2 text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span>{text || 'Loading...'}</span>
+        </div>
+      </td>
     </tr>
   );
 }
