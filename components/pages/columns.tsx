@@ -30,6 +30,7 @@ export const columns: ColumnDef<ProductRowData>[] = [
 		accessorKey: 'handle',
 		header: ({ column }) => <SortableHeader column={column} title="Handle" />,
 		size: 250,
+		minSize: 180,
 		cell: ({ row }) => {
 			const isParent = row.getCanExpand();
 			const handle = isVariant(row.original) ? (row.getParentRow()?.original as ShopifyProduct)?.handle : (row.original as ShopifyProduct).handle;
@@ -49,53 +50,88 @@ export const columns: ColumnDef<ProductRowData>[] = [
 		accessorKey: 'title',
 		header: ({ column }) => <SortableHeader column={column} title="Product Title" />,
 		size: 350,
+		minSize: 220,
 		cell: ({ row, getValue }) => <span className={cn('line-clamp-2', isVariant(row.original) && 'text-muted-foreground pl-4')}>{getValue() as string}</span>
 	},
 	{
 		accessorKey: 'images',
 		header: 'Images',
 		size: 200,
+		minSize: 150,
 		cell: ({ row }) => {
 			if (isVariant(row.original)) return null;
 			const images = (row.original as ShopifyProduct).images;
 			if (!images || images.length === 0) return null;
-			return (
-				<div className="flex flex-row flex-wrap items-center gap-1">
-					{images.map((img) => (
-						<Dialog key={img.id}>
-							<DialogTrigger asChild>
-								<div className="relative h-12 w-12 cursor-pointer">
-									  <CachedImage src={img.src} alt={img.alt || 'Product image'} className="h-12 w-12 rounded object-cover" />
-								</div>
-							</DialogTrigger>
-							<DialogContent className="max-w-3xl">
-								<DialogHeader><DialogTitle>{img.alt || 'Product Image'}</DialogTitle></DialogHeader>
-								<div className="relative h-96">
-									  <CachedImage src={img.src} alt={img.alt || 'Product image'} className="h-full w-full object-contain" />
-								</div>
-							</DialogContent>
-						</Dialog>
-					))}
-				</div>
-			);
+			// Each thumb 48px + 4px gap (approx). We'll measure container width via resize observer hook like pattern.
+			// Since we are inside a cell, we can approximate number fit using parent column size (row.getVisibleCells find this col id).
+			try {
+				const colSize = (row.getVisibleCells().find(c => c.column.id === 'images')?.column.getSize()) || 200;
+				const thumbSize = 48; const gap = 4; const unit = thumbSize + gap;
+				const maxVisible = Math.max(1, Math.floor((colSize - 4) / unit));
+				const visibleImages = images.slice(0, maxVisible);
+				const remaining = images.length - visibleImages.length;
+				return (
+					<div className="flex items-center gap-1 overflow-hidden">
+						{visibleImages.map(img => (
+							<Dialog key={img.id}>
+								<DialogTrigger asChild>
+									<div className="relative h-12 w-12 shrink-0 cursor-pointer">
+										<CachedImage src={img.src} alt={img.alt || 'Product image'} className="h-12 w-12 rounded object-cover" />
+									</div>
+								</DialogTrigger>
+								<DialogContent className="max-w-3xl">
+									<DialogHeader><DialogTitle>{img.alt || 'Product Image'}</DialogTitle></DialogHeader>
+									<div className="relative h-96">
+										<CachedImage src={img.src} alt={img.alt || 'Product image'} className="h-full w-full object-contain" />
+									</div>
+								</DialogContent>
+							</Dialog>
+						))}
+						{remaining > 0 && (
+							<Dialog>
+								<DialogTrigger asChild>
+									<button className="h-12 w-12 shrink-0 rounded bg-muted text-xs font-medium flex items-center justify-center hover:bg-muted/70" aria-label={`+${remaining} more images`}>
+										+{remaining}
+									</button>
+								</DialogTrigger>
+								<DialogContent className="max-w-4xl">
+									<DialogHeader><DialogTitle>All Images</DialogTitle></DialogHeader>
+									<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 max-h-[70vh] overflow-y-auto p-2">
+										{images.map(img => (
+											<div key={img.id} className="relative w-full aspect-square">
+												<CachedImage src={img.src} alt={img.alt || 'Product image'} className="absolute inset-0 h-full w-full object-cover rounded" />
+											</div>
+										))}
+									</div>
+								</DialogContent>
+							</Dialog>
+						)}
+					</div>
+				);
+			} catch {
+				return null;
+			}
 		},
 	},
 	{
 		accessorKey: 'product_type',
 		header: ({ column }) => <SortableHeader column={column} title="Product Type" />,
 		size: 150,
+		minSize: 170,
 		cell: ({ row }) => <span className="line-clamp-2">{isVariant(row.original) ? '' : (row.original as ShopifyProduct).product_type}</span>,
 	},
 	{
 		accessorKey: 'vendor',
 		header: ({ column }) => <SortableHeader column={column} title="Vendor" />,
 		size: 150,
+		minSize: 160,
 		cell: ({ row }) => <span className="line-clamp-2">{isVariant(row.original) ? '' : (row.original as ShopifyProduct).vendor}</span>,
 	},
 	{
 		id: 'price',
 		header: ({ column }) => <SortableHeader column={column} title="Price" />,
 		size: 100,
+		minSize: 110,
 		accessorFn: (row) => parseFloat(isVariant(row) ? row.price : row.variants?.[0]?.price || '0'),
 		cell: ({ row }) => {
 			const price = isVariant(row.original) ? row.original.price : (row.original as ShopifyProduct).variants?.[0]?.price;
@@ -106,6 +142,7 @@ export const columns: ColumnDef<ProductRowData>[] = [
 		accessorKey: 'body_html',
 		header: 'Body HTML',
 		size: 120,
+		enableResizing: false,
 		cell: ({ row }) => {
 			if (isVariant(row.original)) return null;
 			const bodyHtml = (row.original as ShopifyProduct).body_html;
@@ -124,15 +161,17 @@ export const columns: ColumnDef<ProductRowData>[] = [
 	{
 		accessorKey: 'tags',
 		header: 'Tags',
-		size: 120,
+		size: 140,
+		minSize: 90,
+		maxSize: 260,
 		cell: ({ row }) => {
 			if (isVariant(row.original)) return null;
 			const tags = (row.original as ShopifyProduct).tags;
 			const tagArray: string[] = typeof tags === 'string' ? tags.split(',').map(tag => tag.trim()).filter(Boolean) : (Array.isArray(tags) ? tags.filter(Boolean) : []);
 			if (tagArray.length === 0) return null;
 			return (
-				<div className="flex flex-wrap gap-1">
-					{tagArray.slice(0, 2).map(tag => <Badge key={tag} variant="secondary">{tag}</Badge>)}
+				<div className="flex flex-col gap-1 max-w-full overflow-hidden">
+					{tagArray.slice(0, 2).map(tag => <Badge key={tag} variant="secondary" className="truncate max-w-full">{tag}</Badge>)}
 					{tagArray.length > 2 && (
 						<Dialog>
 							<DialogTrigger asChild><Badge variant="outline" className="cursor-pointer">+{tagArray.length - 2}</Badge></DialogTrigger>
@@ -150,6 +189,7 @@ export const columns: ColumnDef<ProductRowData>[] = [
 		accessorKey: 'updated_at',
 		header: ({ column }) => <SortableHeader column={column} title="Updated At" />,
 		size: 150,
+		minSize: 140,
 		cell: ({ row }) => { const date = (row.original as any).updated_at; return new Date(date).toLocaleDateString(); },
 	},
 ];
