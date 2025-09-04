@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { idbPutImage, idbDeleteImage, idbClear, idbEnsureSizeLimit, idbUpdateAccess } from '@/lib/idbImageCache';
 
 export interface CachedImageEntry { src: string; blobUrl: string; size: number; lastAccess: number; hits: number; }
 
@@ -40,6 +41,10 @@ export const useImageCacheStore = create<ImageCacheState>((set, get) => ({
       }
     }
     set({ entries: { ...entries }, totalBytes });
+    // Persist asynchronously (fire & forget)
+    if (typeof window !== 'undefined') {
+      idbPutImage(src, blob, Date.now()).then(() => idbEnsureSizeLimit(MAX_CACHE_BYTES)).catch(()=>{});
+    }
     return blobUrl;
   },
   get: (src) => {
@@ -65,12 +70,14 @@ export const useImageCacheStore = create<ImageCacheState>((set, get) => ({
     e.lastAccess = now;
     e.hits += 1;
     set({ entries: { ...get().entries } });
+  if (typeof window !== 'undefined') { idbUpdateAccess(src); }
     return e.blobUrl;
   },
   clear: () => {
     const { entries } = get();
     Object.values(entries).forEach(e => URL.revokeObjectURL(e.blobUrl));
     set({ entries: {}, totalBytes: 0 });
+  if (typeof window !== 'undefined') { idbClear(); }
   },
   remove: (src: string) => {
     const { entries, totalBytes } = get();
@@ -79,5 +86,6 @@ export const useImageCacheStore = create<ImageCacheState>((set, get) => ({
     URL.revokeObjectURL(e.blobUrl);
     const { [src]: _, ...rest } = entries;
     set({ entries: rest, totalBytes: totalBytes - e.size });
+  if (typeof window !== 'undefined') { idbDeleteImage(src); }
   }
 }));

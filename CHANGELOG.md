@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- (placeholder for upcoming changes)
+- Persistent browser image cache via IndexedDB (falls back to in-memory only if unavailable).
 
 ### Changed
 - (placeholder for upcoming changes)

@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from 'react';
 import { useImageCacheStore } from '@/store/useImageCacheStore';
+import { idbGetImage } from '@/lib/idbImageCache';
 
 interface Props { src: string; alt?: string; className?: string; sizes?: string; fill?: boolean; }
 
@@ -14,6 +15,18 @@ export function CachedImage({ src, alt = '', className }: Props) {
     let active = true;
     const existing = get(src);
     if (existing) { setBlobUrl(existing); setLoaded(true); return; }
+    // Try IndexedDB persistent layer first
+    (async () => {
+      try {
+        const idbBlob = await idbGetImage(src);
+        if (idbBlob && active) {
+          const objectUrl = put(src, idbBlob);
+          setBlobUrl(objectUrl);
+          setLoaded(true);
+          return; // already satisfied
+        }
+      } catch { /* ignore and fall through to fetch */ }
+    })();
     (async () => {
       try {
         const res = await fetch(src, { cache: 'force-cache' });
