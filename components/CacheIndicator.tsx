@@ -36,18 +36,17 @@ export function CacheIndicator() {
     { label: '360d', value: 360*24*60 },
   ];
 
+  const totalDisplayBytes = persistBytes != null ? (totalBytes + persistBytes) : totalBytes;
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button className="h-8 px-3 inline-flex items-center gap-2 rounded-md border bg-muted hover:bg-muted/80 text-xs font-medium" title="Image cache status">
+        <button className="h-8 px-3 inline-flex items-center gap-2 rounded-md border bg-muted hover:bg-muted/80 text-xs font-medium" title="Image cache status (memory + persistent)">
           <span>Cache</span>
-          <span className="inline-flex items-center gap-1 text-muted-foreground">
-            <span className="rounded bg-background/40 px-1">M:{memoryCount}</span>
-            <span className="rounded bg-background/40 px-1">P:{persistCount??'-'}</span>
-          </span>
+          <span className="text-muted-foreground">{formatBytes(totalDisplayBytes)}</span>
         </button>
       </DialogTrigger>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-w-[min(100vw-3rem,72rem)] md:max-w-5xl lg:max-w-6xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold tracking-tight">Image Cache</DialogTitle>
         </DialogHeader>
