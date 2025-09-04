@@ -92,21 +92,14 @@ export default function ListsPage() {
 
   return (
     <div className="w-full max-w-[1200px] mx-auto px-4">
-      <Card className="border-t-4 border-brand-green">
-        <CardHeader className="space-y-4">
+      <Card>
+        <CardHeader className="space-y-4 pb-2">
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
             <div className="space-y-1">
-              <CardTitle className="text-xl flex items-center gap-2">
-                <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-brand-green text-white text-xs font-semibold">L</span>
-                Lists {lists.length > 0 && <Badge className="ml-1 bg-brand-green text-white hover:bg-brand-green-light">{lists.length}</Badge>}
+              <CardTitle className="text-[1.35rem] font-semibold tracking-tight flex items-center gap-2">
+                Lists {lists.length > 0 && <Badge variant="secondary" className="bg-brand-green text-white hover:bg-brand-green-light ml-1">{lists.length}</Badge>}
               </CardTitle>
-              <p className="text-xs text-muted-foreground max-w-prose">Independent product subsets used for enrichment, analysis and export workflows.</p>
-              <div className="flex flex-wrap items-center gap-2 pt-2">
-                <div className="relative">
-                  <Input placeholder="Filter lists..." value={filter} onChange={e => setFilter(e.target.value)} className="pl-8 h-8 text-xs" />
-                  <Search className="h-4 w-4 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                </div>
-              </div>
+              <p className="text-xs text-muted-foreground max-w-prose">Independent product subsets for enrichment, analysis & export workflows.</p>
             </div>
             <div className="flex w-full md:w-[420px] gap-2">
               <Input
@@ -115,9 +108,15 @@ export default function ListsPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
-              <Button onClick={create} disabled={loading || !name.trim()} className="bg-brand-green hover:bg-brand-green-light text-white gap-1 px-3 h-9">
+              <Button onClick={create} disabled={loading || !name.trim()} className="h-9 px-3 gap-1">
                 <FolderPlus className="h-4 w-4" /> Create
               </Button>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <div className="relative">
+              <Input placeholder="Filter lists..." value={filter} onChange={e => setFilter(e.target.value)} className="pl-8 h-9 text-sm" />
+              <Search className="h-4 w-4 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
             </div>
           </div>
           {error && <div className="text-red-500 text-xs">{error}</div>}
@@ -127,10 +126,10 @@ export default function ListsPage() {
             <table className="w-full text-sm">
               <thead className="bg-muted/40">
                 <tr className="text-left text-muted-foreground">
-                  <th className="py-2 px-3 font-medium w-[44%]">Name</th>
-                  <th className="py-2 px-3 font-medium w-[18%]">Created</th>
-                  <th className="py-2 px-3 font-medium w-[18%]">Items</th>
-                  <th className="py-2 px-3 font-medium w-[20%]">Actions</th>
+                  <th className="py-2 px-3 font-medium w-[46%]">Name</th>
+                  <th className="py-2 px-3 font-medium w-[16%]">Created</th>
+                  <th className="py-2 px-3 font-medium w-[14%]">Items</th>
+                  <th className="py-2 px-3 font-medium w-[24%]">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -148,12 +147,9 @@ export default function ListsPage() {
                       {editingId === l.id ? (
                         <Input autoFocus value={editingName} onChange={e => setEditingName(e.target.value)} className="h-8 text-xs" />
                       ) : (
-                        <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 rounded-md bg-brand-green text-white flex items-center justify-center text-xs font-semibold uppercase">{l.name.slice(0,1)}</div>
-                          <div className="min-w-0">
-                            <div className="font-medium truncate" title={l.name}>{l.name}</div>
-                            <div className="text-[11px] text-muted-foreground">{relativeTime(l.createdAt)}</div>
-                          </div>
+                        <div className="min-w-0">
+                          <div className="font-medium truncate" title={l.name}>{l.name}</div>
+                          <div className="text-[11px] text-muted-foreground">{relativeTime(l.createdAt)}</div>
                         </div>
                       )}
                     </td>
