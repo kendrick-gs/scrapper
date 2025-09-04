@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Console table pagination controls switched from text buttons to icon buttons for a more compact UI.
+- Images column now truncates thumbnails to those that fit current column width and displays a "+N" overflow indicator (prevents row expansion / horizontal scroll pressure).
 
 ### Fixed
 - (placeholder)
@@ -67,5 +68,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 
 [Unreleased]: https://github.com/kendrick-gs/scrapper/compare/v1.9.0...HEAD
+[1.9.1]: https://github.com/kendrick-gs/scrapper/compare/v1.9.0...v1.9.1
 [1.9.0]: https://github.com/kendrick-gs/scrapper/compare/v1.8.0...v1.9.0
 [1.7.0]: https://github.com/kendrick-gs/scrapper/releases/tag/v1.7.0
