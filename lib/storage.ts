@@ -171,3 +171,20 @@ export async function addItemsToList(email: string, id: string, products: any[])
   await writeJSON(LISTS_FILE, all);
   return all[idx];
 }
+
+export async function renameList(email: string, id: string, name: string): Promise<boolean> {
+  const all = await readJSON<UserList[]>(LISTS_FILE, []);
+  const idx = all.findIndex(l => l.email === email && l.id === id);
+  if (idx === -1) return false;
+  all[idx].name = name;
+  await writeJSON(LISTS_FILE, all);
+  return true;
+}
+
+export async function deleteList(email: string, id: string): Promise<boolean> {
+  const all = await readJSON<UserList[]>(LISTS_FILE, []);
+  const next = all.filter(l => !(l.email === email && l.id === id));
+  if (next.length === all.length) return false;
+  await writeJSON(LISTS_FILE, next);
+  return true;
+}
