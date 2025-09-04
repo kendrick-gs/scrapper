@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "changelog:check": "grep -q '## \\[Unreleased]' CHANGELOG.md || (echo 'Missing Unreleased section' && exit 1)",
+    "version": "npm run changelog:check && git add CHANGELOG.md",
+    "postversion": "git push --follow-tags"
   },
   "dependencies": {
     "@radix-ui/react-collapsible": "^1.1.12",
