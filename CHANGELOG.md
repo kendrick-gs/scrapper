@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Console table pagination controls switched from text buttons to icon buttons for a more compact UI.
 - Images column truncation refined: always reserves a slot for "+N" overflow indicator, preventing vertical row expansion while dynamically updating thumbnail count on resize.
 - Vendor & Price column headers now enforce minimum width with preserved right padding so sort icons no longer overlap resizer divider when squeezed.
+- Product Type & Price headers further adjusted (increased padding & min widths) to stop divider/icon overlap when aggressively resized.
 
 ### Fixed
 - (placeholder)
