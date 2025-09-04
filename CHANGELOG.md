@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - Lists page redesigned: consistent styling, inline editing UX and consolidated actions.
  - Modernized Stores & Lists pages with brand green accent, filter inputs, skeleton loading states, compact icon actions & relative time badges.
 - Console deep-link: opening from a store row now passes ?store=host param and auto-applies store filter.
+- Stores page refinement: removed header icon, unified top border style, modern header layout, separated Products / Collections columns, consistent button styling, single multi-entry add field with automatic multi-URL parsing & dedupe.
 - Legacy `ProductTable` component deprecated & stubbed; `/app/console` is the canonical product management view.
 
 ### Deprecated

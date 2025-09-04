@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { StreamImportDialog } from '@/components/StreamImportDialog';
 import { LogPanel } from '@/components/LogPanel';
 import { Badge } from '@/components/ui/badge';
-import { RotateCcw, Trash2, Terminal, RefreshCw, Loader2, Search, Plus, ListPlus } from 'lucide-react';
+import { RotateCcw, Trash2, Terminal, RefreshCw, Loader2, Search, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type StoreMeta = { shopUrl: string; lastUpdated?: string; productCount?: number; collectionCount?: number };
@@ -16,8 +16,8 @@ export default function StoresPage() {
   const [stores, setStores] = useState<StoreMeta[]>([]);
   const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState(false);
-  const [urlInput, setUrlInput] = useState('');
-  const [bulkInput, setBulkInput] = useState('');
+  // Unified multi-entry field (accepts single or multiple URLs)
+  const [entryInput, setEntryInput] = useState('');
   const [error, setError] = useState('');
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
   const [streamForce, setStreamForce] = useState<boolean>(false);
@@ -46,31 +46,22 @@ export default function StoresPage() {
 
   useEffect(() => { load(); }, []);
 
-  const addSingle = async () => {
-    if (!urlInput.trim()) return; 
+  const addEntries = async () => {
+    const tokens = entryInput.split(/\n|,|;|\s+/).map(t => t.trim()).filter(Boolean);
+    if (tokens.length === 0) return;
     setAdding(true); setError('');
+    const seen = new Set<string>();
     try {
-      const res = await fetch('/api/stores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ shopUrl: urlInput.trim() }) });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to add');
-      setUrlInput('');
-      await load();
-    } catch (e: any) { setError(e.message); } finally { setAdding(false); }
-  };
-
-  const addBulk = async () => {
-    const lines = bulkInput.split(/\n|,|;|\s+/).map(l => l.trim()).filter(Boolean);
-    if (lines.length === 0) return;
-    setAdding(true); setError('');
-    try {
-      for (const line of lines) {
-        const res = await fetch('/api/stores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ shopUrl: line }) });
+      for (const tok of tokens) {
+        if (seen.has(tok)) continue; // dedupe in same submission
+        seen.add(tok);
+        const res = await fetch('/api/stores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ shopUrl: tok }) });
         if (!res.ok) {
           const data = await res.json().catch(()=>({}));
-          setError(prev => prev || data.error || `Failed adding ${line}`);
+          setError(prev => prev || data.error || `Failed adding ${tok}`);
         }
       }
-      setBulkInput('');
+      setEntryInput('');
       await load();
     } finally { setAdding(false); }
   };
@@ -138,66 +129,66 @@ export default function StoresPage() {
 
   return (
     <div className="w-full max-w-[1200px] mx-auto px-4 space-y-6">
-      <Card className="border-t-4 border-brand-green">
-        <CardHeader className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div className="space-y-1">
-            <CardTitle className="text-xl flex items-center gap-2">
-              <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-brand-green text-white text-xs font-semibold">S</span>
-              Stores
-              {stores.length > 0 && <Badge className="ml-1 bg-brand-green text-white hover:bg-brand-green">{stores.length}</Badge>}
-            </CardTitle>
-            <p className="text-xs text-muted-foreground max-w-prose">Manage target Shopify stores. Add individually or in bulk, then refresh to update local cached datasets used by the console & lists.</p>
-            <div className="flex flex-wrap gap-2 pt-2">
-              <div className="relative">
-                <Input placeholder="Filter stores..." value={filter} onChange={e => setFilter(e.target.value)} className="pl-8 h-8 text-xs" />
-                <Search className="h-4 w-4 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+      <Card>
+        <CardHeader className="space-y-4 pb-2">
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+              <div className="space-y-1">
+                <CardTitle className="text-[1.35rem] font-semibold tracking-tight flex items-center gap-2">
+                  Stores {stores.length > 0 && <Badge variant="secondary" className="bg-brand-green text-white hover:bg-brand-green-light ml-1">{stores.length}</Badge>}
+                </CardTitle>
+                <p className="text-xs text-muted-foreground max-w-prose">Manage target Shopify stores. Add one or many, then refresh to update cached datasets powering the console & lists.</p>
               </div>
-              <Button variant="outline" size="sm" onClick={load} disabled={loading} className="h-8 px-3">
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-              </Button>
-              <Button size="sm" onClick={refreshAll} disabled={stores.length === 0} className="h-8 gap-1 bg-brand-green hover:bg-brand-green-light text-white">
-                <RotateCcw className="h-4 w-4" /> Refresh All
-              </Button>
-            </div>
-          </div>
-          <div className="w-full md:w-[420px] space-y-4">
-            <div className="space-y-2">
-              <label className="text-[10px] uppercase tracking-wide font-medium text-muted-foreground">Add Single</label>
-              <div className="flex items-center gap-2">
-                <Input type="url" placeholder="https://your-store.myshopify.com" value={urlInput} onChange={e => setUrlInput(e.target.value)} className="text-xs" />
-                <Button onClick={addSingle} disabled={adding || !urlInput.trim()} className="bg-brand-green hover:bg-brand-green-light text-white h-8 px-3 gap-1">
-                  <Plus className="h-4 w-4" /> Add
+              <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+                <div className="relative flex-1 min-w-[200px]">
+                  <Input placeholder="Filter stores..." value={filter} onChange={e => setFilter(e.target.value)} className="pl-8 h-9 text-sm" />
+                  <Search className="h-4 w-4 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                </div>
+                <Button variant="outline" size="sm" onClick={load} disabled={loading} className="h-9 px-3">
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                </Button>
+                <Button size="sm" onClick={refreshAll} disabled={stores.length === 0} className="h-9 gap-1">
+                  <RotateCcw className="h-4 w-4" /> Refresh All
                 </Button>
               </div>
             </div>
-            <div className="space-y-2">
-              <label className="text-[10px] uppercase tracking-wide font-medium text-muted-foreground">Bulk Add</label>
-              <div className="flex items-start gap-2">
-                <textarea className="flex-1 border rounded-md p-2 h-24 text-xs resize-none" placeholder="https://a.myshopify.com\nhttps://b.myshopify.com" value={bulkInput} onChange={e => setBulkInput(e.target.value)} />
-                <Button variant="secondary" onClick={addBulk} disabled={adding || !bulkInput.trim()} className="h-8 px-3 gap-1">
-                  <ListPlus className="h-4 w-4" /> Add All
-                </Button>
+            <div className="flex flex-col md:flex-row gap-3">
+              <div className="flex-1 flex flex-col gap-2">
+                <label className="text-[10px] uppercase tracking-wide font-medium text-muted-foreground">Add Stores (newline / comma / space separated)</label>
+                <div className="flex gap-2 items-start">
+                  <textarea
+                    className="flex-1 border rounded-md p-2 h-20 text-xs resize-none"
+                    placeholder="https://a.myshopify.com, https://b.myshopify.com"
+                    value={entryInput}
+                    onChange={e => setEntryInput(e.target.value)}
+                  />
+                  <Button onClick={addEntries} disabled={adding || !entryInput.trim()} className="h-9 px-4 gap-1">
+                    <Plus className="h-4 w-4" /> Add
+                  </Button>
+                </div>
+                {error && <div className="text-red-500 text-xs">{error}</div>}
               </div>
             </div>
-            {error && <div className="text-red-500 text-xs">{error}</div>}
           </div>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-6 pt-0">
           <div className="overflow-hidden border rounded-md">
             <table className="w-full text-sm">
               <thead className="bg-muted/40">
                 <tr className="text-left text-muted-foreground">
                   <th className="py-2 px-3 font-medium w-[34%]">Store</th>
-                  <th className="py-2 px-3 font-medium w-[22%]">Stats</th>
+                  <th className="py-2 px-3 font-medium w-[14%]">Products</th>
+                  <th className="py-2 px-3 font-medium w-[14%]">Collections</th>
                   <th className="py-2 px-3 font-medium w-[18%]">Last Updated</th>
-                  <th className="py-2 px-3 font-medium w-[26%]">Actions</th>
+                  <th className="py-2 px-3 font-medium w-[20%]">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {loading && stores.length === 0 && Array.from({ length: 4 }).map((_, i) => (
                   <tr key={i} className="border-t animate-pulse">
                     <td className="py-3 px-3"><div className="h-4 w-52 bg-muted rounded" /></td>
-                    <td className="py-3 px-3"><div className="h-4 w-32 bg-muted rounded" /></td>
+                    <td className="py-3 px-3"><div className="h-4 w-20 bg-muted rounded" /></td>
+                    <td className="py-3 px-3"><div className="h-4 w-20 bg-muted rounded" /></td>
                     <td className="py-3 px-3"><div className="h-4 w-24 bg-muted rounded" /></td>
                     <td className="py-3 px-3"><div className="h-4 w-40 bg-muted rounded" /></td>
                   </tr>
@@ -206,7 +197,7 @@ export default function StoresPage() {
                   <tr key={`${s.shopUrl}-${idx}`} className="border-t hover:bg-muted/30 transition-colors">
                     <td className="py-2 px-3 max-w-[340px]">
                       <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-md bg-gradient-to-br from-brand-green to-brand-green-light text-white flex items-center justify-center text-xs font-semibold uppercase">
+                        <div className="h-8 w-8 rounded-md bg-brand-green text-white flex items-center justify-center text-xs font-semibold uppercase">
                           {host(s.shopUrl).slice(0,1)}
                         </div>
                         <div className="min-w-0">
@@ -215,11 +206,11 @@ export default function StoresPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="py-2 px-3">
-                      <div className="flex flex-wrap gap-2 text-[11px]">
-                        <Badge className="bg-brand-green text-white hover:bg-brand-green-light transition-colors">{s.productCount ?? 0} prod</Badge>
-                        <Badge variant="outline">{s.collectionCount ?? 0} colls</Badge>
-                      </div>
+                    <td className="py-2 px-3 text-xs">
+                      <Badge className="bg-brand-green text-white hover:bg-brand-green-light transition-colors text-[11px] font-medium px-2 py-0.5">{s.productCount ?? 0}</Badge>
+                    </td>
+                    <td className="py-2 px-3 text-xs">
+                      <Badge variant="outline" className="text-[11px] font-medium px-2 py-0.5">{s.collectionCount ?? 0}</Badge>
                     </td>
                     <td className="py-2 px-3 text-xs whitespace-nowrap" title={s.lastUpdated || ''}>{relativeTime(s.lastUpdated)}</td>
                     <td className="py-2 px-3">
@@ -242,7 +233,7 @@ export default function StoresPage() {
                   </tr>
                 ))}
                 {!loading && filteredStores.length === 0 && (
-                  <tr><td colSpan={4} className="py-6 text-center text-xs text-muted-foreground">No stores match filter.</td></tr>
+                  <tr><td colSpan={5} className="py-6 text-center text-xs text-muted-foreground">No stores match filter.</td></tr>
                 )}
               </tbody>
             </table>
