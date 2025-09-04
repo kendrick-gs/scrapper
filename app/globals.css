@@ -103,15 +103,8 @@ th:hover > .resizer {
 /* Full-bleed utility to let specific sections escape the centered content max-width */
 .full-bleed {
   width: 100vw;
-  position: relative;
-  left: 50%;
-  right: 50%;
-  margin-left: -50vw;
-  margin-right: -50vw;
-}
-
-@media (min-width: 768px) {
-  .full-bleed {
-    width: 100vw; /* ensures it still spans including when scrollbar present */
-  }
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  padding-left: clamp(12px,2vw,32px);
+  padding-right: clamp(12px,2vw,32px);
 }
