@@ -3,6 +3,7 @@ import { useImageCacheStore } from '@/store/useImageCacheStore';
 import { useState, useMemo, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { Button } from './ui/button';
+import { Badge } from './ui/badge';
 import { idbStats } from '@/lib/idbImageCache';
 
 function formatBytes(bytes: number) {
@@ -38,75 +39,113 @@ export function CacheIndicator() {
 
   const totalDisplayBytes = persistBytes != null ? (totalBytes + persistBytes) : totalBytes;
 
+  const [query, setQuery] = useState('');
+  const visible = filtered.filter(e => !query || e.src.toLowerCase().includes(query.toLowerCase()));
+  const hitTotal = filtered.reduce((a,b)=>a+b.hits,0);
+  const avgSize = filtered.length ? (filtered.reduce((a,b)=>a+b.size,0)/filtered.length) : 0;
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button className="h-8 px-3 inline-flex items-center gap-2 rounded-md border bg-muted hover:bg-muted/80 text-xs font-medium" title="Image cache status (memory + persistent)">
+        <button className="h-8 px-3 inline-flex items-center gap-2 rounded-md border bg-secondary/70 dark:bg-secondary/40 hover:bg-secondary/90 dark:hover:bg-secondary/50 text-xs font-medium transition-colors" title="Image cache status (memory + persistent)">
           <span>Cache</span>
           <span className="text-muted-foreground">{formatBytes(totalDisplayBytes)}</span>
         </button>
       </DialogTrigger>
-      <DialogContent className="max-w-[min(100vw-3rem,72rem)] md:max-w-5xl lg:max-w-6xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-[min(100vw-3rem,78rem)] xl:max-w-7xl max-h-[88vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-lg font-semibold tracking-tight">Image Cache</DialogTitle>
+          <DialogTitle className="text-lg font-semibold tracking-tight flex items-center gap-3">
+            Image Cache
+            <Badge variant="secondary" className="text-[10px] font-medium">{memoryCount + (persistCount||0)} entries</Badge>
+          </DialogTitle>
         </DialogHeader>
-        <div className="space-y-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            <div className="p-4 rounded-lg border bg-muted/40 flex flex-col gap-1">
-              <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Memory Images</span>
-              <span className="font-medium text-base">{memoryCount}</span>
-              <span className="text-xs text-muted-foreground">{formatBytes(totalBytes)}</span>
-            </div>
-            <div className="p-4 rounded-lg border bg-muted/40 flex flex-col gap-1">
-              <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Persistent Images</span>
-              <span className="font-medium text-base">{persistCount ?? '…'}</span>
-              <span className="text-xs text-muted-foreground">{persistBytes != null ? formatBytes(persistBytes) : '…'}</span>
-            </div>
-            <div className="p-4 rounded-lg border bg-muted/40 flex flex-col gap-2 col-span-2 md:col-span-2">
-              <div className="flex items-center justify-between gap-2 text-xs">
-                <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Auto Expire</span>
+        <div className="space-y-8">
+          {/* Metric Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 text-sm">
+            <MetricCard label="Memory" value={memoryCount} sub={formatBytes(totalBytes)} />
+            <MetricCard label="Persistent" value={persistCount ?? '…'} sub={persistBytes != null ? formatBytes(persistBytes) : '…'} />
+            <MetricCard label="Total Size" value={formatBytes(totalDisplayBytes)} sub="mem + idb" />
+            <MetricCard label="Avg Size" value={avgSize ? formatBytes(avgSize) : '—'} sub="per entry" />
+            <MetricCard label="Hits" value={hitTotal} sub="lifetime" />
+            <div className="p-4 rounded-lg border bg-surface-2/40 dark:bg-surface-2/20 flex flex-col gap-2">
+              <div className="flex items-center justify-between text-[10px] uppercase tracking-wide text-muted-foreground"><span>Auto Expire</span>
                 <select
                   value={expiryMinutes ?? ''}
                   onChange={e => setExpiryMinutes(e.target.value === '' ? null : Number(e.target.value))}
-                  className="h-8 rounded-md border bg-background px-2 text-xs"
+                  className="h-7 rounded-md border bg-background px-2 text-xs"
                 >
                   {expiryOptions.map(o => <option key={String(o.label)} value={o.value ?? ''}>{o.label}</option>)}
                 </select>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 mt-auto pt-1">
                 <Button size="sm" variant="outline" onClick={() => clear()}>Clear All</Button>
               </div>
             </div>
           </div>
-          <div className="border rounded-lg overflow-hidden">
-            <table className="w-full text-xs">
-              <thead className="bg-muted/50">
-                <tr className="text-left">
-                  <th className="p-2 font-medium">Source</th>
-                  <th className="p-2 w-20 font-medium">Size</th>
-                  <th className="p-2 w-14 font-medium">Hits</th>
-                  <th className="p-2 w-32 font-medium">Last Access</th>
-                  <th className="p-2 w-14 font-medium">&nbsp;</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map(e => (
-                  <tr key={e.src} className="border-t hover:bg-muted/30">
-                    <td className="p-2 max-w-[520px] truncate font-mono text-[11px]" title={e.src}>{e.src}</td>
-                    <td className="p-2 whitespace-nowrap">{formatBytes(e.size)}</td>
-                    <td className="p-2">{e.hits}</td>
-                    <td className="p-2 whitespace-nowrap">{new Date(e.lastAccess).toLocaleTimeString()}</td>
-                    <td className="p-2"><Button size="sm" variant="ghost" onClick={() => remove(e.src)} aria-label="Remove">✕</Button></td>
-                  </tr>
-                ))}
-                {filtered.length === 0 && (
-                  <tr><td className="p-4 text-muted-foreground" colSpan={5}>No images in memory cache.</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+
+          {/* Table + Controls */}
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col md:flex-row md:items-center gap-3">
+                <div className="flex items-center gap-2 flex-1">
+                  <input
+                    placeholder="Search source URL..."
+                    value={query}
+                    onChange={e=>setQuery(e.target.value)}
+                    className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+                  />
+                  {query && <Button size="sm" variant="ghost" onClick={()=>setQuery('')}>Clear</Button>}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button size="sm" variant="outline" onClick={() => visible.slice(0,50).forEach(v => remove(v.src))} disabled={!visible.length}>Remove 50</Button>
+                  <Button size="sm" variant="destructive" onClick={() => { if (confirm('Remove all visible cached images?')) visible.forEach(v => remove(v.src)); }}>Remove Visible</Button>
+                </div>
+              </div>
+              <div className="border rounded-lg overflow-hidden">
+                <table className="w-full text-[11.5px]">
+                  <thead className="bg-secondary/60 dark:bg-secondary/30">
+                    <tr className="text-left">
+                      <Th className="min-w-[320px]">Source</Th>
+                      <Th className="w-24">Size</Th>
+                      <Th className="w-16">Hits</Th>
+                      <Th className="w-40">Last Access</Th>
+                      <Th className="w-10" />
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/70 dark:divide-border/40">
+                    {visible.map(e => (
+                      <tr key={e.src} className="hover:bg-muted/50 transition-colors">
+                        <td className="px-2 py-1.5 max-w-[560px] truncate font-mono" title={e.src}>{e.src}</td>
+                        <td className="px-2 py-1.5 whitespace-nowrap tabular-nums">{formatBytes(e.size)}</td>
+                        <td className="px-2 py-1.5 tabular-nums">{e.hits}</td>
+                        <td className="px-2 py-1.5 whitespace-nowrap tabular-nums">{new Date(e.lastAccess).toLocaleString()}</td>
+                        <td className="px-2 py-1.5">
+                          <Button size="sm" variant="ghost" onClick={() => remove(e.src)} aria-label="Remove" className="h-7 w-7 p-0">✕</Button>
+                        </td>
+                      </tr>
+                    ))}
+                    {visible.length === 0 && (
+                      <tr><td className="p-6 text-muted-foreground text-center" colSpan={5}>No cached images match your search.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
         </div>
       </DialogContent>
     </Dialog>
   );
+}
+
+function MetricCard({ label, value, sub }: { label: string; value: any; sub?: string }) {
+  return (
+    <div className="p-4 rounded-lg border bg-surface-2/40 dark:bg-surface-2/20 flex flex-col gap-1 shadow-xs">
+      <span className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</span>
+      <span className="font-semibold text-base leading-tight">{value}</span>
+      {sub && <span className="text-[11px] text-muted-foreground/80">{sub}</span>}
+    </div>
+  );
+}
+
+function Th({ children, className = '' }: { children?: React.ReactNode; className?: string }) {
+  return <th className={"px-2 py-2 font-medium text-xs text-muted-foreground uppercase tracking-wide " + className}>{children}</th>;
 }

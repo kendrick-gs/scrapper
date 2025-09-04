@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Legacy `ProductTable` component deprecated & stubbed; `/app/console` is the canonical product management view.
 *- Global theming overhaul: improved dark mode inversion (all surfaces), refined green brand palette, consistent header/backdrop surfaces, accessible focus ring & scrollbar styling.*
 *- Global theming overhaul: improved dark mode inversion (all surfaces), refined green brand palette, consistent header/backdrop surfaces, accessible focus ring & scrollbar styling. Removed interim User Preference panel (theme & density now auto-respect system + existing toggle).* 
+*- Cache panel redesigned: metric cards, search & bulk remove actions, dark-mode consistent surfaces & accessible table layout.*
 
 ### Deprecated
 - Legacy `ProductTable` (retained only as a stub for backwards navigation; will be removed in a future release).
