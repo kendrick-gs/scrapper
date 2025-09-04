@@ -317,7 +317,7 @@ export default function ConsolePage() {
     return <TableBody>{table.getRowModel().rows.map(row => (
       <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'} className="dark:bg-background">
         {row.getVisibleCells().map(cell => (
-          <TableCell key={cell.id} style={{ width: cell.column.getSize() }} className={cn('p-4 align-middle',
+          <TableCell key={cell.id} className={cn('p-4 align-middle',
             cell.column.id === 'view' && 'sticky right-0 bg-background z-10',
             cell.column.id === 'select' && 'sticky left-0 bg-background z-10'
           )}>
@@ -541,12 +541,12 @@ export default function ConsolePage() {
           </div>
 
           <div className="overflow-auto px-2 md:px-4">
-            <Table style={{ width: table.getCenterTotalSize() }}>
+            <Table className="w-full table-fixed" style={{ width: '100%' }}>
               <TableHeader>
                 {table.getHeaderGroups().map(hg => (
                   <TableRow key={hg.id} className="bg-gray-300 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-700">
                     {hg.headers.map(h => (
-                      <TableHead key={h.id} style={{ width: h.getSize() }} className={cn('relative px-4',
+                      <TableHead key={h.id} className={cn('relative px-4',
                         h.column.id === 'view' && 'sticky right-0 bg-gray-300 dark:bg-gray-700 z-10',
                         h.column.id === 'select' && 'sticky left-0 bg-gray-300 dark:bg-gray-700 z-10'
                       )}>
