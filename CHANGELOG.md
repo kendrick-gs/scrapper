@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Images column truncation refined: always reserves a slot for "+N" overflow indicator, preventing vertical row expansion while dynamically updating thumbnail count on resize.
 - Vendor & Price column headers now enforce minimum width with preserved right padding so sort icons no longer overlap resizer divider when squeezed.
 - Product Type & Price headers further adjusted (increased padding & min widths) to stop divider/icon overlap when aggressively resized.
+- Dynamic header min-width measurement added to prevent truncation of column titles (headers no longer ellipsize when squeezing columns).
 
 ### Fixed
 - (placeholder)
