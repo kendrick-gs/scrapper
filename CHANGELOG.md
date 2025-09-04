@@ -8,16 +8,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Persistent browser image cache via IndexedDB (falls back to in-memory only if unavailable).
- - Progressive streaming hook (`useEventStream`) and enhanced loading/empty/error states for Console table.
+- (placeholder)
 
 ### Changed
-- Cache panel redesigned: removed limit & usage indicators, added persistent vs memory counts and long-duration auto-expire options (30d–360d).
-- Cache trigger reverted to show total aggregated cache size (memory + persistent) and dialog widened for better visibility.
- - Console table now full-bleed while header/content shell keeps max width; improved progressive image decoding with early tiny fetch.
+- (placeholder)
 
 ### Fixed
-- (placeholder for upcoming fixes)
+- (placeholder)
+
+## [1.9.0] - 2025-09-04
+### Added
+- Service Worker + PWA manifest (offline shell, route & image caching with stale-while-revalidate for Shopify CDN images).
+- Runtime update toast with version + refresh & dismiss actions.
+- Real icon assets (`icon-192.png`, `icon-512.png`) replacing embedded base64.
+- Console data persistent caching (IndexedDB w/ localStorage fallback) with immediate hydration.
+- Lightweight product index (id + updated_at/hash) for fast diffing & object reference reuse.
+- Per-user (email-scoped) cache versioning & schema version field.
+- Loading state row in products table during initial fetch.
+
+### Changed
+- Table hydration path now prefers cached dataset for faster first paint.
+- Image cache now prunes oldest entries beyond threshold.
+- Precache list extended to include `/app/lists`.
+
+### Fixed
+- Avoid unnecessary re-renders by reusing cached product object references when unchanged.
 
 ## [1.8.0] - 2025-09-04
 ### Added
@@ -47,5 +62,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/kendrick-gs/scrapper/compare/v1.7.0...HEAD
+[Unreleased]: https://github.com/kendrick-gs/scrapper/compare/v1.9.0...HEAD
+[1.9.0]: https://github.com/kendrick-gs/scrapper/compare/v1.8.0...v1.9.0
 [1.7.0]: https://github.com/kendrick-gs/scrapper/releases/tag/v1.7.0
