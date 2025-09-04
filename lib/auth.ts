@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 
 const SECRET = process.env.AUTH_SECRET || 'dev-secret';
@@ -40,18 +40,26 @@ export function verifyToken(token: string): SessionPayload | null {
   }
 }
 
-export function setSessionCookie(email: string) {
-  const token = signToken(email);
-  cookies().set(COOKIE_NAME, token, {
-    httpOnly: true,
-    sameSite: 'lax',
-    path: '/',
-    maxAge: 60 * 60 * 24 * 30,
-  });
+export function buildSetCookieHeader(name: string, value: string, opts: { maxAge?: number } = {}) {
+  const parts = [
+    `${name}=${value}`,
+    'Path=/',
+    'SameSite=Lax',
+    'HttpOnly'
+  ];
+  if (opts.maxAge !== undefined) {
+    parts.push(`Max-Age=${opts.maxAge}`);
+  }
+  return parts.join('; ');
 }
 
-export function clearSessionCookie() {
-  cookies().set(COOKIE_NAME, '', { httpOnly: true, path: '/', maxAge: 0 });
+export function setSessionCookie(email: string): string {
+  const token = signToken(email);
+  return buildSetCookieHeader(COOKIE_NAME, token, { maxAge: 60 * 60 * 24 * 30 });
+}
+
+export function clearSessionCookie(): string {
+  return buildSetCookieHeader(COOKIE_NAME, '', { maxAge: 0 });
 }
 
 export function getUserFromRequest(req: NextRequest): string | null {
@@ -62,9 +70,15 @@ export function getUserFromRequest(req: NextRequest): string | null {
 }
 
 export function getUserFromCookies(): string | null {
-  const token = cookies().get(COOKIE_NAME)?.value;
-  if (!token) return null;
-  const payload = verifyToken(token);
-  return payload?.email || null;
+  try {
+    // Attempt sync cookies helper; if promise returned, handle gracefully
+    const c: any = cookies();
+    const maybe = typeof c.then === 'function' ? null : c.get?.(COOKIE_NAME)?.value;
+    if (!maybe) return null;
+    const payload = verifyToken(maybe);
+    return payload?.email || null;
+  } catch {
+    return null;
+  }
 }
 

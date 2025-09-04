@@ -11,17 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (placeholder)
 
 ### Changed
-- Console table pagination controls switched from text buttons to icon buttons for a more compact UI.
-- Images column truncation refined: always reserves a slot for "+N" overflow indicator, preventing vertical row expansion while dynamically updating thumbnail count on resize.
-- Vendor & Price column headers now enforce minimum width with preserved right padding so sort icons no longer overlap resizer divider when squeezed.
-- Product Type & Price headers further adjusted (increased padding & min widths) to stop divider/icon overlap when aggressively resized.
-- Dynamic header min-width measurement added to prevent truncation of column titles (headers no longer ellipsize when squeezing columns).
-- Replaced dynamic header measurement with constant min widths for Product Type (180px) & Price (130px) matching Handle/Title behavior and preventing truncation.
-- Enforced intrinsic header minimum (`min-w-fit`) so sortable headers (Product Type, Price) no longer compress smaller than their full label + icons.
-- Standardized sortable header sizing with centralized constant min widths & runtime enforcement to ensure consistent appearance across all columns.
+- Console table pagination controls now use compact icon buttons.
+- Images column now truncates thumbnails to fit and always reserves a slot for the "+N" overflow indicator (prevents vertical expansion; recalculates on resize).
+- Standardized sortable header sizing: centralized constant min widths with runtime enforcement (replaced prior experimental dynamic / intrinsic sizing iterations to eliminate icon/divider overlap & truncation).
 
 ### Fixed
 - (placeholder)
+
+## [1.9.2] - 2025-09-05
+### Changed
+- Consolidated header sizing iteration notes into a single standardized implementation entry.
 
 ## [1.9.1] - 2025-09-04
 ### Fixed
@@ -73,7 +72,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/kendrick-gs/scrapper/compare/v1.9.0...HEAD
+[Unreleased]: https://github.com/kendrick-gs/scrapper/compare/v1.9.2...HEAD
+[1.9.2]: https://github.com/kendrick-gs/scrapper/compare/v1.9.1...v1.9.2
 [1.9.1]: https://github.com/kendrick-gs/scrapper/compare/v1.9.0...v1.9.1
 [1.9.0]: https://github.com/kendrick-gs/scrapper/compare/v1.8.0...v1.9.0
 [1.7.0]: https://github.com/kendrick-gs/scrapper/releases/tag/v1.7.0

@@ -263,7 +263,7 @@ function ProductTableView({
 					<div className="flex items-center gap-4">
 						<p>
 							{activeCollectionProducts
-								? <>Showing <strong>{selectedRowCount}</strong> products in "<strong>{selectedCollection?.title}</strong>"</>
+								? <>Showing <strong>{selectedRowCount}</strong> products in &quot;<strong>{selectedCollection?.title}</strong>&quot;</>
 								: <>Showing <strong>{selectedRowCount}</strong> of <strong>{allProducts.length}</strong> total products</>
 							}
 						</p>
