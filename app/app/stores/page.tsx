@@ -230,7 +230,11 @@ export default function StoresPage() {
                         <Button size="sm" variant="destructive" className="h-8 px-3" onClick={() => remove(s.shopUrl)} title="Remove store">
                           <Trash2 className="h-4 w-4" />
                         </Button>
-                        <Button size="sm" className="h-8 px-3 bg-brand-green text-white hover:bg-brand-green-light" onClick={() => { window.location.href = '/app/console'; }} title="Open console">
+                        <Button size="sm" className="h-8 px-3 bg-brand-green text-white hover:bg-brand-green-light" onClick={() => {
+                          let hostVal = s.shopUrl;
+                          try { hostVal = new URL(s.shopUrl).hostname; } catch {}
+                          window.location.href = `/app/console?store=${encodeURIComponent(hostVal)}`;
+                        }} title="Open console for this store">
                           <Terminal className="h-4 w-4" />
                         </Button>
                       </div>

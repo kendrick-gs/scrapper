@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState, useCallback, useLayoutEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { getConsoleCache, setConsoleCache, buildProductIndex } from '@/lib/idbCache';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -32,6 +33,8 @@ type MergedProduct = any & { __storeUrl: string; __storeHost: string };
 const EMPTY = '__empty__';
 
 export default function ConsolePage() {
+  const searchParams = useSearchParams();
+  const initialStoreParam = typeof window !== 'undefined' ? (searchParams?.get('store') || 'all') : 'all';
   const user = useAuthStore(s => s.user);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -41,7 +44,7 @@ export default function ConsolePage() {
   const [overrideProducts, setOverrideProducts] = useState<MergedProduct[] | null>(null);
   const [isCollectionLoading, setCollectionLoading] = useState(false);
 
-  const [storeFilter, setStoreFilter] = useState<string>('all');
+  const [storeFilter, setStoreFilter] = useState<string>(initialStoreParam);
   const [vendorFilter, setVendorFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [collectionFilter, setCollectionFilter] = useState<string>('all');
@@ -130,6 +133,8 @@ export default function ConsolePage() {
     return () => { active = false; controller.abort(); };
   }, [user?.email]);
 
+  // Deep link validation moved below after availableStores computed
+
   useEffect(() => {
     const fetchLists = async () => {
       const r = await fetch('/api/lists');
@@ -167,6 +172,15 @@ export default function ConsolePage() {
     for (const s of stores) { try { hosts.add(new URL(s.shopUrl).hostname); } catch { hosts.add(s.shopUrl); } }
     return Array.from(hosts).sort();
   }, [stores]);
+
+  // Validate deep link store param after stores loaded & hosts computed
+  useEffect(() => {
+    if (!stores.length) return;
+    if (storeFilter === 'all') return;
+    if (!availableStores.includes(storeFilter)) {
+      setStoreFilter('all');
+    }
+  }, [stores, availableStores, storeFilter]);
 
   const availableVendors = useMemo(() => {
     const vendorCounts: { [key: string]: number } = {};
