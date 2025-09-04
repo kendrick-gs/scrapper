@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Persistent browser image cache via IndexedDB (falls back to in-memory only if unavailable).
+ - Progressive streaming hook (`useEventStream`) and enhanced loading/empty/error states for Console table.
 
 ### Changed
 - Cache panel redesigned: removed limit & usage indicators, added persistent vs memory counts and long-duration auto-expire options (30d–360d).

@@ -58,21 +58,26 @@ export default function ConsolePage() {
   const [listDialogOpen, setListDialogOpen] = useState(false);
 
   useEffect(() => {
+    let active = true;
+    const controller = new AbortController();
     const load = async () => {
       setLoading(true); setError('');
       try {
-        const res = await fetch('/api/console-data');
+        const res = await fetch('/api/console-data', { signal: controller.signal });
+        if (!res.ok) throw new Error('Failed to load console data');
         const data = await res.json();
+        if (!active) return;
         setStores(data.stores || []);
         setAllProducts(data.products || []);
         setAllCollections(data.collections || []);
       } catch (e: any) {
-        setError(e.message || 'Failed to load');
+        if (e.name !== 'AbortError') setError(e.message || 'Failed to load');
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     };
     load();
+    return () => { active = false; controller.abort(); };
   }, [user?.email]);
 
   useEffect(() => {
@@ -283,6 +288,45 @@ export default function ConsolePage() {
   const selectedCount = table.getSelectedRowModel().rows.length;
   const allListedCount = table.getPrePaginationRowModel().rows.length;
   const allListedSelected = selectedCount === allListedCount && allListedCount > 0;
+
+  const renderTableBody = () => {
+    if (loading) {
+      return (
+        <tbody>
+          {Array.from({ length: 10 }).map((_, i) => (
+            <tr key={i} className="animate-pulse">
+              <td colSpan={table.getAllColumns().length} className="p-4">
+                <div className="h-4 w-1/3 bg-muted rounded mb-2" />
+                <div className="h-4 w-2/3 bg-muted rounded" />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      );
+    }
+    if (error) {
+      return <tbody><tr><td colSpan={table.getAllColumns().length} className="p-6 text-sm text-red-500">{error} <button className="underline" onClick={() => {
+        setLoading(true); setError('');
+        // re-trigger effect by updating a dummy state
+        const evt = new Event('reload'); window.dispatchEvent(evt);
+      }}>Retry</button></td></tr></tbody>;
+    }
+    if (!loading && table.getRowModel().rows.length === 0) {
+      return <tbody><tr><td colSpan={table.getAllColumns().length} className="p-6 text-sm text-muted-foreground">No products match current filters.</td></tr></tbody>;
+    }
+    return <TableBody>{table.getRowModel().rows.map(row => (
+      <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'} className="dark:bg-background">
+        {row.getVisibleCells().map(cell => (
+          <TableCell key={cell.id} style={{ width: cell.column.getSize() }} className={cn('p-4 align-middle',
+            cell.column.id === 'view' && 'sticky right-0 bg-background z-10',
+            cell.column.id === 'select' && 'sticky left-0 bg-background z-10'
+          )}>
+            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+          </TableCell>
+        ))}
+      </TableRow>
+    ))}</TableBody>;
+  };
 
   return (
     <div className="w-full max-w-[1440px] mx-auto px-0 space-y-3 md:space-y-4">
@@ -515,20 +559,7 @@ export default function ConsolePage() {
                   </TableRow>
                 ))}
               </TableHeader>
-              <TableBody>
-                {table.getRowModel().rows.map(row => (
-                  <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'} className="dark:bg-background">
-                    {row.getVisibleCells().map(cell => (
-                      <TableCell key={cell.id} style={{ width: cell.column.getSize() }} className={cn('p-4 align-middle',
-                        cell.column.id === 'view' && 'sticky right-0 bg-background z-10',
-                        cell.column.id === 'select' && 'sticky left-0 bg-background z-10'
-                      )}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableBody>
+              {renderTableBody()}
             </Table>
           </div>
         </CardContent>
@@ -555,8 +586,7 @@ export default function ConsolePage() {
         </div>
       </div>
 
-      {loading && <div className="mt-4 text-sm text-muted-foreground">Loading...</div>}
-      {error && <div className="mt-4 text-sm text-red-500">{error}</div>}
+  {/* Additional global loading & error states already handled inside table */}
     </div>
   );
 }
