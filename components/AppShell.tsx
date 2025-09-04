@@ -34,6 +34,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     );
   };
 
+  // Ensure server markup uses light theme classes deterministically; dark class added client-side if needed.
   return (
     <main className="flex min-h-screen flex-col bg-background text-foreground">
       <header className="w-full border-b bg-secondary/60 dark:bg-secondary/30 backdrop-blur supports-[backdrop-filter]:bg-secondary/40 sticky top-0 z-40">
