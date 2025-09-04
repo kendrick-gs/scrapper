@@ -19,7 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Standardized sortable header sizing: centralized constant min widths with runtime enforcement (replaced prior experimental dynamic / intrinsic sizing iterations to eliminate icon/divider overlap & truncation).
 - Service worker version bumped to v4 to invalidate stale cached route shell so new table UI (images column, headers, pagination icons) is guaranteed to load.
 - Stores page redesigned: consistent table styling, stats badges, integrated batch refresh logs, clearer action grouping.
-- Lists page redesigned: consistent styling, inline editing UX and consolidated actions.
+ - Lists page redesigned: consistent styling, inline editing UX and consolidated actions.
+ - Modernized Stores & Lists pages with brand green accent, filter inputs, skeleton loading states, compact icon actions & relative time badges.
 - Legacy `ProductTable` component deprecated & stubbed; `/app/console` is the canonical product management view.
 
 ### Deprecated
