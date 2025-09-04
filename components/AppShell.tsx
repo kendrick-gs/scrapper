@@ -72,8 +72,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </header>
-      <div className="flex-1 px-4 md:px-8 py-6 flex flex-col items-center w-full max-w-[1600px] self-center">
-        {children}
+      <div className="flex-1 w-full py-6">
+        <div className="mx-auto w-full max-w-[1600px] px-4 md:px-8">
+          {children}
+        </div>
       </div>
       {error && <div className="text-red-500 text-sm mt-2 px-4">{error}</div>}
     </main>

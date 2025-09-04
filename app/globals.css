@@ -58,6 +58,14 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  input::placeholder, textarea::placeholder {
+    @apply text-muted-foreground/70;
+  }
+
+  .dark input, .dark textarea, .dark select {
+    @apply bg-neutral-900 border-neutral-700 text-foreground;
+  }
 }
 
 table th {

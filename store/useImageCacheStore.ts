@@ -9,13 +9,18 @@ interface ImageCacheState {
   get: (src: string) => string | null; // returns object URL
   clear: () => void;
   remove: (src: string) => void;
+  setExpiryMinutes: (mins: number | null) => void;
+  expiryMinutes: number | null; // null = no auto expiry
 }
 
 export const MAX_CACHE_BYTES = 150 * 1024 * 1024; // 150MB soft cap
 
+let lastSweep = 0;
 export const useImageCacheStore = create<ImageCacheState>((set, get) => ({
   entries: {},
   totalBytes: 0,
+  expiryMinutes: null,
+  setExpiryMinutes: (mins) => set({ expiryMinutes: mins }),
   put: (src, blob) => {
     const size = blob.size;
     const existing = get().entries[src];
@@ -38,9 +43,26 @@ export const useImageCacheStore = create<ImageCacheState>((set, get) => ({
     return blobUrl;
   },
   get: (src) => {
-    const e = get().entries[src];
+    const state = get();
+    const e = state.entries[src];
     if (!e) return null;
-    e.lastAccess = Date.now();
+    const now = Date.now();
+    // periodic sweep for expiry (at most every 30s)
+    if (state.expiryMinutes && now - lastSweep > 30000) {
+      const cutoff = now - state.expiryMinutes * 60 * 1000;
+      const mutated = { ...state.entries };
+      let bytes = state.totalBytes;
+      Object.values(state.entries).forEach(entry => {
+        if (entry.lastAccess < cutoff) {
+          URL.revokeObjectURL(entry.blobUrl);
+          delete mutated[entry.src];
+          bytes -= entry.size;
+        }
+      });
+      lastSweep = now;
+      set({ entries: mutated, totalBytes: bytes });
+    }
+    e.lastAccess = now;
     e.hits += 1;
     set({ entries: { ...get().entries } });
     return e.blobUrl;

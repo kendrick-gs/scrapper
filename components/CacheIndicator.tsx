@@ -15,17 +15,12 @@ function formatBytes(bytes: number) {
 }
 
 export function CacheIndicator() {
-  const { entries, totalBytes, clear, remove } = useImageCacheStore();
+  const { entries, totalBytes, clear, remove, expiryMinutes, setExpiryMinutes } = useImageCacheStore();
   const count = Object.keys(entries).length;
   const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState('');
+  // removed search per new requirements
   const usagePct = Math.min(100, (totalBytes / MAX_CACHE_BYTES) * 100);
-  const filtered = useMemo(() => {
-    const all = Object.values(entries).sort((a,b)=> b.hits - a.hits);
-    if (!query.trim()) return all;
-    const q = query.toLowerCase();
-    return all.filter(e => e.src.toLowerCase().includes(q));
-  }, [entries, query]);
+  const filtered = useMemo(() => Object.values(entries).sort((a,b)=> b.hits - a.hits), [entries]);
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -56,7 +51,21 @@ export function CacheIndicator() {
             </div>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
-            <Input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search source URL" className="h-8 text-xs flex-1 min-w-[240px]" />
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-muted-foreground">Auto Expire:</span>
+              <select
+                value={expiryMinutes ?? ''}
+                onChange={e => setExpiryMinutes(e.target.value === '' ? null : Number(e.target.value))}
+                className="h-8 rounded-md border bg-background px-2"
+              >
+                <option value="">Off</option>
+                <option value={5}>5m</option>
+                <option value={15}>15m</option>
+                <option value={30}>30m</option>
+                <option value={60}>1h</option>
+                <option value={180}>3h</option>
+              </select>
+            </div>
             <Button size="sm" variant="outline" onClick={() => clear()}>Clear All</Button>
           </div>
           <div className="space-y-2">
