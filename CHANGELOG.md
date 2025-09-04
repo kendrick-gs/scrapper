@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - (placeholder)
 
+## [1.9.1] - 2025-09-04
+### Fixed
+- Moved deprecated metadata.themeColor to viewport export (Next.js warning resolved).
+
 ## [1.9.0] - 2025-09-04
 ### Added
 - Service Worker + PWA manifest (offline shell, route & image caching with stale-while-revalidate for Shopify CDN images).
