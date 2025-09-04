@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Lists management enhancements: inline create, edit (rename), delete actions with new PUT & DELETE list API endpoints.
 - Reusable `LogPanel` component shared by batch refresh and future streaming tasks.
 - List rename & delete storage helpers (`renameList`, `deleteList`).
+- Design System: Montserrat font integration, semantic surface tokens (light & dark), JS design tokens module (`lib/designSystem.ts`).
+*- User Preference Panel now accessible globally for theme, density & page size (replaces ad-hoc toggle placement).* 
 
 ### Changed
 - Console table pagination controls now use compact icon buttons.
@@ -26,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Lists page refinement: removed header icon avatar, unified header style, improved layout & filter placement, adjusted column widths for clarity.
 - Unified Stores & Lists table header height with Console product table for consistent compact density.
 - Legacy `ProductTable` component deprecated & stubbed; `/app/console` is the canonical product management view.
+*- Global theming overhaul: improved dark mode inversion (all surfaces), refined green brand palette, consistent header/backdrop surfaces, accessible focus ring & scrollbar styling.*
 
 ### Deprecated
 - Legacy `ProductTable` (retained only as a stub for backwards navigation; will be removed in a future release).

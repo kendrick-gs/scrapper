@@ -18,10 +18,11 @@ export function ThemeToggle() {
     <button
       type="button"
       onClick={() => setTheme(t => t === 'light' ? 'dark' : 'light')}
-      className="h-8 w-8 inline-flex items-center justify-center rounded-md border bg-muted hover:bg-muted/80 text-muted-foreground"
+      className="group h-8 w-8 inline-flex items-center justify-center rounded-md border border-border bg-secondary/70 dark:bg-secondary/30 hover:bg-secondary/90 dark:hover:bg-secondary/50 transition-colors text-muted-foreground shadow-sm"
       title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
     >
       {theme === 'dark' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+      <span className="sr-only">Toggle theme</span>
     </button>
   );
 }

@@ -4,50 +4,75 @@
 
 @layer base {
   :root {
-    --background: 255 100% 100%;
-    --foreground: 240 10% 3.9%;
-    --card: 255 100% 100%;
-    --card-foreground: 240 10% 3.9%;
-    --popover: 255 100% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 240 5.9% 10%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
-    --destructive: 0 84.2% 60.2%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 240 5.9% 10%;
-    --radius: 0.5rem;
+    /* Elevation / Surfaces (light) */
+    --color-surface-0: 0 0% 100%; /* page */
+    --color-surface-1: 210 20% 99%; /* section subtle */
+    --color-surface-2: 210 16% 97%; /* cards */
+    --color-surface-3: 210 14% 95%; /* headers */
+    --color-surface-border: 210 16% 90%;
 
-    /* Your Custom Colors */
-    --brand-green-light: #B8DDB6;
-    --brand-green: #6BBB77;
+    /* Brand greens */
+    --brand-green: #2E7D4D; /* darker accent */
+    --brand-green-rgb: 46 125 77;
+    --brand-green-light: #8FD79C;
+    --brand-green-muted: #E3F6E6;
+
+    /* Typography scale */
+    --font-size-xs: 0.7rem;
+    --font-size-sm: 0.8rem;
+    --font-size-base: 0.875rem;
+    --font-size-md: 0.95rem;
+    --font-size-lg: 1.1rem;
+
+    /* Semantic tokens (HSL) */
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 148 46% 31%; /* brand green base */
+    --primary-foreground: 144 64% 93%;
+    --secondary: 210 16% 96%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 14% 95%;
+    --muted-foreground: 215 16% 45%;
+    --accent: 148 46% 31%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 210 16% 88%;
+    --input: 210 16% 92%;
+    --ring: 148 46% 31%;
+    --radius: 0.55rem;
   }
 
   .dark {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 240 5.9% 10%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 240 4.9% 83.9%;
+    --color-surface-0: 240 6% 8%;
+    --color-surface-1: 240 6% 10%;
+    --color-surface-2: 240 5% 13%;
+    --color-surface-3: 240 5% 18%;
+    --color-surface-border: 240 5% 24%;
+
+    --background: 240 6% 8%;
+    --foreground: 144 20% 92%;
+    --card: 240 5% 13%;
+    --card-foreground: 144 20% 92%;
+    --popover: 240 5% 13%;
+    --popover-foreground: 144 20% 92%;
+    --primary: 148 46% 41%;
+    --primary-foreground: 148 64% 12%;
+    --secondary: 240 5% 18%;
+    --secondary-foreground: 144 20% 92%;
+    --muted: 240 5% 18%;
+    --muted-foreground: 148 10% 65%;
+    --accent: 148 46% 41%;
+    --accent-foreground: 148 64% 12%;
+    --destructive: 0 72% 41%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 5% 24%;
+    --input: 240 5% 20%;
+    --ring: 148 46% 41%;
   }
 }
 
@@ -56,7 +81,9 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans tracking-[-0.2px];
+    font-size: var(--font-size-base);
+    font-feature-settings: "ss01" 1, "liga" 1;
   }
 
   input::placeholder, textarea::placeholder {
@@ -69,8 +96,27 @@
 }
 
 table th {
-  @apply bg-gray-300 dark:bg-gray-800 h-16 text-left align-middle font-medium;
+  @apply h-14 text-left align-middle font-medium bg-secondary/70 dark:bg-secondary/40 backdrop-blur;
 }
+
+/* Subtle surface layers */
+.surface-0 { background-color: hsl(var(--background)); }
+.surface-1 { background-color: hsl(var(--color-surface-1)); }
+.surface-2 { background-color: hsl(var(--color-surface-2)); }
+.surface-3 { background-color: hsl(var(--color-surface-3)); }
+
+/* Focus ring unify */
+:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* Scrollbars theming */
+body::-webkit-scrollbar { width: 10px; }
+body::-webkit-scrollbar-track { background: hsl(var(--background)); }
+body.dark::-webkit-scrollbar-track { background: hsl(var(--color-surface-1)); }
+body::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 8px; }
+body.dark::-webkit-scrollbar-thumb { background: hsl(var(--border)); }
 
 
 

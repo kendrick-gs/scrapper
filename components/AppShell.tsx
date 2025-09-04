@@ -5,6 +5,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { Button } from '@/components/ui/button';
 import { CacheIndicator } from '@/components/CacheIndicator';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { UserPrefsPanel } from '@/components/UserPrefsPanel';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -35,8 +36,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <main className="flex min-h-screen flex-col bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100">
-      <header className="w-full border-b bg-white/85 dark:bg-neutral-900/85 backdrop-blur sticky top-0 z-40">
+    <main className="flex min-h-screen flex-col bg-background text-foreground">
+      <header className="w-full border-b bg-secondary/60 dark:bg-secondary/30 backdrop-blur supports-[backdrop-filter]:bg-secondary/40 sticky top-0 z-40">
         <div className="mx-auto w-full max-w-[1440px] px-4 h-14 flex items-center gap-6">
           <div className="flex items-center gap-6 text-sm">
             {navLink('/app/start','Start')}
@@ -49,6 +50,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             )}
           </div>
           <div className="ml-auto flex items-center gap-3">
+            <UserPrefsPanel />
             <ThemeToggle />
             <CacheIndicator />
             {!user ? (
@@ -74,7 +76,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </header>
       <div className="flex-1 w-full py-6">
         {/* Content container: normal pages constrained, but pages can opt into full-bleed sections */}
-        <div className="mx-auto w-full max-w-[1600px] px-4 md:px-8">
+        <div className="mx-auto w-full max-w-[1600px] px-4 md:px-8 space-y-6">
           <div className="[&_.full-bleed]:max-w-none [&_.full-bleed]:px-0">
             {children}
           </div>
