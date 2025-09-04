@@ -5,7 +5,6 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { Button } from '@/components/ui/button';
 import { CacheIndicator } from '@/components/CacheIndicator';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { UserPrefsPanel } from '@/components/UserPrefsPanel';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -50,7 +49,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             )}
           </div>
           <div className="ml-auto flex items-center gap-3">
-            <UserPrefsPanel />
             <ThemeToggle />
             <CacheIndicator />
             {!user ? (
