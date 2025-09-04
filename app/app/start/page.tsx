@@ -1,8 +1,6 @@
 'use client';
 
-import Step1InputForm from '@/components/steps/step1';
+import StartPageContent from '@/components/pages/Start';
 
-export default function StartPage() {
-  return <Step1InputForm />;
-}
+export default function StartPage() { return <StartPageContent />; }
 

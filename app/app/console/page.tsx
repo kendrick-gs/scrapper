@@ -23,7 +23,7 @@ import {
   ColumnSizingState,
   ExpandedState,
 } from '@tanstack/react-table';
-import { columns as baseColumns, ProductRowData, isVariant } from '@/components/steps/columns';
+import { columns as baseColumns, ProductRowData, isVariant } from '@/components/pages/columns';
 
 type StoreMeta = { shopUrl: string; lastUpdated?: string; productCount?: number; collectionCount?: number };
 type MergedProduct = any & { __storeUrl: string; __storeHost: string };
@@ -480,7 +480,8 @@ export default function ConsolePage() {
                   if (!targetListId) return;
                   const selectedRows = table.getSelectedRowModel().rows;
                   const productsToAdd = Array.from(new Map(selectedRows.map(r => {
-                    const p = isVariant(r.original) ? (r.getParentRow()?.original) : r.original;
+                    const p: any = isVariant(r.original) ? (r.getParentRow()?.original) : r.original;
+                    if (!p) return [Math.random().toString(36), {}];
                     return [`${p.__storeHost || ''}:${p.handle}`, p];
                   })).values());
                   await fetch(`/api/lists/${targetListId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ products: productsToAdd }) });

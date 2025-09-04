@@ -1,8 +1,8 @@
 'use client';
 
 import { useScrapeStore } from '@/store/useScrapeStore';
-import Step1InputForm from '@/components/steps/step1';
-import Step2Review from '@/components/steps/step2';
+import StartPageContent from '@/components/pages/Start';
+import ProductTable from '@/components/pages/ProductTable';
 import { AppShell } from '@/components/AppShell';
 
 export default function HomePage() {
@@ -11,11 +11,11 @@ export default function HomePage() {
   const renderStep = () => {
     switch (step) {
       case 1:
-        return <Step1InputForm />;
+  return <StartPageContent />;
       case 2:
-        return <Step2Review />;
+  return <ProductTable />;
       default:
-        return <Step1InputForm />;
+  return <StartPageContent />;
     }
   };
 
