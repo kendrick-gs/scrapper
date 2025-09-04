@@ -434,13 +434,21 @@ export default function ConsolePage() {
   return (
     <div className="w-full mx-auto px-0 space-y-3 md:space-y-4">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4">
-        <div>
-          <h2 className="text-2xl font-bold">Console</h2>
+        <div className="flex flex-col gap-1">
+          <h2 className="text-2xl font-bold tracking-tight">Console</h2>
+          <div className="text-xs sm:text-sm text-muted-foreground font-medium flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1"><span className="text-foreground font-semibold tabular-nums">{totalBaseCount}</span><span>total products</span></span>
+            <span className="opacity-40">•</span>
+            <span>{storeFilter === 'all' ? 'All stores' : `Store: ${storeFilter}`}</span>
+            {collectionFilter !== 'all' && <><span className="opacity-40">•</span><span>Collection: {collectionFilter}</span></>}
+            {vendorFilter !== 'all' && <><span className="opacity-40">•</span><span>Vendor: {vendorFilter === EMPTY ? 'No Vendor' : vendorFilter}</span></>}
+            {typeFilter !== 'all' && <><span className="opacity-40">•</span><span>Type: {typeFilter === EMPTY ? 'No Product Type' : typeFilter}</span></>}
+            {globalFilter && <><span className="opacity-40">•</span><span>Search: "{globalFilter}"</span></>}
+            <span className="opacity-40">•</span>
+            <span><span className="font-semibold tabular-nums">{selectedRowCount}</span> visible</span>
+          </div>
         </div>
         <div className="flex items-center gap-3">
-          <div className="text-sm text-muted-foreground hidden md:block">
-            Showing <strong>{selectedRowCount}</strong> of <strong>{totalBaseCount}</strong> products
-          </div>
           <Button variant="outline" size="sm" className="md:hidden" onClick={() => setFiltersOpen(v => !v)}>
             {filtersOpen ? 'Hide Filters' : 'Show Filters'}
           </Button>
