@@ -18,7 +18,7 @@ const SortableHeader = ({ column, title }: { column: any, title: string }) => {
 		<Button
 			variant={sortDir ? 'default' : 'ghost'}
 			onClick={() => column.toggleSorting(sortDir === 'asc')}
-			className="w-full h-full justify-start px-3 pr-4 gap-2 whitespace-nowrap"
+			className="w-full h-full justify-start px-3 pr-4 gap-2 whitespace-nowrap min-w-fit"
 		>
 			<span className="whitespace-nowrap">{title}</span>
 			<div className="ml-auto flex items-center gap-0.5 pl-1 pr-1">

@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Product Type & Price headers further adjusted (increased padding & min widths) to stop divider/icon overlap when aggressively resized.
 - Dynamic header min-width measurement added to prevent truncation of column titles (headers no longer ellipsize when squeezing columns).
 - Replaced dynamic header measurement with constant min widths for Product Type (180px) & Price (130px) matching Handle/Title behavior and preventing truncation.
+- Enforced intrinsic header minimum (`min-w-fit`) so sortable headers (Product Type, Price) no longer compress smaller than their full label + icons.
 
 ### Fixed
 - (placeholder)
