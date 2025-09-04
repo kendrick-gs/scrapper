@@ -73,8 +73,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
       <div className="flex-1 w-full py-6">
+        {/* Content container: normal pages constrained, but pages can opt into full-bleed sections */}
         <div className="mx-auto w-full max-w-[1600px] px-4 md:px-8">
-          {children}
+          <div className="[&_.full-bleed]:mx-0 [&_.full-bleed]:max-w-none [&_.full-bleed]:px-0">
+            {children}
+          </div>
         </div>
       </div>
       {error && <div className="text-red-500 text-sm mt-2 px-4">{error}</div>}

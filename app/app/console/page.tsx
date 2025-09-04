@@ -462,7 +462,9 @@ export default function ConsolePage() {
         )}
       </div>
 
-      <Card className="py-0">
+  {/* Full-bleed table area */}
+  <div className="full-bleed">
+  <Card className="py-0 rounded-none border-x-0">
         <CardContent className="p-0 px-0">
           {/* Toolbar inside the table frame but visually separate from header */}
           <div className="w-full px-3 py-2 bg-white dark:bg-background flex items-center gap-2">
@@ -538,7 +540,7 @@ export default function ConsolePage() {
             </Dialog>
           </div>
 
-          <div className="overflow-auto">
+          <div className="overflow-auto px-2 md:px-4">
             <Table style={{ width: table.getCenterTotalSize() }}>
               <TableHeader>
                 {table.getHeaderGroups().map(hg => (
@@ -564,6 +566,7 @@ export default function ConsolePage() {
           </div>
         </CardContent>
       </Card>
+      </div>
 
       <div className="flex items-center justify-between gap-4 py-4 w-full">
         <div className="flex-1" />

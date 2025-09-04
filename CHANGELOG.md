@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Cache panel redesigned: removed limit & usage indicators, added persistent vs memory counts and long-duration auto-expire options (30d–360d).
 - Cache trigger reverted to show total aggregated cache size (memory + persistent) and dialog widened for better visibility.
+ - Console table now full-bleed while header/content shell keeps max width; improved progressive image decoding with early tiny fetch.
 
 ### Fixed
 - (placeholder for upcoming fixes)
