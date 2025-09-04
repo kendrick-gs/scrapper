@@ -76,11 +76,23 @@ export function CacheIndicator() {
                   {expiryOptions.map(o => <option key={String(o.label)} value={o.value ?? ''}>{o.label}</option>)}
                 </select>
               </div>
-              <div className="flex flex-wrap gap-2 mt-auto pt-1">
-                <Button size="sm" variant="outline" onClick={() => clear()}>Clear All</Button>
-              </div>
+              <span className="text-[11px] text-muted-foreground/70 leading-snug">Expired entries are removed when accessed; use "Purge Expired" to force removal.</span>
             </div>
           </div>
+          {/* Purge toolbar */}
+          <CacheToolbar
+            canExpire={expiryMinutes != null}
+            onPurgeAll={() => clear()}
+            onPurgeToday={() => {
+              const start = new Date(); start.setHours(0,0,0,0);
+              filtered.forEach(e => { if (e.lastAccess >= start.getTime()) remove(e.src); });
+            }}
+            onPurgeExpired={() => {
+              if (expiryMinutes == null) return;
+              const threshold = Date.now() - expiryMinutes * 60000;
+              filtered.forEach(e => { if (e.lastAccess < threshold) remove(e.src); });
+            }}
+          />
 
           {/* Table */}
           <div className="border rounded-lg overflow-hidden">
@@ -132,4 +144,20 @@ function MetricCard({ label, value, sub }: { label: string; value: any; sub?: st
 
 function Th({ children, className = '' }: { children?: React.ReactNode; className?: string }) {
   return <th className={"px-2 py-2 font-medium text-xs text-muted-foreground uppercase tracking-wide " + className}>{children}</th>;
+}
+
+function CacheToolbar({ canExpire, onPurgeAll, onPurgeToday, onPurgeExpired }: {
+  canExpire: boolean;
+  onPurgeAll: () => void;
+  onPurgeToday: () => void;
+  onPurgeExpired: () => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2 border rounded-lg p-3 bg-surface-2/30 dark:bg-surface-2/10">
+      <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground mr-2">Maintenance</span>
+      <Button size="sm" variant="destructive" onClick={() => { if (confirm('Permanently purge all cached images?')) onPurgeAll(); }}>Purge All</Button>
+      <Button size="sm" variant="outline" onClick={() => { if (confirm('Remove entries accessed today?')) onPurgeToday(); }}>Purge Today</Button>
+      <Button size="sm" variant="outline" disabled={!canExpire} onClick={() => { if (canExpire && confirm('Remove all expired entries now?')) onPurgeExpired(); }}>Purge Expired</Button>
+    </div>
+  );
 }
