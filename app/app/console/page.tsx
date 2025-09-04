@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback, useLayoutEffect, useRef } from 'react';
+import { getConsoleCache, setConsoleCache, buildProductIndex } from '@/lib/idbCache';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -8,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/useAuthStore';
-import { ArrowUpRight, Eye } from 'lucide-react';
+import { ArrowUpRight, Eye, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-react';
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -56,27 +57,76 @@ export default function ConsolePage() {
   const [selectedListId, setSelectedListId] = useState<string>('');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [listDialogOpen, setListDialogOpen] = useState(false);
+  const tableScrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let active = true;
     const controller = new AbortController();
-    const load = async () => {
+    (async () => {
       setLoading(true); setError('');
+      // 1. Hydrate from cache immediately if present
+      const userKey = user?.email || 'anon';
+      const cached = await getConsoleCache(userKey);
+      if (cached && active) {
+        setStores(cached.stores || []);
+        setAllProducts(cached.products || []);
+        setAllCollections(cached.collections || []);
+        setLoading(false); // show cached instantly
+      }
+      // 2. Fetch latest
       try {
         const res = await fetch('/api/console-data', { signal: controller.signal });
         if (!res.ok) throw new Error('Failed to load console data');
         const data = await res.json();
         if (!active) return;
+        // 3. Diff products (shallow by id + updated_at if present)
+        const newProducts = data.products || [];
+        if (!cached) {
+          setAllProducts(newProducts);
+        } else {
+          // Fast lookup from cached index
+          const indexMap: Record<string, { updated_at?: string; hash?: string; ref: any }> = {};
+          cached.productIndex?.forEach(entry => {
+            const prod = (cached.products || []).find(p => p.id === entry.id);
+            if (prod) indexMap[entry.id] = { updated_at: entry.updated_at, hash: entry.hash, ref: prod };
+          });
+          const merged = newProducts.map((p: any) => {
+            const prevMeta = indexMap[p.id];
+            if (!prevMeta) return p;
+            if (p.updated_at && prevMeta.updated_at && p.updated_at === prevMeta.updated_at) return prevMeta.ref;
+            if (!p.updated_at && prevMeta.hash) {
+              // compute current quick hash
+              // inline lightweight hash same as buildProductIndex logic
+              const str = JSON.stringify({ id: p.id, title: p.title, updated_at: p.updated_at, v: p.variants?.length });
+              let h = 0, i = 0; while (i < str.length) { h = (h << 5) - h + str.charCodeAt(i++) | 0; }
+              const cur = h.toString(36);
+              if (cur === prevMeta.hash) return prevMeta.ref;
+            }
+            return p;
+          });
+          setAllProducts(merged);
+        }
         setStores(data.stores || []);
-        setAllProducts(data.products || []);
         setAllCollections(data.collections || []);
+        // 4. Persist with index & user scoping
+        const payload = {
+          products: newProducts,
+          productIndex: buildProductIndex(newProducts),
+          stores: data.stores || [],
+            collections: data.collections || [],
+          updatedAt: Date.now(),
+          user: userKey,
+          schemaVersion: 2,
+        };
+        setConsoleCache(payload).catch(()=>{});
       } catch (e: any) {
-        if (e.name !== 'AbortError') setError(e.message || 'Failed to load');
+        if (e.name !== 'AbortError') {
+          if (!cached) setError(e.message || 'Failed to load');
+        }
       } finally {
         if (active) setLoading(false);
       }
-    };
-    load();
+    })();
     return () => { active = false; controller.abort(); };
   }, [user?.email]);
 
@@ -169,23 +219,29 @@ export default function ConsolePage() {
 
   const selectColumn = useMemo(() => ([{
     id: 'select',
+    enableResizing: false,
     header: ({ table }: any) => (
       <input type="checkbox" checked={table.getIsAllPageRowsSelected()} onChange={table.getToggleAllPageRowsSelectedHandler()} aria-label="Select All" />
     ),
     cell: ({ row }: any) => (
       <input type="checkbox" checked={row.getIsSelected()} onChange={row.getToggleSelectedHandler()} aria-label="Select Row" />
     ),
-    size: 32,
+    size: 40,
+    minSize: 40,
+    maxSize: 40,
   }] as any), []);
 
   const actionColumn = useMemo(() => ([{
     id: 'view',
+    enableResizing: false,
     header: () => (
       <div className="text-right">
         <Eye className="h-4 w-4 inline" aria-label="View" />
       </div>
     ),
-    size: 60,
+    size: 70,
+    minSize: 70,
+    maxSize: 70,
     cell: ({ row }: any) => {
       const product = isVariant(row.original) ? (row.getParentRow()?.original) : row.original;
       const url = `${product.__storeUrl?.replace(/\/$/, '')}/products/${product.handle}`;
@@ -250,6 +306,39 @@ export default function ConsolePage() {
   });
 
   const selectedRowCount = tableData.length;
+
+  // Stretch last resizable column after render when there's extra horizontal space
+  useLayoutEffect(() => {
+    const el = tableScrollRef.current; if (!el) return;
+    const doStretch = () => {
+      const container = el.clientWidth; const total = table.getTotalSize();
+      if (container - total > 6) {
+        const resizable = [...table.getAllLeafColumns()].reverse().find(c => c.getCanResize());
+        if (resizable) {
+          const extra = container - total;
+          table.setColumnSizing(prev => ({ ...prev, [resizable.id]: (prev[resizable.id] || resizable.getSize()) + extra }));
+        }
+      }
+    };
+    doStretch();
+    window.addEventListener('resize', doStretch);
+    return () => window.removeEventListener('resize', doStretch);
+  }, [table, columnSizing]);
+
+  // Auto-size Tags column to longest visible pill (up to a max) while allowing manual resizing afterwards
+  useLayoutEffect(() => {
+    const tagsCol = table.getAllLeafColumns().find(c => c.id === 'tags');
+    if (!tagsCol) return;
+    // Don't override if user already resized (explicit size stored)
+    if (columnSizing['tags']) return;
+    const container = tableScrollRef.current; if (!container) return;
+    const pills = Array.from(container.querySelectorAll('td[data-col="tags"] .badge')) as HTMLElement[];
+    if (pills.length === 0) return;
+    const longest = Math.min(260, Math.max(...pills.map(p => p.getBoundingClientRect().width)) + 32); // padding + resizer allowance
+    if (longest > 0) {
+      table.setColumnSizing(prev => ({ ...prev, tags: Math.max(90, longest) }));
+    }
+  }, [tableData, columnSizing, table]);
   const totalBaseCount = useMemo(() => {
     if (storeFilter === 'all') return allProducts.length;
     return allProducts.filter(p => p.__storeHost === storeFilter).length;
@@ -464,10 +553,12 @@ export default function ConsolePage() {
 
   {/* Full-bleed table area */}
   <div className="full-bleed">
-  <Card className="py-0 rounded-none border-x-0">
-        <CardContent className="p-0 px-0">
-          {/* Toolbar inside the table frame but visually separate from header */}
-          <div className="w-full px-3 py-2 bg-white dark:bg-background flex items-center gap-2">
+  <Card className="py-0 rounded-none border-0 shadow-none bg-transparent">
+        <CardContent className="p-0">
+          <div className="px-4 md:px-8">
+          <div className="rounded-lg border bg-white dark:bg-neutral-900 shadow-sm overflow-hidden">
+          {/* Toolbar inside the bordered & rounded wrapper */}
+          <div className="w-full px-4 py-3 flex items-center gap-3 text-sm">
             <div className="relative" style={{ width: 320 }}>
               <input
                 className={cn('h-8 px-3 border rounded-md w-full text-sm placeholder:text-muted-foreground', globalFilter && 'border-2 border-brand-green')}
@@ -539,43 +630,100 @@ export default function ConsolePage() {
               </DialogContent>
             </Dialog>
           </div>
-
-          <div className="overflow-auto px-2 md:px-4">
-            <Table className="w-full table-fixed" style={{ width: '100%' }}>
+          {/* Scroll area */}
+          <div className="overflow-auto" ref={tableScrollRef}>
+            {/* Removed table-fixed to allow dynamic inline widths from column sizing */}
+            <Table className="w-full" style={{ width: table.getTotalSize() }}>
               <TableHeader>
                 {table.getHeaderGroups().map(hg => (
-                  <TableRow key={hg.id} className="bg-gray-300 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-700">
-                    {hg.headers.map(h => (
-                      <TableHead key={h.id} className={cn('relative px-4',
-                        h.column.id === 'view' && 'sticky right-0 bg-gray-300 dark:bg-gray-700 z-10',
-                        h.column.id === 'select' && 'sticky left-0 bg-gray-300 dark:bg-gray-700 z-10'
-                      )}>
-                        {flexRender(h.column.columnDef.header, h.getContext())}
-                        <div
-                          onMouseDown={h.getResizeHandler()}
-                          onTouchStart={h.getResizeHandler()}
-                          className={cn('resizer', h.column.getIsResizing() && 'isResizing')}
-                        />
-                      </TableHead>
-                    ))}
+                  <TableRow key={hg.id} className="bg-gray-200 dark:bg-gray-800/70 hover:bg-gray-200 dark:hover:bg-gray-800">
+                    {hg.headers.map(h => {
+                      const size = h.getSize();
+                      return (
+                        <TableHead
+                          key={h.id}
+                          style={{ width: size, minWidth: size, maxWidth: size }}
+                          className={cn('relative px-4 border-r last:border-r-0 first:rounded-tl-lg last:rounded-tr-lg border-l [&:first-child]:border-l-0',
+                            h.column.id === 'view' && 'sticky right-0 bg-gray-200 dark:bg-gray-800 z-10',
+                            h.column.id === 'select' && 'sticky left-0 bg-gray-200 dark:bg-gray-800 z-10'
+                          )}
+                        >
+                          {flexRender(h.column.columnDef.header, h.getContext())}
+                          {h.column.getCanResize() ? (
+                            <div
+                              onMouseDown={h.getResizeHandler()}
+                              onTouchStart={h.getResizeHandler()}
+                              className={cn('resizer', h.column.getIsResizing() && 'isResizing')}
+                            />
+                          ) : h.column.id === 'body_html' ? (
+                            <div
+                              aria-hidden
+                              className="resizer pointer-events-none cursor-default opacity-70 bg-gray-300 dark:bg-gray-600"
+                              style={{ cursor: 'default' }}
+                            />
+                          ) : null}
+                        </TableHead>
+                      );
+                    })}
                   </TableRow>
                 ))}
               </TableHeader>
-              {renderTableBody()}
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={table.getAllColumns().length} className="p-6 text-sm text-muted-foreground">
+                      Loading products…
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  table.getRowModel().rows.map(row => (
+                    <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'} className="dark:bg-background border-b last:border-b-0">
+                      {row.getVisibleCells().map(cell => {
+                        const cSize = cell.column.getSize();
+                        return (
+                          <TableCell
+                            key={cell.id}
+                            style={{ width: cSize, minWidth: cSize, maxWidth: cSize }}
+                            data-col={cell.column.id}
+                            className={cn('p-4 align-middle border-r last:border-r-0 border-l [&:first-child]:border-l-0',
+                              cell.column.id === 'view' && 'sticky right-0 bg-background z-10',
+                              cell.column.id === 'select' && 'sticky left-0 bg-background z-10'
+                            )}
+                          >
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </TableCell>
+                        );
+                      })}
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
             </Table>
           </div>
+    </div>{/* end bordered wrapper */}
+    </div>
         </CardContent>
       </Card>
       </div>
 
       <div className="flex items-center justify-between gap-4 py-4 w-full">
         <div className="flex-1" />
-        <div className="flex flex-shrink-0 justify-center items-center gap-4">
-          <Button variant="outline" size="sm" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>First</Button>
-          <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>Previous</Button>
-          <div className="text-sm text-muted-foreground whitespace-nowrap">Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}</div>
-          <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Next</Button>
-          <Button variant="outline" size="sm" onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()}>Last</Button>
+        <div className="flex flex-shrink-0 justify-center items-center gap-2">
+          <Button variant="outline" size="icon" aria-label="First page" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>
+            <ChevronsLeft className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="icon" aria-label="Previous page" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <div className="px-2 text-sm text-muted-foreground whitespace-nowrap select-none">
+            Page <span className="font-medium">{table.getState().pagination.pageIndex + 1}</span> / {table.getPageCount() || 1}
+          </div>
+          <Button variant="outline" size="icon" aria-label="Next page" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+            <Button variant="outline" size="icon" aria-label="Last page" onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()}>
+            <ChevronsRight className="h-4 w-4" />
+          </Button>
         </div>
         <div className="flex flex-1 justify-end items-center gap-2">
           <span className="text-sm text-muted-foreground">Show</span>
