@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (placeholder)
 
 ### Changed
-- (placeholder)
+- Console table pagination controls switched from text buttons to icon buttons for a more compact UI.
 
 ### Fixed
 - (placeholder)
