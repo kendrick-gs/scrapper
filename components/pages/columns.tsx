@@ -66,16 +66,28 @@ export const columns: ColumnDef<ProductRowData>[] = [
 			// Since we are inside a cell, we can approximate number fit using parent column size (row.getVisibleCells find this col id).
 			try {
 				const colSize = (row.getVisibleCells().find(c => c.column.id === 'images')?.column.getSize()) || 200;
-				const thumbSize = 48; const gap = 4; const unit = thumbSize + gap;
-				const maxVisible = Math.max(1, Math.floor((colSize - 4) / unit));
-				const visibleImages = images.slice(0, maxVisible);
-				const remaining = images.length - visibleImages.length;
+				const thumbSize = 48; const gap = 4; const unit = thumbSize + gap; // slot width incl. gap
+				const capacity = Math.max(1, Math.floor((colSize - 4) / unit)); // how many 48px slots *could* fit
+				let visibleImages: typeof images = [];
+				let remaining = 0;
+				if (images.length <= capacity) {
+					visibleImages = images;
+					remaining = 0;
+				} else if (capacity === 1) {
+					// Should not normally happen due to minSize, but safeguard: show first + overflow indicator overlay slot (will overflow gracefully)
+					visibleImages = images.slice(0, 1);
+					remaining = images.length - 1;
+				} else {
+					// Reserve one slot for the overflow indicator
+					visibleImages = images.slice(0, capacity - 1);
+					remaining = images.length - visibleImages.length;
+				}
 				return (
-					<div className="flex items-center gap-1 overflow-hidden">
+					<div className="flex items-center gap-1 overflow-hidden h-12">
 						{visibleImages.map(img => (
 							<Dialog key={img.id}>
 								<DialogTrigger asChild>
-									<div className="relative h-12 w-12 shrink-0 cursor-pointer">
+									<div className="relative h-12 w-12 shrink-0 cursor-pointer flex-none">
 										<CachedImage src={img.src} alt={img.alt || 'Product image'} className="h-12 w-12 rounded object-cover" />
 									</div>
 								</DialogTrigger>
@@ -90,7 +102,7 @@ export const columns: ColumnDef<ProductRowData>[] = [
 						{remaining > 0 && (
 							<Dialog>
 								<DialogTrigger asChild>
-									<button className="h-12 w-12 shrink-0 rounded bg-muted text-xs font-medium flex items-center justify-center hover:bg-muted/70" aria-label={`+${remaining} more images`}>
+									<button className="h-12 w-12 shrink-0 flex-none rounded bg-muted text-xs font-medium flex items-center justify-center hover:bg-muted/70" aria-label={`+${remaining} more images`}>
 										+{remaining}
 									</button>
 								</DialogTrigger>

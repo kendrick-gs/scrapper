@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Console table pagination controls switched from text buttons to icon buttons for a more compact UI.
-- Images column now truncates thumbnails to those that fit current column width and displays a "+N" overflow indicator (prevents row expansion / horizontal scroll pressure).
+- Images column truncation refined: always reserves a slot for "+N" overflow indicator, preventing vertical row expansion while dynamically updating thumbnail count on resize.
 
 ### Fixed
 - (placeholder)
