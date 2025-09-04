@@ -11,7 +11,7 @@ interface ImageCacheState {
   remove: (src: string) => void;
 }
 
-const MAX_CACHE_BYTES = 150 * 1024 * 1024; // 150MB soft cap
+export const MAX_CACHE_BYTES = 150 * 1024 * 1024; // 150MB soft cap
 
 export const useImageCacheStore = create<ImageCacheState>((set, get) => ({
   entries: {},
