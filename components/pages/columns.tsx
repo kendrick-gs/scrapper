@@ -1,6 +1,7 @@
 "use client";
 
 import { ColumnDef } from '@tanstack/react-table';
+import { useLayoutEffect } from 'react';
 import { ShopifyProduct, ShopifyVariant } from '@/lib/types';
 import { CachedImage } from '@/components/CachedImage';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -12,18 +13,35 @@ import { cn } from '@/lib/utils';
 export type ProductRowData = ShopifyProduct | ShopifyVariant;
 export function isVariant(data: ProductRowData): data is ShopifyVariant { return 'sku' in data && 'product_id' in data; }
 
+// Centralized minimum pixel widths for stable header UI.
+const MIN_COLUMN_SIZES: Record<string, number> = {
+	handle: 180,
+	title: 220,
+	images: 150,
+	product_type: 180,
+	vendor: 170,
+	price: 130,
+	updated_at: 150,
+};
+
 const SortableHeader = ({ column, title }: { column: any, title: string }) => {
 	const sortDir = column.getIsSorted();
+	const minForCol = MIN_COLUMN_SIZES[column.id] ?? 140;
+	useLayoutEffect(() => {
+		// Enforce min size even if persisted state stored a smaller width.
+		if (column.getSize() < minForCol) column.setSize(minForCol);
+	}, [column, minForCol]);
 	return (
 		<Button
 			variant={sortDir ? 'default' : 'ghost'}
 			onClick={() => column.toggleSorting(sortDir === 'asc')}
-			className="w-full h-full justify-start px-3 pr-4 gap-2 whitespace-nowrap min-w-fit"
+			className="w-full h-full justify-start px-3 pr-5 gap-2 whitespace-nowrap"
+			style={{ minWidth: minForCol }}
 		>
-			<span className="whitespace-nowrap">{title}</span>
+			<span className="whitespace-nowrap leading-none">{title}</span>
 			<div className="ml-auto flex items-center gap-0.5 pl-1 pr-1">
-				<ArrowUp className={cn('h-4 w-4 flex-none', sortDir === 'asc' ? 'text-primary-foreground' : 'text-muted-foreground/50')} />
-				<ArrowDown className={cn('h-4 w-4 flex-none', sortDir === 'desc' ? 'text-primary-foreground' : 'text-muted-foreground/50')} />
+				<ArrowUp className={cn('h-4 w-4 flex-none', sortDir === 'asc' ? 'text-primary-foreground' : 'text-muted-foreground/40')} />
+				<ArrowDown className={cn('h-4 w-4 flex-none', sortDir === 'desc' ? 'text-primary-foreground' : 'text-muted-foreground/40')} />
 			</div>
 		</Button>
 	);
@@ -132,8 +150,8 @@ export const columns: ColumnDef<ProductRowData>[] = [
 	{
 		accessorKey: 'product_type',
 		header: ({ column }) => <SortableHeader column={column} title="Product Type" />,
-		size: 180,
-		minSize: 180, // constant min to prevent truncation
+		size: MIN_COLUMN_SIZES.product_type,
+		minSize: MIN_COLUMN_SIZES.product_type,
 		cell: ({ row }) => <span className="line-clamp-2">{isVariant(row.original) ? '' : (row.original as ShopifyProduct).product_type}</span>,
 	},
 	{
@@ -146,8 +164,8 @@ export const columns: ColumnDef<ProductRowData>[] = [
 	{
 		id: 'price',
 		header: ({ column }) => <SortableHeader column={column} title="Price" />,
-		size: 130,
-		minSize: 130, // constant min to prevent truncation
+		size: MIN_COLUMN_SIZES.price,
+		minSize: MIN_COLUMN_SIZES.price,
 		accessorFn: (row) => parseFloat(isVariant(row) ? row.price : row.variants?.[0]?.price || '0'),
 		cell: ({ row }) => {
 			const price = isVariant(row.original) ? row.original.price : (row.original as ShopifyProduct).variants?.[0]?.price;

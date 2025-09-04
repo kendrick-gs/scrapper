@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dynamic header min-width measurement added to prevent truncation of column titles (headers no longer ellipsize when squeezing columns).
 - Replaced dynamic header measurement with constant min widths for Product Type (180px) & Price (130px) matching Handle/Title behavior and preventing truncation.
 - Enforced intrinsic header minimum (`min-w-fit`) so sortable headers (Product Type, Price) no longer compress smaller than their full label + icons.
+- Standardized sortable header sizing with centralized constant min widths & runtime enforcement to ensure consistent appearance across all columns.
 
 ### Fixed
 - (placeholder)
