@@ -35,8 +35,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <main className="flex min-h-screen flex-col bg-white dark:bg-background">
-      <header className="w-full border-b bg-white/80 dark:bg-background/80 backdrop-blur sticky top-0 z-40">
+    <main className="flex min-h-screen flex-col bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100">
+      <header className="w-full border-b bg-white/85 dark:bg-neutral-900/85 backdrop-blur sticky top-0 z-40">
         <div className="mx-auto w-full max-w-[1440px] px-4 h-14 flex items-center gap-6">
           <div className="flex items-center gap-6 text-sm">
             {navLink('/app/start','Start')}
@@ -72,7 +72,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </header>
-      <div className="flex-1 px-4 md:px-8 py-6 flex flex-col items-center">{children}</div>
+      <div className="flex-1 px-4 md:px-8 py-6 flex flex-col items-center w-full max-w-[1600px] self-center">
+        {children}
+      </div>
       {error && <div className="text-red-500 text-sm mt-2 px-4">{error}</div>}
     </main>
   );

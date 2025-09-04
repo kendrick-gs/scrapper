@@ -29,8 +29,9 @@ export function CacheIndicator() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button className="text-xs px-2 py-1 rounded-md border bg-muted hover:bg-muted/80" title="Image cache status">
-          Cache: {count} imgs / {formatBytes(totalBytes)}
+        <button className="h-8 px-3 inline-flex items-center gap-1 rounded-md border bg-muted hover:bg-muted/80 text-xs font-medium" title="Image cache status">
+          <span>Cache</span>
+          <span className="text-muted-foreground">{formatBytes(totalBytes)}</span>
         </button>
       </DialogTrigger>
       <DialogContent className="max-w-3xl">
@@ -55,12 +56,8 @@ export function CacheIndicator() {
             </div>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex-1 min-w-[200px]">
-              <Input value={query} onChange={e => setQuery(e.target.value)} placeholder="Filter by src…" className="h-8 text-xs" />
-            </div>
-            <div className="flex items-center gap-2">
-              <Button size="sm" variant="outline" onClick={() => clear()}>Clear All</Button>
-            </div>
+            <Input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search source URL" className="h-8 text-xs flex-1 min-w-[240px]" />
+            <Button size="sm" variant="outline" onClick={() => clear()}>Clear All</Button>
           </div>
           <div className="space-y-2">
             <Progress value={usagePct} className="h-2" />
@@ -70,19 +67,17 @@ export function CacheIndicator() {
             <table className="w-full text-xs">
               <thead className="bg-muted/50 sticky top-0">
                 <tr>
-                  <th className="text-left p-2 w-14">Preview</th>
                   <th className="text-left p-2">Src</th>
-                  <th className="text-left p-2 w-20">Size</th>
+                  <th className="text-left p-2 w-24">Size</th>
                   <th className="text-left p-2 w-16">Hits</th>
-                  <th className="text-left p-2 w-28">Last Access</th>
-                  <th className="text-left p-2 w-14">Action</th>
+                  <th className="text-left p-2 w-32">Last Access</th>
+                  <th className="text-left p-2 w-14">Remove</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map(e => (
                   <tr key={e.src} className="border-t hover:bg-muted/40">
-                    <td className="p-2"><img src={e.blobUrl} className="h-10 w-10 object-cover rounded" /></td>
-                    <td className="p-2 max-w-[420px] truncate font-mono" title={e.src}>{e.src}</td>
+                    <td className="p-2 max-w-[520px] truncate font-mono" title={e.src}>{e.src}</td>
                     <td className="p-2 whitespace-nowrap">{formatBytes(e.size)}</td>
                     <td className="p-2">{e.hits}</td>
                     <td className="p-2 whitespace-nowrap">{new Date(e.lastAccess).toLocaleTimeString()}</td>
@@ -90,7 +85,7 @@ export function CacheIndicator() {
                   </tr>
                 ))}
                 {filtered.length === 0 && (
-                  <tr><td className="p-4 text-muted-foreground" colSpan={6}>No cached images match filter.</td></tr>
+                  <tr><td className="p-4 text-muted-foreground" colSpan={5}>No cached images match filter.</td></tr>
                 )}
               </tbody>
             </table>
