@@ -15,11 +15,15 @@ export function isVariant(data: ProductRowData): data is ShopifyVariant { return
 const SortableHeader = ({ column, title }: { column: any, title: string }) => {
 	const sortDir = column.getIsSorted();
 	return (
-		<Button variant={sortDir ? 'default' : 'ghost'} onClick={() => column.toggleSorting(sortDir === 'asc')} className="w-full h-full justify-start">
-			<span>{title}</span>
-			<div className="ml-auto flex items-center -space-x-1 pl-2">
-				<ArrowUp className={cn('h-4 w-4', sortDir === 'asc' ? 'text-primary-foreground' : 'text-muted-foreground/50')} />
-				<ArrowDown className={cn('h-4 w-4', sortDir === 'desc' ? 'text-primary-foreground' : 'text-muted-foreground/50')} />
+		<Button
+			variant={sortDir ? 'default' : 'ghost'}
+			onClick={() => column.toggleSorting(sortDir === 'asc')}
+			className="w-full h-full justify-start px-3 pr-4 gap-2 whitespace-nowrap"
+		>
+			<span className="truncate max-w-[60%]">{title}</span>
+			<div className="ml-auto flex items-center gap-0.5 pl-1 pr-1">
+				<ArrowUp className={cn('h-4 w-4 flex-none', sortDir === 'asc' ? 'text-primary-foreground' : 'text-muted-foreground/50')} />
+				<ArrowDown className={cn('h-4 w-4 flex-none', sortDir === 'desc' ? 'text-primary-foreground' : 'text-muted-foreground/50')} />
 			</div>
 		</Button>
 	);
@@ -135,15 +139,15 @@ export const columns: ColumnDef<ProductRowData>[] = [
 	{
 		accessorKey: 'vendor',
 		header: ({ column }) => <SortableHeader column={column} title="Vendor" />,
-		size: 150,
-		minSize: 160,
+		size: 170,
+		minSize: 170, // ensure room for text + sort icons + padding so they don't overlap resizer
 		cell: ({ row }) => <span className="line-clamp-2">{isVariant(row.original) ? '' : (row.original as ShopifyProduct).vendor}</span>,
 	},
 	{
 		id: 'price',
 		header: ({ column }) => <SortableHeader column={column} title="Price" />,
-		size: 100,
-		minSize: 110,
+		size: 120,
+		minSize: 120, // content based min to keep padding visible
 		accessorFn: (row) => parseFloat(isVariant(row) ? row.price : row.variants?.[0]?.price || '0'),
 		cell: ({ row }) => {
 			const price = isVariant(row.original) ? row.original.price : (row.original as ShopifyProduct).variants?.[0]?.price;
