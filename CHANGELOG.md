@@ -30,6 +30,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 *- Global theming overhaul: improved dark mode inversion (all surfaces), refined green brand palette, consistent header/backdrop surfaces, accessible focus ring & scrollbar styling.*
 *- Global theming overhaul: improved dark mode inversion (all surfaces), refined green brand palette, consistent header/backdrop surfaces, accessible focus ring & scrollbar styling. Removed interim User Preference panel (theme & density now auto-respect system + existing toggle).* 
 *- Cache panel redesigned: metric cards, search & bulk remove actions, dark-mode consistent surfaces & accessible table layout.*
+* - Cache panel redesigned: metric cards, search & bulk remove actions, dark-mode consistent surfaces & accessible table layout.*
+
+## [1.9.3] - 2025-09-05
+### Added
+- Design System (Montserrat font, semantic surface tokens, JS tokens module).
+- Redesigned cache panel with metrics, search, bulk operations.
+
+### Changed
+- Global theming overhaul with full dark-mode inversion & surface consistency.
+- Removed interim preference panel (system + toggle driven now).
+- Dark mode table cell background inversion fix.
+
+### Fixed
+- Table dark mode cells not inverting previously.
 
 ### Deprecated
 - Legacy `ProductTable` (retained only as a stub for backwards navigation; will be removed in a future release).
@@ -91,7 +105,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/kendrick-gs/scrapper/compare/v1.9.2...HEAD
+[Unreleased]: https://github.com/kendrick-gs/scrapper/compare/v1.9.3...HEAD
+[1.9.3]: https://github.com/kendrick-gs/scrapper/compare/v1.9.2...v1.9.3
 [1.9.2]: https://github.com/kendrick-gs/scrapper/compare/v1.9.1...v1.9.2
 [1.9.1]: https://github.com/kendrick-gs/scrapper/compare/v1.9.0...v1.9.1
 [1.9.0]: https://github.com/kendrick-gs/scrapper/compare/v1.8.0...v1.9.0
