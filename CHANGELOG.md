@@ -30,7 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 *- Global theming overhaul: improved dark mode inversion (all surfaces), refined green brand palette, consistent header/backdrop surfaces, accessible focus ring & scrollbar styling.*
 *- Global theming overhaul: improved dark mode inversion (all surfaces), refined green brand palette, consistent header/backdrop surfaces, accessible focus ring & scrollbar styling. Removed interim User Preference panel (theme & density now auto-respect system + existing toggle).* 
 *- Cache panel redesigned: metric cards, search & bulk remove actions, dark-mode consistent surfaces & accessible table layout.*
-* - Cache panel redesigned: metric cards, search & bulk remove actions, dark-mode consistent surfaces & accessible table layout.*
+* - Cache panel redesigned: metric cards, responsive full-width modal, simplified (search removed), dark-mode consistent surfaces & accessible table layout.*
 
 ## [1.9.3] - 2025-09-05
 ### Added

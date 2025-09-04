@@ -39,8 +39,7 @@ export function CacheIndicator() {
 
   const totalDisplayBytes = persistBytes != null ? (totalBytes + persistBytes) : totalBytes;
 
-  const [query, setQuery] = useState('');
-  const visible = filtered.filter(e => !query || e.src.toLowerCase().includes(query.toLowerCase()));
+  const visible = filtered; // search removed per request
   const hitTotal = filtered.reduce((a,b)=>a+b.hits,0);
   const avgSize = filtered.length ? (filtered.reduce((a,b)=>a+b.size,0)/filtered.length) : 0;
 
@@ -52,7 +51,7 @@ export function CacheIndicator() {
           <span className="text-muted-foreground">{formatBytes(totalDisplayBytes)}</span>
         </button>
       </DialogTrigger>
-      <DialogContent className="max-w-[min(100vw-3rem,78rem)] xl:max-w-7xl max-h-[88vh] overflow-y-auto">
+  <DialogContent className="max-w-[1200px] md:max-w-[90vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold tracking-tight flex items-center gap-3">
             Image Cache
@@ -83,53 +82,38 @@ export function CacheIndicator() {
             </div>
           </div>
 
-          {/* Table + Controls */}
-            <div className="flex flex-col gap-3">
-              <div className="flex flex-col md:flex-row md:items-center gap-3">
-                <div className="flex items-center gap-2 flex-1">
-                  <input
-                    placeholder="Search source URL..."
-                    value={query}
-                    onChange={e=>setQuery(e.target.value)}
-                    className="h-9 w-full rounded-md border bg-background px-3 text-sm"
-                  />
-                  {query && <Button size="sm" variant="ghost" onClick={()=>setQuery('')}>Clear</Button>}
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button size="sm" variant="outline" onClick={() => visible.slice(0,50).forEach(v => remove(v.src))} disabled={!visible.length}>Remove 50</Button>
-                  <Button size="sm" variant="destructive" onClick={() => { if (confirm('Remove all visible cached images?')) visible.forEach(v => remove(v.src)); }}>Remove Visible</Button>
-                </div>
-              </div>
-              <div className="border rounded-lg overflow-hidden">
-                <table className="w-full text-[11.5px]">
-                  <thead className="bg-secondary/60 dark:bg-secondary/30">
-                    <tr className="text-left">
-                      <Th className="min-w-[320px]">Source</Th>
-                      <Th className="w-24">Size</Th>
-                      <Th className="w-16">Hits</Th>
-                      <Th className="w-40">Last Access</Th>
-                      <Th className="w-10" />
+          {/* Table */}
+          <div className="border rounded-lg overflow-hidden">
+            <div className="max-h-[50vh] overflow-auto">
+              <table className="w-full text-[11.5px]">
+                <thead className="bg-secondary/60 dark:bg-secondary/30 sticky top-0">
+                  <tr className="text-left">
+                    <Th className="min-w-[320px]">Source</Th>
+                    <Th className="w-24">Size</Th>
+                    <Th className="w-16">Hits</Th>
+                    <Th className="w-40">Last Access</Th>
+                    <Th className="w-10" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/70 dark:divide-border/40">
+                  {visible.map(e => (
+                    <tr key={e.src} className="hover:bg-muted/50 transition-colors">
+                      <td className="px-2 py-1.5 max-w-[560px] truncate font-mono" title={e.src}>{e.src}</td>
+                      <td className="px-2 py-1.5 whitespace-nowrap tabular-nums">{formatBytes(e.size)}</td>
+                      <td className="px-2 py-1.5 tabular-nums">{e.hits}</td>
+                      <td className="px-2 py-1.5 whitespace-nowrap tabular-nums">{new Date(e.lastAccess).toLocaleString()}</td>
+                      <td className="px-2 py-1.5">
+                        <Button size="sm" variant="ghost" onClick={() => remove(e.src)} aria-label="Remove" className="h-7 w-7 p-0">✕</Button>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/70 dark:divide-border/40">
-                    {visible.map(e => (
-                      <tr key={e.src} className="hover:bg-muted/50 transition-colors">
-                        <td className="px-2 py-1.5 max-w-[560px] truncate font-mono" title={e.src}>{e.src}</td>
-                        <td className="px-2 py-1.5 whitespace-nowrap tabular-nums">{formatBytes(e.size)}</td>
-                        <td className="px-2 py-1.5 tabular-nums">{e.hits}</td>
-                        <td className="px-2 py-1.5 whitespace-nowrap tabular-nums">{new Date(e.lastAccess).toLocaleString()}</td>
-                        <td className="px-2 py-1.5">
-                          <Button size="sm" variant="ghost" onClick={() => remove(e.src)} aria-label="Remove" className="h-7 w-7 p-0">✕</Button>
-                        </td>
-                      </tr>
-                    ))}
-                    {visible.length === 0 && (
-                      <tr><td className="p-6 text-muted-foreground text-center" colSpan={5}>No cached images match your search.</td></tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                  {visible.length === 0 && (
+                    <tr><td className="p-6 text-muted-foreground text-center" colSpan={5}>No cached images.</td></tr>
+                  )}
+                </tbody>
+              </table>
             </div>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
