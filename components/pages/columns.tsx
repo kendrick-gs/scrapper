@@ -2,7 +2,7 @@
 
 import { ColumnDef } from '@tanstack/react-table';
 import { ShopifyProduct, ShopifyVariant } from '@/lib/types';
-import Image from 'next/image';
+import { CachedImage } from '@/components/CachedImage';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -65,13 +65,13 @@ export const columns: ColumnDef<ProductRowData>[] = [
 						<Dialog key={img.id}>
 							<DialogTrigger asChild>
 								<div className="relative h-12 w-12 cursor-pointer">
-									<Image src={img.src} alt={img.alt || 'Product image'} fill sizes="48px" className="rounded object-cover" />
+									  <CachedImage src={img.src} alt={img.alt || 'Product image'} className="h-12 w-12 rounded object-cover" />
 								</div>
 							</DialogTrigger>
 							<DialogContent className="max-w-3xl">
 								<DialogHeader><DialogTitle>{img.alt || 'Product Image'}</DialogTitle></DialogHeader>
 								<div className="relative h-96">
-									<Image src={img.src} alt={img.alt || 'Product image'} fill sizes="100vw" className="object-contain" />
+									  <CachedImage src={img.src} alt={img.alt || 'Product image'} className="h-full w-full object-contain" />
 								</div>
 							</DialogContent>
 						</Dialog>

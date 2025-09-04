@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Button } from '@/components/ui/button';
+import { CacheIndicator } from '@/components/CacheIndicator';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -19,8 +20,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <main className="flex min-h-screen flex-col items-center p-4 md:p-8 bg-white dark:bg-background">
-      <div className="w-full max-w-[1440px] flex items-center justify-between mb-4">
-        <nav className="flex items-center gap-4 text-sm">
+      <div className="w-full max-w-[1440px] flex items-center justify-between mb-4 gap-4">
+        <nav className="flex items-center gap-4 text-sm flex-wrap">
           <Link href="/app/start" className={pathname?.startsWith('/app/start') ? 'font-medium' : 'text-muted-foreground'}>Start</Link>
           {user && (
             <>
@@ -29,6 +30,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Link href="/app/lists" className={pathname?.startsWith('/app/lists') ? 'font-medium' : 'text-muted-foreground'}>Lists</Link>
             </>
           )}
+          <CacheIndicator />
         </nav>
         {!user ? (
           <div className="flex items-center gap-2">

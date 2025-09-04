@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import {
 	useReactTable,
 	getCoreRowModel,
@@ -19,6 +19,7 @@ import { columns, ProductRowData, isVariant } from './columns';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,9 +27,48 @@ import { ShopifyProduct, ShopifyCollection } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { XIcon } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
+import type { Table as ReactTableType } from '@tanstack/react-table';
+
+function VirtualizedRows({ table, parentRef }: { table: ReactTableType<any>; parentRef: React.RefObject<HTMLDivElement | null>; }) {
+	const rowVirtualizer = useVirtualizer({
+		count: table.getRowModel().rows.length,
+		getScrollElement: () => parentRef.current,
+		estimateSize: () => 48,
+		overscan: 12,
+	});
+	const virtualRows = rowVirtualizer.getVirtualItems();
+	const totalSize = rowVirtualizer.getTotalSize();
+	return (
+		<tr>
+			<td colSpan={table.getAllColumns().length} className="p-0">
+				<div ref={parentRef} className="max-h-[70vh] overflow-y-auto">
+					<div style={{ height: totalSize, position: 'relative' }}>
+						{virtualRows.map((vi: any) => {
+							const row = table.getRowModel().rows[vi.index];
+							return (
+								<div key={row.id} data-index={vi.index} style={{ position: 'absolute', top: 0, left: 0, width: '100%', transform: `translateY(${vi.start}px)` }}>
+									<TableRow data-state={row.getIsSelected() && 'selected'} className="dark:bg-background">
+										{row.getVisibleCells().map((cell, cIdx) => (
+											<TableCell key={cell.id} style={{ width: cell.column.getSize() }} className={cn('p-4 align-middle', cIdx === 0 && 'sticky left-0 z-10 bg-background')}>
+												{flexRender(cell.column.columnDef.cell, cell.getContext())}
+											</TableCell>
+										))}
+									</TableRow>
+								</div>
+							);
+						})}
+					</div>
+				</div>
+			</td>
+		</tr>
+	);
+}
 
 function LoadingView({ logs }: { logs: string[] }) {
-	return (
+			const parentRef = useRef<HTMLDivElement | null>(null);
+			// Virtualizer initialized after table instance below
+
+		return (
 		<Card className="w-full max-w-2xl mx-auto">
 			<CardHeader><CardTitle>Fetching Products...</CardTitle></CardHeader>
 			<CardContent>
@@ -55,6 +95,7 @@ function ProductTableView({
 		addCollectionToCache: (handle: string, products: ShopifyProduct[]) => void;
 }) {
 	const user = useAuthStore(state => state.user);
+	const parentRef = useRef<HTMLDivElement | null>(null);
 	const [activeCollectionProducts, setActiveCollectionProducts] = useState<ShopifyProduct[] | null>(null);
 	const [isCollectionLoading, setCollectionLoading] = useState(false);
 	const [sorting, setSorting] = useState<SortingState>([]);
@@ -241,10 +282,10 @@ function ProductTableView({
 						{globalFilter && (<Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => setGlobalFilter('')}><XIcon className="h-4 w-4" /></Button>)}
 					</div>
 				</div>
-				<div className="w-full relative overflow-x-auto">
+			<div className="w-full relative overflow-x-auto">
 					{isCollectionLoading && (<div className="absolute inset-0 bg-white/75 dark:bg-black/75 flex items-center justify-center z-10"><p className="text-lg">Loading Collection...</p></div>)}
-					{table.getRowModel().rows.length > 0 ? (
-						<Table style={{ width: table.getCenterTotalSize() }}>
+								  {table.getRowModel().rows.length > 0 ? (
+									<Table style={{ width: table.getCenterTotalSize() }}>
 							<TableHeader>
 								{table.getHeaderGroups().map(hg => (
 									<TableRow key={hg.id} className="bg-gray-100 dark:bg-muted hover:bg-gray-200 dark:hover:bg-gray-800">
@@ -257,17 +298,10 @@ function ProductTableView({
 									</TableRow>
 								))}
 							</TableHeader>
-							<TableBody>
-								{table.getRowModel().rows.map(row => (
-									<TableRow key={row.id} data-state={row.getIsSelected() && "selected"} className="dark:bg-background">
-										{row.getVisibleCells().map((cell, cIdx) => (
-											<TableCell key={cell.id} style={{ width: cell.column.getSize() }} className={cn('p-4 align-middle', cIdx === 0 && 'sticky left-0 z-10 bg-background')}>
-												{flexRender(cell.column.columnDef.cell, cell.getContext())}
-											</TableCell>
-										))}
-									</TableRow>
-								))}
-							</TableBody>
+															<TableBody>
+																{/* Virtualized body injected dynamically below to ensure table is defined */}
+																<VirtualizedRows table={table} parentRef={parentRef} />
+															</TableBody>
 						</Table>
 					) : (
 						<div className="text-center p-8">
