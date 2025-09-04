@@ -8,13 +8,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- (placeholder)
+- (placeholder for upcoming changes)
 
 ### Changed
-- (placeholder)
+- (placeholder for upcoming changes)
 
 ### Fixed
-- (placeholder)
+- (placeholder for upcoming fixes)
+
+## [1.8.0] - 2025-09-04
+### Added
+- User preference persistence store (page size, density, theme) and Preferences panel in header.
+- Table state persistence (column sizes, sorting, filters, global search) via localStorage.
+- Progressive image loading with blur (LQIP) placeholder in `CachedImage` component.
+- Dense (compact) mode styling toggle.
+
+### Changed
+- Integrated preference-driven page size and density into product table UI.
+
+### Performance
+- Virtualized product table rows for large data sets (previous release groundwork) with persistence improvements.
+
+### Security
+- (none)
 
 ## [1.7.0] - 2025-09-04
 ### Changed

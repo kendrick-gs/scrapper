@@ -24,6 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ShopifyProduct, ShopifyCollection } from '@/lib/types';
+import { useUserPrefsStore } from '@/store/useUserPrefsStore';
 import { cn } from '@/lib/utils';
 import { XIcon } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -103,6 +104,30 @@ function ProductTableView({
 	const [globalFilter, setGlobalFilter] = useState('');
 	const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({});
 	const [expanded, setExpanded] = useState<ExpandedState>({});
+	// user prefs
+	const { pageSize, density } = useUserPrefsStore();
+
+	// persist table state (column sizing + filters + sorting) keyed by a version
+	const TABLE_STATE_KEY = 'scrapper-table-state-v1';
+	useEffect(() => {
+		try {
+			const raw = localStorage.getItem(TABLE_STATE_KEY);
+			if (raw) {
+				const parsed = JSON.parse(raw);
+				if (parsed.columnSizing) setColumnSizing(parsed.columnSizing);
+				if (parsed.sorting) setSorting(parsed.sorting);
+				if (parsed.columnFilters) setColumnFilters(parsed.columnFilters);
+				if (parsed.globalFilter) setGlobalFilter(parsed.globalFilter);
+			}
+		} catch {}
+	// run once
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
+
+	useEffect(() => {
+		const payload = JSON.stringify({ columnSizing, sorting, columnFilters, globalFilter });
+		localStorage.setItem(TABLE_STATE_KEY, payload);
+	}, [columnSizing, sorting, columnFilters, globalFilter]);
 	const baseProductData = activeCollectionProducts || allProducts;
 	const EMPTY_VALUE = '__empty__';
 
@@ -176,6 +201,12 @@ function ProductTableView({
 		getSortedRowModel: getSortedRowModel(),
 		getExpandedRowModel: getExpandedRowModel(),
 	});
+
+	// apply page size from prefs once
+	useEffect(() => {
+		table.setPageSize(pageSize);
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [pageSize]);
 
 	const handleCollectionSelect = useCallback(async (rawHandle: string | null) => {
 		if (!user) return;
@@ -274,7 +305,7 @@ function ProductTableView({
 					</div>
 				</div>
 			</div>
-			<div className="rounded-md border bg-gray-50 dark:bg-card">
+			<div className={cn("rounded-md border bg-gray-50 dark:bg-card", density === 'compact' && 'text-sm')}> 
 				<div className="w-full p-3 border-b bg-gray-100 dark:bg-muted flex items-center justify-start gap-3 sticky left-0 z-10">
 					{table.getState().sorting.length > 0 && (<Button variant="link" onClick={() => table.resetSorting()}>Reset Sort</Button>)}
 					<div className="relative" style={{ width: '240px' }}>
@@ -311,7 +342,7 @@ function ProductTableView({
 					)}
 				</div>
 			</div>
-			<div className="flex items-center justify-between gap-4 py-4 w-full">
+			<div className={cn("flex items-center justify-between gap-4 py-4 w-full", density === 'compact' && 'text-xs')}> 
 				<div className="flex-1" />
 				<div className="flex flex-shrink-0 justify-center items-center gap-4">
 					<Button variant="outline" size="sm" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>First</Button>
