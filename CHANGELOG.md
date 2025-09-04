@@ -8,13 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- (placeholder)
+- Unified store management features: single & bulk add of Shopify stores, sequential batch refresh with aggregated log panel.
+- Lists management enhancements: inline create, edit (rename), delete actions with new PUT & DELETE list API endpoints.
+- Reusable `LogPanel` component shared by batch refresh and future streaming tasks.
+- List rename & delete storage helpers (`renameList`, `deleteList`).
 
 ### Changed
 - Console table pagination controls now use compact icon buttons.
 - Images column now truncates thumbnails to fit and always reserves a slot for the "+N" overflow indicator (prevents vertical expansion; recalculates on resize).
 - Standardized sortable header sizing: centralized constant min widths with runtime enforcement (replaced prior experimental dynamic / intrinsic sizing iterations to eliminate icon/divider overlap & truncation).
 - Service worker version bumped to v4 to invalidate stale cached route shell so new table UI (images column, headers, pagination icons) is guaranteed to load.
+- Stores page redesigned: consistent table styling, stats badges, integrated batch refresh logs, clearer action grouping.
+- Lists page redesigned: consistent styling, inline editing UX and consolidated actions.
+- Legacy `ProductTable` component deprecated & stubbed; `/app/console` is the canonical product management view.
+
+### Deprecated
+- Legacy `ProductTable` (retained only as a stub for backwards navigation; will be removed in a future release).
 
 ### Fixed
 - (placeholder)
