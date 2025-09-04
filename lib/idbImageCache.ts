@@ -151,3 +151,28 @@ export async function idbEnsureSizeLimit(maxBytes: number) {
     }
   } catch { /* ignore */ }
 }
+
+// Quick stats for UI (count + totalBytes). Does not load blobs into memory.
+export async function idbStats(): Promise<{ count: number; totalBytes: number }> {
+  if (typeof window === 'undefined') return { count: 0, totalBytes: 0 };
+  try {
+    const db = await openDb();
+    return await new Promise((resolve) => {
+      let count = 0; let totalBytes = 0;
+      const tx = db.transaction(STORE, 'readonly');
+      const store = tx.objectStore(STORE);
+      const cursorReq = store.openCursor();
+      cursorReq.onsuccess = (e: any) => {
+        const cursor: IDBCursorWithValue | null = e.target.result;
+        if (cursor) {
+          const val = cursor.value as IDBStoredImage;
+            count++; totalBytes += val.size;
+            cursor.continue();
+        } else {
+          resolve({ count, totalBytes });
+        }
+      };
+      cursorReq.onerror = () => resolve({ count, totalBytes });
+    });
+  } catch { return { count: 0, totalBytes: 0 }; }
+}
