@@ -176,11 +176,11 @@ export default function StoresPage() {
             <table className="w-full text-sm">
               <thead className="bg-muted/40">
                 <tr className="text-left text-muted-foreground">
-                  <th className="py-2 px-3 font-medium w-[34%]">Store</th>
-                  <th className="py-2 px-3 font-medium w-[14%]">Products</th>
-                  <th className="py-2 px-3 font-medium w-[14%]">Collections</th>
-                  <th className="py-2 px-3 font-medium w-[18%]">Last Updated</th>
-                  <th className="py-2 px-3 font-medium w-[20%]">Actions</th>
+                  <th className="h-9 px-3 font-medium w-[34%] align-middle">Store</th>
+                  <th className="h-9 px-3 font-medium w-[14%] align-middle">Products</th>
+                  <th className="h-9 px-3 font-medium w-[14%] align-middle">Collections</th>
+                  <th className="h-9 px-3 font-medium w-[18%] align-middle">Last Updated</th>
+                  <th className="h-9 px-3 font-medium w-[20%] align-middle">Actions</th>
                 </tr>
               </thead>
               <tbody>

@@ -126,10 +126,10 @@ export default function ListsPage() {
             <table className="w-full text-sm">
               <thead className="bg-muted/40">
                 <tr className="text-left text-muted-foreground">
-                  <th className="py-2 px-3 font-medium w-[46%]">Name</th>
-                  <th className="py-2 px-3 font-medium w-[16%]">Created</th>
-                  <th className="py-2 px-3 font-medium w-[14%]">Items</th>
-                  <th className="py-2 px-3 font-medium w-[24%]">Actions</th>
+                  <th className="h-9 px-3 font-medium w-[46%] align-middle">Name</th>
+                  <th className="h-9 px-3 font-medium w-[16%] align-middle">Created</th>
+                  <th className="h-9 px-3 font-medium w-[14%] align-middle">Items</th>
+                  <th className="h-9 px-3 font-medium w-[24%] align-middle">Actions</th>
                 </tr>
               </thead>
               <tbody>

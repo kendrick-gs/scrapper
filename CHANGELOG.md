@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Console deep-link: opening from a store row now passes ?store=host param and auto-applies store filter.
 - Stores page refinement: removed header icon, unified top border style, modern header layout, separated Products / Collections columns, consistent button styling, single multi-entry add field with automatic multi-URL parsing & dedupe.
 - Lists page refinement: removed header icon avatar, unified header style, improved layout & filter placement, adjusted column widths for clarity.
+- Unified Stores & Lists table header height with Console product table for consistent compact density.
 - Legacy `ProductTable` component deprecated & stubbed; `/app/console` is the canonical product management view.
 
 ### Deprecated
