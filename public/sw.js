@@ -1,5 +1,5 @@
 /* PWA Service Worker with app-shell, image SWR caching, pruning */
-const VERSION = 'v3';
+const VERSION = 'v4';
 const STATIC_CACHE = `sm-static-${VERSION}`;
 const IMAGE_CACHE = `sm-img-${VERSION}`;
 const ROUTE_CACHE = `sm-routes-${VERSION}`;

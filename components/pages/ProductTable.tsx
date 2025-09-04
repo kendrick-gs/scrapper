@@ -367,52 +367,12 @@ function ProductTableView({
 }
 
 export default function ProductTable() {
-	const { shopUrl, addLog, setResults, isLoading, logs, products, collections, collectionCache, addCollectionToCache, reset } = useScrapeStore();
-	useEffect(() => {
-		if (!isLoading) return;
-		const streamScrape = async () => {
-			try {
-				const response = await fetch('/api/scrape-stream', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ shopUrl }) });
-				if (!response.body) throw new Error('Response body is null');
-				const reader = response.body.getReader();
-				const decoder = new TextDecoder();
-				let buffer = '';
-				while (true) {
-					const { done, value } = await reader.read(); if (done) break;
-					buffer += decoder.decode(value, { stream: true });
-					const lines = buffer.split('\n\n'); buffer = lines.pop() || '';
-					for (const line of lines) {
-						if (line.startsWith('data:')) {
-							const jsonString = line.substring(5);
-							try {
-								const data = JSON.parse(jsonString);
-								if (data.finished) { setResults(data.data); return; }
-								else if (data.message) { addLog(data.message); }
-								else if (data.error) { addLog(`ERROR: ${data.error}`); }
-							} catch (e) { console.error('Failed to parse stream JSON:', jsonString); }
-						}
-					}
-				}
-			} catch (error) {
-				console.error('Failed to stream scrape:', error);
-				addLog(`A critical error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`);
-			}
-		};
-		streamScrape();
-	}, [isLoading, shopUrl, addLog, setResults, reset]);
-
-	if (isLoading) return <LoadingView logs={logs} />;
-	if (!isLoading && products.length > 0) return (
-		<ProductTableView allProducts={products} collections={collections} shopUrl={shopUrl} collectionCache={collectionCache} addCollectionToCache={addCollectionToCache} />
-	);
 	return (
 		<Card className="w-full max-w-2xl mx-auto">
-			<CardHeader>
-				<CardTitle>Scraping Complete</CardTitle>
-			</CardHeader>
+			<CardHeader><CardTitle>Legacy Table Deprecated</CardTitle></CardHeader>
 			<CardContent>
-				<p>No products were found for this store.</p>
-				<Button onClick={reset} className="mt-4">Start Over</Button>
+				<p className="mb-4 text-sm text-muted-foreground">This legacy ProductTable has been replaced by the optimized Console at <code>/app/console</code>. Please navigate there for the latest UI (images column, standardized headers, icon pagination).</p>
+				<Button onClick={() => { window.location.href = '/app/console'; }} variant="outline">Go to Console</Button>
 			</CardContent>
 		</Card>
 	);

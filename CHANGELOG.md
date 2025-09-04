@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Console table pagination controls now use compact icon buttons.
 - Images column now truncates thumbnails to fit and always reserves a slot for the "+N" overflow indicator (prevents vertical expansion; recalculates on resize).
 - Standardized sortable header sizing: centralized constant min widths with runtime enforcement (replaced prior experimental dynamic / intrinsic sizing iterations to eliminate icon/divider overlap & truncation).
+- Service worker version bumped to v4 to invalidate stale cached route shell so new table UI (images column, headers, pagination icons) is guaranteed to load.
 
 ### Fixed
 - (placeholder)
