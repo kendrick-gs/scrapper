@@ -99,3 +99,19 @@ table th {
 th:hover > .resizer {
   @apply bg-primary h-full opacity-100;
 }
+
+/* Full-bleed utility to let specific sections escape the centered content max-width */
+.full-bleed {
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+}
+
+@media (min-width: 768px) {
+  .full-bleed {
+    width: 100vw; /* ensures it still spans including when scrollbar present */
+  }
+}

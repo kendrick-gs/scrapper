@@ -329,7 +329,7 @@ export default function ConsolePage() {
   };
 
   return (
-    <div className="w-full max-w-[1440px] mx-auto px-0 space-y-3 md:space-y-4">
+    <div className="w-full mx-auto px-0 space-y-3 md:space-y-4">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4">
         <div>
           <h2 className="text-2xl font-bold">Console</h2>
