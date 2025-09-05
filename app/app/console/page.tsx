@@ -13,7 +13,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { ArrowUpRight, Eye, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-react';
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import {
   useReactTable,
   getCoreRowModel,
@@ -740,10 +740,16 @@ export default function ConsolePage() {
             <Button size="sm" onClick={() => setListDialogOpen(true)} disabled={selectedCount === 0}>Add To List ({selectedCount})</Button>
             <Button size="sm" variant="outline" onClick={() => setRowSelection({})} disabled={selectedCount === 0}>Clear</Button>
             <Button size="sm" variant={allListedSelected ? 'outline' : 'default'} disabled={allListedSelected} onClick={() => {
-              // Build selection map of every filtered top-level product (ignore variants)
+              // Build selection map of every filtered top-level product + its included variant rows for consistent selection state
               const map: Record<string, boolean> = {};
               for (const p of allTopLevelFiltered) {
-                map[`product-${(p as any).id}`] = true;
+                const pid = (p as any).id;
+                map[`product-${pid}`] = true;
+                if (p.variants && p.variants.length > 1 && p.variants[0].title !== 'Default Title') {
+                  for (const v of p.variants) {
+                    map[`variant-${v.id}`] = true;
+                  }
+                }
               }
               setRowSelection(map);
             }}>Select All Products</Button>
@@ -759,7 +765,10 @@ export default function ConsolePage() {
             {/* List Selection Dialog */}
             <Dialog open={listDialogOpen} onOpenChange={setListDialogOpen}>
               <DialogContent size="medium">
-                <DialogHeader><DialogTitle>Add Selected Products To List</DialogTitle></DialogHeader>
+                <DialogHeader>
+                  <DialogTitle>Add Selected Products To List</DialogTitle>
+                  <DialogDescription>This dialog lets you add all currently selected (filtered) products to a list.</DialogDescription>
+                </DialogHeader>
                 <div className="space-y-3">
                   <div>
                     <div className="text-sm text-muted-foreground mb-1">Choose a list</div>
