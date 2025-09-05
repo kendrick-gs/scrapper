@@ -19,6 +19,7 @@ _Add new changes here (Added/Changed/Fixed/Deprecated) until the next version bu
 ### Fixed
 - (placeholder)
  - Console Select All Products now correctly selects every filtered product across all pages (previously only current page rows).
+ - Force service worker version bump (v6) to ensure updated UI assets load for existing clients.
 
 ### Deprecated
 - (placeholder)

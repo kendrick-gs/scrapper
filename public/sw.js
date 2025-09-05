@@ -1,5 +1,5 @@
 /* PWA Service Worker with app-shell, image SWR caching, pruning */
-const VERSION = 'v5';
+const VERSION = 'v6'; // bumped to invalidate old SW and ensure latest UI changes load
 const STATIC_CACHE = `sm-static-${VERSION}`;
 const IMAGE_CACHE = `sm-img-${VERSION}`;
 const ROUTE_CACHE = `sm-routes-${VERSION}`;
