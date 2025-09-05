@@ -533,10 +533,10 @@ export default function ConsolePage() {
 
 
   const selectedCount = table.getSelectedRowModel().rows.length;
-  // All top-level filtered products, not just current page
-  const allTopLevelFiltered = useMemo(()=> tableData.filter(p => !isVariant(p)), [tableData]);
+  // All filtered top-level products across ALL pages (tableData already filtered pre-pagination)
+  const allTopLevelFiltered = useMemo(() => tableData.filter(p => !isVariant(p)), [tableData]);
   const allListedCount = allTopLevelFiltered.length;
-  const allListedSelected = selectedCount === allListedCount && allListedCount > 0;
+  const allListedSelected = allListedCount > 0 && selectedCount >= allListedCount;
 
   const renderTableBody = () => {
     if (loading) {
@@ -740,14 +740,10 @@ export default function ConsolePage() {
             <Button size="sm" onClick={() => setListDialogOpen(true)} disabled={selectedCount === 0}>Add To List ({selectedCount})</Button>
             <Button size="sm" variant="outline" onClick={() => setRowSelection({})} disabled={selectedCount === 0}>Clear</Button>
             <Button size="sm" variant={allListedSelected ? 'outline' : 'default'} disabled={allListedSelected} onClick={() => {
+              // Build selection map of every filtered top-level product (ignore variants)
               const map: Record<string, boolean> = {};
-              // Use pre-pagination data (all filtered) not just current pageProducts
-              table.getPrePaginationRowModel?.()?.rows
-                ?.filter(r => !isVariant(r.original))
-                .forEach(r => { map[r.id] = true; });
-              // Fallback to tableData if api not present
-              if (Object.keys(map).length === 0) {
-                tableData.filter(p => !isVariant(p)).forEach(p => { map[`product-${(p as any).id}`] = true; });
+              for (const p of allTopLevelFiltered) {
+                map[`product-${(p as any).id}`] = true;
               }
               setRowSelection(map);
             }}>Select All Products</Button>

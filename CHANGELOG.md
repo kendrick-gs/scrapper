@@ -14,11 +14,11 @@ _Add new changes here (Added/Changed/Fixed/Deprecated) until the next version bu
 
 ### Changed
 - Console "Add To List" dialog now uses new medium dialog size variant for balanced width (was nearly full viewport).
-- Console Select All Products selects all filtered products across pages (not just current page).
+- Console Select All Products selects ALL filtered products across pages (not just current page) and disables itself once fully selected.
 
 ### Fixed
 - (placeholder)
-- Console Select All Products logic upgraded to use full pre-pagination filtered dataset (previous version only selected current page rows in some cases).
+- Console Select All Products logic now directly maps all filtered top-level products (tableData) ensuring count & disabled state stay accurate across pagination.
 - Force service worker version bump (v6) to ensure updated UI assets load for existing clients.
 
 ### Deprecated
