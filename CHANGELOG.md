@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+_Add new changes here (Added/Changed/Fixed/Deprecated) until the next version bump. Do not edit past release sections; when releasing, move the accumulated Unreleased entries into a new versioned section and reset placeholders._
+
 ### Added
 - (placeholder)
 
@@ -21,7 +23,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.9.6] - 2025-09-05
 ### Added
-// Restored detailed entries for 1.9.6
 - Global confirmation modal system (`ConfirmProvider` + `useConfirm`) replacing native `window.confirm` for destructive actions.
 - Centralized promise-based confirm UX (title, description, variant styling) with consistent theming.
 - Async confirmation support with loading spinner, custom processing text & inline error feedback (bulk list item removal, store & list deletion, cache purges).
@@ -35,7 +36,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reusable `Textarea` UI component and `components/ui` barrel export index.
 
 ### Changed
-// Restored detailed entries for 1.9.6
 - Lists, List Detail, Stores & Cache maintenance actions now use themed confirmation dialog instead of browser dialogs.
 - Destructive actions show in-dialog progress instead of blocking UI silently.
 - Sortable product table headers invert styling on hover when unsorted for clearer affordance.
@@ -43,11 +43,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - List Detail table styling aligned with Console table density & surface tokens.
 
 ### Fixed
-// Restored detailed entries for 1.9.6
 - Module resolution for new textarea via barrel index.
 
 ### Deprecated
-// Restored detailed entries for 1.9.6
 - (none)
 
 ## [1.9.5] - 2025-09-05
