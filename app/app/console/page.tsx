@@ -433,27 +433,27 @@ export default function ConsolePage() {
 
   return (
     <div className="w-full mx-auto px-0 space-y-3 md:space-y-4">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4">
-        <div className="flex flex-col gap-1">
-          <h2 className="text-2xl font-bold tracking-tight">Console</h2>
-          <div className="text-xs sm:text-sm text-muted-foreground font-medium flex flex-wrap items-center gap-2">
-            <span>{storeFilter === 'all' ? 'All stores' : `Store: ${storeFilter}`}</span>
-            {collectionFilter !== 'all' && <><span className="opacity-40">•</span><span>Collection: {collectionFilter}</span></>}
-            {vendorFilter !== 'all' && <><span className="opacity-40">•</span><span>Vendor: {vendorFilter === EMPTY ? 'No Vendor' : vendorFilter}</span></>}
-            {typeFilter !== 'all' && <><span className="opacity-40">•</span><span>Type: {typeFilter === EMPTY ? 'No Product Type' : typeFilter}</span></>}
-            {globalFilter && <><span className="opacity-40">•</span><span>Search: "{globalFilter}"</span></>}
-            <span className="opacity-40">•</span>
-            <span><span className="font-semibold tabular-nums">{selectedRowCount}</span> visible</span>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm" className="md:hidden" onClick={() => setFiltersOpen(v => !v)}>
+      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between md:gap-4">
+        <h2 className="text-2xl font-bold tracking-tight">Console</h2>
+        <div className="flex flex-wrap items-center justify-between md:justify-end gap-3 md:gap-4">
+          <Button variant="outline" size="sm" className="order-2 md:order-1 md:hidden" onClick={() => setFiltersOpen(v => !v)}>
             {filtersOpen ? 'Hide Filters' : 'Show Filters'}
           </Button>
-          <div className="hidden md:flex items-center text-xs sm:text-sm text-muted-foreground font-medium whitespace-nowrap">
-            <span className="inline-flex items-center gap-1"><span className="text-foreground font-semibold tabular-nums">{totalBaseCount}</span><span>total products</span></span>
+          <div className="text-xs sm:text-sm text-muted-foreground font-medium flex flex-wrap items-center gap-2 order-1 md:order-none">
+            <span className="inline-flex items-center gap-1"><span className="text-foreground font-semibold tabular-nums">{totalBaseCount}</span><span>total</span></span>
+            <span className="opacity-40">•</span>
+            <span><span className="font-semibold tabular-nums">{selectedRowCount}</span> visible</span>
+            {/* Optional extended context on wider screens */}
+            <span className="hidden lg:inline-flex items-center gap-2">
+              <span className="opacity-40">•</span>
+              <span>{storeFilter === 'all' ? 'All stores' : `Store: ${storeFilter}`}</span>
+              {collectionFilter !== 'all' && <><span className="opacity-40">•</span><span>Collection: {collectionFilter}</span></>}
+              {vendorFilter !== 'all' && <><span className="opacity-40">•</span><span>Vendor: {vendorFilter === EMPTY ? 'No Vendor' : vendorFilter}</span></>}
+              {typeFilter !== 'all' && <><span className="opacity-40">•</span><span>Type: {typeFilter === EMPTY ? 'No Product Type' : typeFilter}</span></>}
+              {globalFilter && <><span className="opacity-40">•</span><span>Search: "{globalFilter}"</span></>}
+            </span>
           </div>
-          <Button onClick={handleExport}>Export Products (CSV)</Button>
+          <Button className="order-3" onClick={handleExport}>Export Products (CSV)</Button>
         </div>
       </div>
 
