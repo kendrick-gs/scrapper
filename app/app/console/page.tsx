@@ -435,10 +435,11 @@ export default function ConsolePage() {
     <div className="w-full mx-auto px-0 space-y-3 md:space-y-4">
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between md:gap-4">
         <h2 className="text-2xl font-bold tracking-tight">Console</h2>
-        <div className="flex flex-wrap items-center justify-between md:justify-end gap-3 md:gap-4">
+        <div className="flex items-center gap-3 md:gap-4">
           <Button variant="outline" size="sm" className="md:hidden" onClick={() => setFiltersOpen(v => !v)}>
             {filtersOpen ? 'Hide Filters' : 'Show Filters'}
           </Button>
+          <Button onClick={handleExport}>Export Products (CSV)</Button>
         </div>
       </div>
 
@@ -606,7 +607,6 @@ export default function ConsolePage() {
                 <span className="opacity-40">•</span>
                 <span>Showing <span className="font-semibold tabular-nums">{selectedRowCount}</span></span>
               </div>
-              <Button size="sm" onClick={handleExport}>Export Products (CSV)</Button>
             </div>
 
             {/* List Selection Dialog */}

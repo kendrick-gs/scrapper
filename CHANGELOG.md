@@ -15,7 +15,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Design System: Montserrat font integration, semantic surface tokens (light & dark), JS design tokens module (`lib/designSystem.ts`).
 
 ### Changed
-- Console header: moved total products count to the title row (right-aligned) for quicker at-a-glance context.
 - Console table pagination controls now use compact icon buttons.
 - Images column now truncates thumbnails to fit and always reserves a slot for the "+N" overflow indicator (prevents vertical expansion; recalculates on resize).
 - Standardized sortable header sizing: centralized constant min widths with runtime enforcement (replaced prior experimental dynamic / intrinsic sizing iterations to eliminate icon/divider overlap & truncation).
@@ -45,6 +44,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Select dropdown panels now respect viewport height (previous overflow due to invalid Tailwind var syntax); long lists scroll inside the panel.
+### Changed
+- Export button returned to page header; counts now live only in table toolbar for clearer separation of global vs contextual actions.
 - Table dark mode cells not inverting previously.
 
 ### Deprecated
