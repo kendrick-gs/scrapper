@@ -18,26 +18,21 @@ interface MultiSelectProps {
 export const MultiSelect: React.FC<MultiSelectProps> = ({ label, placeholder='All', values, onChange, options, className, maxVisibleBadges=2 }) => {
   const [open, setOpen] = React.useState(false);
   const containerRef = React.useRef<HTMLDivElement | null>(null);
-  // Close on outside click / touch or Escape key
   React.useEffect(() => {
     if (!open) return;
-    const handlePointer = (e: Event) => {
+    const onClick = (e: Event) => {
       if (!containerRef.current) return;
       if (!containerRef.current.contains(e.target as Node)) setOpen(false);
     };
-    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
-    window.addEventListener('mousedown', handlePointer, true);
-    window.addEventListener('touchstart', handlePointer, true);
-    window.addEventListener('keydown', handleKey, true);
-    return () => {
-      window.removeEventListener('mousedown', handlePointer, true);
-      window.removeEventListener('touchstart', handlePointer, true);
-      window.removeEventListener('keydown', handleKey, true);
-    };
+    window.addEventListener('mousedown', onClick as EventListener);
+    window.addEventListener('touchstart', onClick as EventListener);
+    return () => { window.removeEventListener('mousedown', onClick as EventListener); window.removeEventListener('touchstart', onClick as EventListener); };
   }, [open]);
   const toggle = (val: string) => {
     if (values.includes(val)) onChange(values.filter(v => v !== val));
     else onChange([...values, val]);
+    // Close after each selection interaction for quicker multi picks; OPTION: hold meta to keep open
+    setOpen(false);
   };
   const clearAll = (e: React.MouseEvent) => { e.stopPropagation(); onChange([]); };
   const applied = values.length;

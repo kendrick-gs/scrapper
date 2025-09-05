@@ -226,10 +226,11 @@ export default function ConsolePage() {
     return Array.from(types).sort();
   }, [overrideProducts, allProducts, storeFilters, vendorFilters]);
 
-  // collections list is not used for fetching in Console, just filtering by product fields (noop here).
+  // Collections only make sense when exactly one store is selected; avoid duplicate handles across stores causing key collisions.
   const availableCollections = useMemo(() => {
-    if (!storeFilters.length) return [] as { handle: string; title: string; count: number }[];
-    const cols = allCollections.filter((c: any) => storeFilters.includes(c.__storeHost));
+    if (storeFilters.length !== 1) return [] as { handle: string; title: string; count: number }[];
+    const host = storeFilters[0];
+    const cols = allCollections.filter((c: any) => c.__storeHost === host);
     return cols.map((c: any) => ({ handle: c.handle, title: c.title, count: c.products_count })).sort((a:any,b:any) => a.title.localeCompare(b.title));
   }, [allCollections, storeFilters]);
 

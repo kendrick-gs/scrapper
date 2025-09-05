@@ -30,7 +30,7 @@ _Add new changes here (Added/Changed/Fixed/Deprecated) until the next version bu
  - Add To List now includes ALL filtered products after Select All (previously only first page subset).
  - Console multi-select filters: resolved infinite render loop (Maximum update depth) by preventing redundant store filter normalization & deriving option lists from base dataset instead of already-filtered tableData.
  - Console filter toolbar alignment: removed redundant labels inside multi-select components for consistent vertical centering with single collection select.
- - Multi-select dropdown now closes on outside click / touch and Escape key (previously stayed open after selection causing UX friction).
+ - Console multi-select: fixed duplicate key warnings by scoping collections to a single selected store; dropdown now closes on outside click & after each selection.
 
 ### Deprecated
 - (placeholder)
