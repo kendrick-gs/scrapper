@@ -23,6 +23,7 @@ _Add new changes here (Added/Changed/Fixed/Deprecated) until the next version bu
 - Console Select All Products logic now directly maps all filtered top-level products (tableData) ensuring count & disabled state stay accurate across pagination.
 - Select All now also selects variant rows where applicable & dialog gains description to resolve accessibility warning.
 - Force service worker version bump (v6) to ensure updated UI assets load for existing clients.
+ - Add To List now includes ALL filtered products after Select All (previously only first page subset).
 
 ### Deprecated
 - (placeholder)

@@ -533,21 +533,36 @@ export default function ConsolePage() {
 
 
   // Selected row count (products + variants currently selected in table state)
-  // Count selected unique PRODUCTS (dedupe variants mapping back to parent product)
-  const selectedUniqueProductCount = useMemo(() => {
-    const rows = table.getSelectedRowModel().rows;
-    const map = new Set<string>();
-    for (const r of rows) {
-      const original: any = r.original;
-      if (isVariant(original)) {
-        const parent = r.getParentRow()?.original as any;
-        if (parent) map.add(String(parent.id));
-      } else {
-        map.add(String(original.id));
+  // Map variant id -> parent product id for current filtered dataset
+  const variantToParentId = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const p of tableData) {
+      if (!isVariant(p) && (p as any).variants) {
+        for (const v of (p as any).variants) {
+          m.set(String(v.id), String((p as any).id));
+        }
       }
     }
-    return map.size;
-  }, [table.getSelectedRowModel().rows]);
+    return m;
+  }, [tableData]);
+
+  // Derive selected unique product ids from raw rowSelection (covers off-page selection keys)
+  const selectedProductIds = useMemo(() => {
+    const set = new Set<string>();
+    Object.entries(rowSelection as any).forEach(([key, val]) => {
+      if (!val) return;
+      if (key.startsWith('product-')) {
+        set.add(key.slice('product-'.length));
+      } else if (key.startsWith('variant-')) {
+        const vid = key.slice('variant-'.length);
+        const pid = variantToParentId.get(vid);
+        if (pid) set.add(pid);
+      }
+    });
+    return set;
+  }, [rowSelection, variantToParentId]);
+
+  const selectedUniqueProductCount = selectedProductIds.size;
   const selectedCount = table.getSelectedRowModel().rows.length;
   // All filtered top-level products across ALL pages (tableData already filtered pre-pagination)
   const allTopLevelFiltered = useMemo(() => tableData.filter(p => !isVariant(p)), [tableData]);
@@ -851,12 +866,8 @@ export default function ConsolePage() {
                     setNewListName('');
                   }
                   if (!targetListId) return;
-                  const selectedRows = table.getSelectedRowModel().rows;
-                  const productsToAdd = Array.from(new Map(selectedRows.map(r => {
-                    const p: any = isVariant(r.original) ? (r.getParentRow()?.original) : r.original;
-                    if (!p) return [Math.random().toString(36), {}];
-                    return [`${p.__storeHost || ''}:${p.handle}`, p];
-                  })).values());
+                  // Collect selected products across ALL pages using selectedProductIds instead of visible table rows only
+                  const productsToAdd = allTopLevelFiltered.filter((p: any) => selectedProductIds.has(String(p.id)));
                   await fetch(`/api/lists/${targetListId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ products: productsToAdd }) });
                   setRowSelection({});
                    setListDialogOpen(false);
