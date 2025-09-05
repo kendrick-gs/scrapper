@@ -53,16 +53,18 @@ export function CacheIndicator() {
           <span className="text-muted-foreground">{formatBytes(totalDisplayBytes)}</span>
         </button>
       </DialogTrigger>
-  <DialogContent className="max-w-[1200px] md:max-w-[90vw] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-lg font-semibold tracking-tight flex items-center gap-3">
-            Image Cache
-            <Badge variant="secondary" className="text-[10px] font-medium">{memoryCount + (persistCount||0)} entries</Badge>
-          </DialogTitle>
-        </DialogHeader>
-        <div className="space-y-8">
+      <DialogContent className="max-w-[1200px] w-[92vw] md:w-[88vw] max-h-[90vh] p-0 overflow-hidden flex flex-col">
+        <div className="px-5 pt-5 pb-4 border-b bg-gradient-to-b from-background to-background/70 sticky top-0 z-10">
+          <DialogHeader className="px-0 py-0">
+            <DialogTitle className="text-lg font-semibold tracking-tight flex items-center gap-3">
+              Image Cache
+              <Badge variant="secondary" className="text-[10px] font-medium">{memoryCount + (persistCount||0)} entries</Badge>
+            </DialogTitle>
+          </DialogHeader>
+        </div>
+        <div className="px-5 pb-6 pt-2 overflow-y-auto space-y-7">
           {/* Metric Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 text-sm">
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 text-sm">
             <MetricCard label="Memory" value={memoryCount} sub={formatBytes(totalBytes)} />
             <MetricCard label="Persistent" value={persistCount ?? '…'} sub={persistBytes != null ? formatBytes(persistBytes) : '…'} />
             <MetricCard label="Total Size" value={formatBytes(totalDisplayBytes)} sub="mem + idb" />
@@ -97,26 +99,26 @@ export function CacheIndicator() {
           />
 
           {/* Table */}
-          <div className="border rounded-lg overflow-hidden">
-            <div className="max-h-[50vh] overflow-auto">
-              <table className="w-full text-[11.5px]">
+          <div className="border rounded-xl overflow-hidden bg-surface-1/40 dark:bg-surface-1/10 shadow-sm">
+            <div className="max-h-[44vh] overflow-auto thin-scrollbar">
+              <table className="w-full text-[11.5px] table-fixed">
                 <thead className="bg-secondary/60 dark:bg-secondary/30 sticky top-0">
                   <tr className="text-left">
-                    <Th className="min-w-[320px]">Source</Th>
-                    <Th className="w-24">Size</Th>
-                    <Th className="w-16">Hits</Th>
-                    <Th className="w-40">Last Access</Th>
-                    <Th className="w-10" />
+                    <Th className="w-[54%]">Source</Th>
+                    <Th className="w-[10%]">Size</Th>
+                    <Th className="w-[8%]">Hits</Th>
+                    <Th className="w-[20%]">Last Access</Th>
+                    <Th className="w-[8%]" />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/70 dark:divide-border/40">
                   {visible.map(e => (
                     <tr key={e.src} className="hover:bg-muted/50 transition-colors">
-                      <td className="px-2 py-1.5 max-w-[560px] truncate font-mono" title={e.src}>{e.src}</td>
-                      <td className="px-2 py-1.5 whitespace-nowrap tabular-nums">{formatBytes(e.size)}</td>
-                      <td className="px-2 py-1.5 tabular-nums">{e.hits}</td>
-                      <td className="px-2 py-1.5 whitespace-nowrap tabular-nums">{new Date(e.lastAccess).toLocaleString()}</td>
-                      <td className="px-2 py-1.5">
+                      <td className="px-3 py-2 truncate font-mono text-[11px]" title={e.src}>{e.src}</td>
+                      <td className="px-3 py-2 whitespace-nowrap tabular-nums">{formatBytes(e.size)}</td>
+                      <td className="px-3 py-2 tabular-nums">{e.hits}</td>
+                      <td className="px-3 py-2 whitespace-nowrap tabular-nums">{new Date(e.lastAccess).toLocaleString()}</td>
+                      <td className="px-1 py-1.5 text-right">
                         <Button size="sm" variant="ghost" onClick={() => remove(e.src)} aria-label="Remove" className="h-7 w-7 p-0">✕</Button>
                       </td>
                     </tr>
@@ -156,7 +158,7 @@ function CacheToolbar({ canExpire, onPurgeAll, onPurgeToday, onPurgeExpired }: {
 }) {
   const confirmModal = useConfirm();
   return (
-    <div className="flex flex-wrap items-center gap-2 border rounded-lg p-3 bg-surface-2/30 dark:bg-surface-2/10">
+  <div className="flex flex-wrap items-center gap-2 border rounded-lg p-3 bg-surface-2/40 dark:bg-surface-2/10 shadow-inner">
       <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground mr-2">Maintenance</span>
   <Button size="sm" variant="destructive" onClick={async () => { await confirmModal({ title: 'Purge All Cached Images', description: 'This permanently clears both in-memory and persistent cached image entries. Continue?', confirmText: 'Purge All', processingText: 'Purging…', variant: 'destructive', onConfirm: async ()=>{ onPurgeAll(); } }); }}>Purge All</Button>
   <Button size="sm" variant="outline" onClick={async () => { await confirmModal({ title: 'Purge Today\'s Entries', description: 'Remove entries accessed today from the cache?', confirmText: 'Purge Today', processingText: 'Purging…', onConfirm: async ()=>{ onPurgeToday(); } }); }}>Purge Today</Button>
