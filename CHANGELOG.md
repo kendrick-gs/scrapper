@@ -8,29 +8,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- (placeholder)
+
+### Changed
+- (placeholder)
+
+### Fixed
+- (placeholder)
+
+### Deprecated
+- (placeholder)
+
+## [1.9.4] - 2025-09-05
+### Added
 - Unified store management features: single & bulk add of Shopify stores, sequential batch refresh with aggregated log panel.
 - Lists management enhancements: inline create, edit (rename), delete actions with new PUT & DELETE list API endpoints.
 - Reusable `LogPanel` component shared by batch refresh and future streaming tasks.
 - List rename & delete storage helpers (`renameList`, `deleteList`).
 - Design System: Montserrat font integration, semantic surface tokens (light & dark), JS design tokens module (`lib/designSystem.ts`).
+- Variant option analyzer: multi-option inference, variant image mapping, fallback image resolution via `image.variant_ids`.
+- Variant count badge in Product Title column (excludes single `Default Title` variants).
 
 ### Changed
+- Console table pagination: product-level pagination (variants no longer count toward page size).
 - Console table pagination controls now use compact icon buttons.
-- Images column now truncates thumbnails to fit and always reserves a slot for the "+N" overflow indicator (prevents vertical expansion; recalculates on resize).
-- Standardized sortable header sizing: centralized constant min widths with runtime enforcement (replaced prior experimental dynamic / intrinsic sizing iterations to eliminate icon/divider overlap & truncation).
-- Service worker version bumped to v4 to invalidate stale cached route shell so new table UI (images column, headers, pagination icons) is guaranteed to load.
+- Images column truncates thumbnails to fit and always reserves a slot for the "+N" overflow indicator (prevents vertical expansion; recalculates on resize).
+- Standardized sortable header sizing with enforced min widths (prevents icon/divider overlap & truncation).
+- Auto-scroll refinement ensures last expanded product + deepest variant row stays in view.
 - Stores page redesigned: consistent table styling, stats badges, integrated batch refresh logs, clearer action grouping.
- - Lists page redesigned: consistent styling, inline editing UX and consolidated actions.
- - Modernized Stores & Lists pages with brand green accent, filter inputs, skeleton loading states, compact icon actions & relative time badges.
+- Lists page redesigned: consistent styling, inline editing UX and consolidated actions.
+- Modernized Stores & Lists pages with brand green accent, filter inputs, skeleton loading states, compact icon actions & relative time badges.
 - Console deep-link: opening from a store row now passes ?store=host param and auto-applies store filter.
 - Stores page refinement: removed header icon, unified top border style, modern header layout, separated Products / Collections columns, consistent button styling, single multi-entry add field with automatic multi-URL parsing & dedupe.
 - Lists page refinement: removed header icon avatar, unified header style, improved layout & filter placement, adjusted column widths for clarity.
 - Unified Stores & Lists table header height with Console product table for consistent compact density.
 - Legacy `ProductTable` component deprecated & stubbed; `/app/console` is the canonical product management view.
-*- Global theming overhaul: improved dark mode inversion (all surfaces), refined green brand palette, consistent header/backdrop surfaces, accessible focus ring & scrollbar styling.*
-*- Global theming overhaul: improved dark mode inversion (all surfaces), refined green brand palette, consistent header/backdrop surfaces, accessible focus ring & scrollbar styling. Removed interim User Preference panel (theme & density now auto-respect system + existing toggle).* 
-*- Cache panel redesigned: metric cards, search & bulk remove actions, dark-mode consistent surfaces & accessible table layout.*
-* - Cache panel redesigned: metric cards, responsive full-width modal, simplified (search removed), dark-mode consistent surfaces & accessible table layout.*
+- Global theming overhaul: improved dark mode inversion (all surfaces), refined green brand palette, consistent header/backdrop surfaces, accessible focus ring & scrollbar styling (supersedes interim preference panel; theme & density auto-respect system + toggle).
+- Cache panel redesign: metrics cards, responsive full-width modal, dark-mode consistent surfaces & accessible table layout.
+
+### Fixed
+- Select dropdown panels now respect viewport height (overflow clamp & scrolling).
+- PWA manifest icon loading (added maskable icons & precache) eliminating 192px icon 404.
+- Table header icon / divider overlap from earlier dynamic sizing attempts.
+- Dark mode table cell inversion regression.
+- Corrupted columns definition file fully reconstructed (stability restoration).
+
+### Deprecated
+- Legacy `ProductTable` (will be removed in a future release).
 
 ## [1.9.3] - 2025-09-05
 ### Added
@@ -108,7 +132,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/kendrick-gs/scrapper/compare/v1.9.3...HEAD
+[Unreleased]: https://github.com/kendrick-gs/scrapper/compare/v1.9.4...HEAD
+[1.9.4]: https://github.com/kendrick-gs/scrapper/compare/v1.9.3...v1.9.4
 [1.9.3]: https://github.com/kendrick-gs/scrapper/compare/v1.9.2...v1.9.3
 [1.9.2]: https://github.com/kendrick-gs/scrapper/compare/v1.9.1...v1.9.2
 [1.9.1]: https://github.com/kendrick-gs/scrapper/compare/v1.9.0...v1.9.1
