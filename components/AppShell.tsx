@@ -5,6 +5,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { Button } from '@/components/ui/button';
 import { CacheIndicator } from '@/components/CacheIndicator';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { ServiceWorkerManager } from '@/components/ServiceWorkerManager';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -18,6 +19,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [refresh]);
 
   const pathname = usePathname();
+
+  // SW handled globally by ServiceWorkerManager
 
   const navLink = (href: string, label: string) => {
     const active = pathname?.startsWith(href);
@@ -36,8 +39,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   // Ensure server markup uses light theme classes deterministically; dark class added client-side if needed.
   return (
-    <main className="flex min-h-screen flex-col bg-background text-foreground">
-      <header className="w-full border-b bg-secondary/60 dark:bg-secondary/30 backdrop-blur supports-[backdrop-filter]:bg-secondary/40 sticky top-0 z-40">
+    <main className="flex min-h-screen flex-col bg-background text-foreground" suppressHydrationWarning>
+      <header className="w-full border-b bg-secondary/60 dark:bg-secondary/30 backdrop-blur supports-[backdrop-filter]:bg-secondary/40 sticky top-0 z-40" suppressHydrationWarning>
         <div className="mx-auto w-full max-w-[1440px] px-4 h-14 flex items-center gap-6">
           <div className="flex items-center gap-6 text-sm">
             {navLink('/app/start','Start')}
@@ -81,7 +84,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </div>
-      {error && <div className="text-red-500 text-sm mt-2 px-4">{error}</div>}
+  {error && <div className="text-red-500 text-sm mt-2 px-4">{error}</div>}
+  <ServiceWorkerManager />
     </main>
   );
 }

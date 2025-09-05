@@ -19,6 +19,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Deprecated
 - (placeholder)
 
+## [1.9.5] - 2025-09-05
+### Added
+- Options column show/hide (>> / << header icons) & column visibility state.
+- Central `ServiceWorkerManager` (global SW registration + update toast) replacing per-page logic.
+
+### Changed
+- Variant badge relocated to Handle column; Title cell simplified.
+- Unified sort header icon colors & constant visibility.
+- Dark theme brand/primary green updated to `#6BBB77` (accent/ring tokens adjusted).
+- Service Worker strategy: network-first for build assets; reduced precache scope; consolidated update polling (5m interval).
+
+### Fixed
+- Hydration mismatch risks: stable ThemeToggle markup; layout containers flagged with suppressHydrationWarning.
+- Stale asset issue requiring manual SW unregister (automatic reload on controllerchange now).
+
+### Deprecated
+- Per-page SW registration/update code on Start page (removed).
+
 ## [1.9.4] - 2025-09-05
 ### Added
 - Unified store management features: single & bulk add of Shopify stores, sequential batch refresh with aggregated log panel.

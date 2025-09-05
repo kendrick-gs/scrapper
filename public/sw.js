@@ -1,12 +1,13 @@
 /* PWA Service Worker with app-shell, image SWR caching, pruning */
-const VERSION = 'v4';
+const VERSION = 'v5';
 const STATIC_CACHE = `sm-static-${VERSION}`;
 const IMAGE_CACHE = `sm-img-${VERSION}`;
 const ROUTE_CACHE = `sm-routes-${VERSION}`;
 const IMAGE_CACHE_MAX_ENTRIES = 150; // pruning threshold
 
 // Core shell & routes to precache
-const PRECACHE_ROUTES = [ '/', '/app/start', '/app/console', '/app/lists' ];
+// Keep precache minimal to reduce staleness; HTML is network-first below
+const PRECACHE_ROUTES = [ '/', '/icon-192.png', '/icon-512.png' ];
 
 // Broadcast channel for update notifications
 const bc = ('BroadcastChannel' in self) ? new BroadcastChannel('sw-updates') : null;
@@ -51,12 +52,17 @@ async function handleShopifyImage(request) {
 
 // Immutable build assets: cache-first
 async function handleStaticAsset(request) {
+  // Network-first for build assets to avoid serving stale JS/CSS after deploy
   const cache = await caches.open(STATIC_CACHE);
-  const cached = await cache.match(request);
-  if (cached) return cached;
-  const res = await fetch(request);
-  if (res.ok) cache.put(request, res.clone());
-  return res;
+  try {
+    const res = await fetch(request, { cache: 'no-store' });
+    if (res.ok) cache.put(request, res.clone());
+    return res;
+  } catch {
+    const cached = await cache.match(request);
+    if (cached) return cached;
+    throw new Error('Asset fetch failed and not in cache');
+  }
 }
 
 // HTML documents: network-first with fallback to cached route shell
