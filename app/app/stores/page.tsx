@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef, useMemo } from 'react';
+import { useConfirm } from '@/components/confirm-provider';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +14,7 @@ import { cn } from '@/lib/utils';
 type StoreMeta = { shopUrl: string; lastUpdated?: string; productCount?: number; collectionCount?: number };
 
 export default function StoresPage() {
+  const confirmModal = useConfirm();
   const [stores, setStores] = useState<StoreMeta[]>([]);
   const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -97,18 +99,25 @@ export default function StoresPage() {
   };
 
   const remove = async (shopUrl: string) => {
-    if (!confirm('Remove this store and its cached data?')) return;
-    setLoading(true);
-    try {
-      const res = await fetch('/api/stores', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ shopUrl }) });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to remove');
-      await load();
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
-    }
+    const ok = await confirmModal({
+      title: 'Remove Store',
+      description: 'This will remove the store metadata and any cached product / collection datasets. You can re-add it later.',
+      confirmText: 'Remove Store',
+      processingText: 'Removing…',
+      variant: 'destructive',
+      onConfirm: async () => {
+        setLoading(true);
+        try {
+          const res = await fetch('/api/stores', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ shopUrl }) });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Failed to remove');
+          await load();
+        } finally {
+          setLoading(false);
+        }
+      }
+    });
+    if (!ok) return;
   };
 
   const host = (url: string) => {

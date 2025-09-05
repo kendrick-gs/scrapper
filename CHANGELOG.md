@@ -19,22 +19,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Deprecated
 - (placeholder)
 
-## [1.9.5] - 2025-09-05
+<<<<<<< HEAD
+=======
+## [1.9.6] - 2025-09-05
 ### Added
-- Options column show/hide (>> / << header icons) & column visibility state.
-- Central `ServiceWorkerManager` (global SW registration + update toast) replacing per-page logic.
 
 ### Changed
-- Variant badge relocated to Handle column; Title cell simplified.
-- Unified sort header icon colors & constant visibility.
-- Dark theme brand/primary green updated to `#6BBB77` (accent/ring tokens adjusted).
-- Service Worker strategy: network-first for build assets; reduced precache scope; consolidated update polling (5m interval).
 
 ### Fixed
-- Hydration mismatch risks: stable ThemeToggle markup; layout containers flagged with suppressHydrationWarning.
-- Stale asset issue requiring manual SW unregister (automatic reload on controllerchange now).
 
 ### Deprecated
+
+>>>>>>> 0a9d586 (chore: release 1.9.6 (confirmation system & list detail enhancements))
+## [1.9.5] - 2025-09-05
+- Central `ServiceWorkerManager` (global SW registration + update toast) replacing per-page logic.
+
+- Service Worker strategy: network-first for build assets; reduced precache scope; consolidated update polling (5m interval).
+
+- Stale asset issue requiring manual SW unregister (automatic reload on controllerchange now).
+
 - Per-page SW registration/update code on Start page (removed).
 
 ## [1.9.4] - 2025-09-05
@@ -150,7 +153,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/kendrick-gs/scrapper/compare/v1.9.4...HEAD
+[Unreleased]: https://github.com/kendrick-gs/scrapper/compare/v1.9.6...HEAD
+[1.9.6]: https://github.com/kendrick-gs/scrapper/compare/v1.9.5...v1.9.6
+[1.9.5]: https://github.com/kendrick-gs/scrapper/compare/v1.9.4...v1.9.5
 [1.9.4]: https://github.com/kendrick-gs/scrapper/compare/v1.9.3...v1.9.4
 [1.9.3]: https://github.com/kendrick-gs/scrapper/compare/v1.9.2...v1.9.3
 [1.9.2]: https://github.com/kendrick-gs/scrapper/compare/v1.9.1...v1.9.2

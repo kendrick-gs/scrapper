@@ -17,7 +17,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import {
   useReactTable,
   getCoreRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   getExpandedRowModel,
   flexRender,
@@ -56,6 +55,8 @@ export default function ConsolePage() {
   const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({});
   const [expanded, setExpanded] = useState<ExpandedState>({});
   const [rowSelection, setRowSelection] = useState({});
+  const [columnVisibility, setColumnVisibility] = useState<any>({ option: false });
+  const [showOptions, setShowOptions] = useState(false);
   const [addingList, setAddingList] = useState(false);
   const [newListName, setNewListName] = useState('');
   const [lists, setLists] = useState<{ id: string; name: string }[]>([]);
@@ -63,6 +64,9 @@ export default function ConsolePage() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [listDialogOpen, setListDialogOpen] = useState(false);
   const tableScrollRef = useRef<HTMLDivElement | null>(null);
+  // Track mount to guard against library-triggered state updates before initial commit
+  const mountedRef = useRef(false);
+  useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
 
   useEffect(() => {
     let active = true;
@@ -148,6 +152,7 @@ export default function ConsolePage() {
     fetchLists();
   }, [user?.email]);
 
+  // All filtered (top-level) products prior to product-level pagination
   const tableData = useMemo(() => {
     let products = [...(overrideProducts || allProducts)];
     if (storeFilter !== 'all') products = products.filter(p => p.__storeHost === storeFilter);
@@ -170,6 +175,23 @@ export default function ConsolePage() {
     }
     return products as any[];
   }, [allProducts, overrideProducts, storeFilter, vendorFilter, typeFilter, globalFilter]);
+
+  // Product-level pagination state (only counts top-level products, not variants)
+  const [productPageSize, setProductPageSize] = useState<number>(25);
+  const [productPageIndex, setProductPageIndex] = useState<number>(0);
+
+  // Clamp page index if filters change total count
+  useEffect(() => {
+    const pageCount = Math.max(1, Math.ceil(tableData.length / productPageSize));
+    setProductPageIndex(idx => Math.min(idx, pageCount - 1));
+  }, [tableData.length, productPageSize]);
+
+  const pageCount = useMemo(() => Math.max(1, Math.ceil(tableData.length / productPageSize)), [tableData.length, productPageSize]);
+  const pageProducts = useMemo(() => {
+    const start = productPageIndex * productPageSize;
+    const end = start + productPageSize;
+    return tableData.slice(start, end);
+  }, [tableData, productPageIndex, productPageSize]);
 
   const availableStores = useMemo(() => {
     const hosts = new Set<string>();
@@ -280,33 +302,103 @@ export default function ConsolePage() {
       if (col.accessorKey === 'handle') {
         return {
           ...col,
+            header: (ctx: any) => {
+              const Original = (col as any).header;
+              return (
+                <div className="flex items-center gap-1 w-full pr-1">
+                  <div className="flex-1 min-w-0">
+                    {typeof Original === 'function' ? Original(ctx) : Original}
+                  </div>
+                  {!showOptions && hasVariantOptions && (
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setShowOptions(true); }}
+                      aria-label="Show options column"
+                      className="flex-none text-[10px] font-semibold text-muted-foreground hover:text-foreground px-1.5 py-1 rounded border border-border/50 hover:border-border transition-colors bg-background"
+                    >
+                      {'>>'}
+                    </button>
+                  )}
+                </div>
+              );
+            },
           cell: ({ row }: any) => {
             const isParent = row.getCanExpand();
-            const handle = isVariant(row.original) ? '' : row.original.handle;
+            const product = isVariant(row.original) ? (row.getParentRow()?.original) : row.original;
+            const handle = isVariant(row.original) ? '' : product?.handle;
+            // Variant badge (>=1 meaningful variants excluding Default Title)
+            let badge: React.ReactNode = null;
+            if (!isVariant(row.original) && product) {
+              const variants = product.variants || [];
+              const meaningful = variants.filter((v: any) => v.title !== 'Default Title');
+              const variantCount = meaningful.length; // show even if 1
+              if (variantCount > 0) {
+                badge = (
+                  <span className="ml-2 inline-flex items-center rounded-full bg-gradient-to-r from-emerald-500/15 to-teal-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 px-2 h-5 text-[11px] font-medium tracking-tight shadow-sm backdrop-blur-sm">
+                    {variantCount}<span className="ml-1 hidden sm:inline">vars</span>
+                  </span>
+                );
+              }
+            }
             return (
-              <div style={{ paddingLeft: `${row.depth * 1.5}rem` }} className="flex items-center">
+              <div style={{ paddingLeft: `${row.depth * 1.5}rem` }} className="flex items-center gap-1 w-full">
                 {isParent ? (
-                  <button {...{ onClick: row.getToggleExpandedHandler(), style: { cursor: 'pointer' } }} className="mr-2">
+                  <button onClick={row.getToggleExpandedHandler()} aria-label={row.getIsExpanded() ? 'Collapse row' : 'Expand row'} className="mr-1 cursor-pointer text-xs font-semibold text-muted-foreground hover:text-foreground">
                     {row.getIsExpanded() ? '▼' : '►'}
                   </button>
-                ) : <span className="mr-2 w-4 inline-block"></span>}
+                ) : <span className="mr-1 w-4 inline-block" />}
                 <span className="line-clamp-2 font-medium">{handle}</span>
+                {badge}
               </div>
             );
           }
         } as any;
       }
+      if (col.id === 'option') {
+        return {
+          ...col,
+            header: (ctx: any) => {
+              const Original = (col as any).header;
+              return (
+                <div className="flex items-center gap-1 w-full pr-1">
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setShowOptions(false); }}
+                    aria-label="Hide options column"
+                    className="flex-none text-[10px] font-semibold text-muted-foreground hover:text-foreground px-1.5 py-1 rounded border border-border/50 hover:border-border transition-colors bg-background"
+                  >
+                    {'<<'}
+                  </button>
+                  <div className="flex-1 min-w-0">
+                    {typeof Original === 'function' ? Original(ctx) : Original}
+                  </div>
+                </div>
+              );
+            }
+        } as any;
+      }
       return col;
     });
-  }, [hasVariantOptions]);
+  }, [hasVariantOptions, showOptions]);
+
+  // Sync column visibility with showOptions toggle
+  useEffect(() => {
+    setColumnVisibility((prev: any) => ({ ...prev, option: showOptions }));
+  }, [showOptions]);
 
   const table = useReactTable({
-    data: tableData,
+    // Only current page's products; expansion will add variant sub-rows without affecting product page size
+    data: pageProducts,
     columns: [...selectColumn, ...consoleColumns, ...actionColumn],
-    state: { sorting, columnSizing, expanded, rowSelection },
+    state: { sorting, columnSizing, expanded, rowSelection, columnVisibility },
     onExpandedChange: setExpanded,
     onColumnSizingChange: setColumnSizing,
     onRowSelectionChange: setRowSelection,
+    onColumnVisibilityChange: setColumnVisibility,
+  // We pre-paginate data ourselves (product-level). Disable internal page index auto resets to avoid React 19 pre-mount warning.
+  autoResetPageIndex: false,
+  // Provide a no-op pagination change handler (table may try to emit one during initial hydration).
+  onPaginationChange: () => { /* ignored: pagination handled externally */ },
     columnResizeMode: 'onChange',
     getRowId: (row: any) => isVariant(row) ? `variant-${row.id}` : `product-${row.id}`,
     getSubRows: (originalRow: ProductRowData) => {
@@ -317,14 +409,51 @@ export default function ConsolePage() {
     },
     onSortingChange: setSorting,
     manualFiltering: true,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getExpandedRowModel: getExpandedRowModel(),
+  getCoreRowModel: getCoreRowModel(),
+  getSortedRowModel: getSortedRowModel(),
+  getExpandedRowModel: getExpandedRowModel(),
     enableRowSelection: true,
   });
 
-  const selectedRowCount = tableData.length;
+  // Number of products displayed on current page (top-level only)
+  const visibleProductCount = pageProducts.length;
+  // Counts for filtered (pre-pagination) dataset
+  const filteredProductCount = tableData.length;
+  // (Removed variant count display per request)
+
+  // Auto-scroll: ensure newly revealed variant rows of the last expanded product are visible.
+  useEffect(() => {
+    const container = tableScrollRef.current; if (!container) return;
+    const expandedState: any = table.getState().expanded;
+    const expandedProductIds = Object.keys(expandedState).filter(id => expandedState[id] && id.startsWith('product-'));
+    if (expandedProductIds.length === 0) return;
+    const lastExpandedProductId = expandedProductIds[expandedProductIds.length - 1];
+    // Defer to next frame so sub rows are in the DOM
+    const raf = requestAnimationFrame(() => {
+      // Try to find the deepest last variant row for that product; fallback to parent row
+      const allRows = Array.from(container.querySelectorAll('[data-rowid]')) as HTMLElement[];
+      const parentIndex = allRows.findIndex(r => r.dataset.rowid === lastExpandedProductId);
+      if (parentIndex === -1) return;
+      // Collect subsequent variant rows that belong to this parent (their id starts with variant- and stop when next product row encountered)
+      const variantRows: HTMLElement[] = [];
+      for (let i = parentIndex + 1; i < allRows.length; i++) {
+        const r = allRows[i];
+        const id = r.dataset.rowid || '';
+        if (id.startsWith('product-')) break; // next product reached, stop
+        if (id.startsWith('variant-')) variantRows.push(r);
+      }
+      const targetEl = variantRows.length > 0 ? variantRows[variantRows.length - 1] : allRows[parentIndex];
+      if (!targetEl) return;
+      const targetBottom = targetEl.getBoundingClientRect().bottom;
+      const containerBottom = container.getBoundingClientRect().bottom;
+      if (targetBottom > containerBottom - 12) {
+        // Scroll just enough so the target is near the bottom with a little padding
+        const delta = targetBottom - containerBottom + 48; // 48px padding
+        container.scrollBy({ top: delta, behavior: 'smooth' });
+      }
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [table.getState().expanded, table]);
 
   // Stretch last resizable column after render when there's extra horizontal space
   useLayoutEffect(() => {
@@ -363,14 +492,24 @@ export default function ConsolePage() {
     return allProducts.filter(p => p.__storeHost === storeFilter).length;
   }, [allProducts, storeFilter]);
   const activeFilterChips = useMemo(() => {
+    // Helper counters (counts operate on allProducts, optionally scoped by other higher-order filters when intuitive):
+    const storeCount = (host: string) => allProducts.filter(p => p.__storeHost === host).length;
+    const vendorCount = (vendor: string) => allProducts.filter(p => (storeFilter==='all' || p.__storeHost===storeFilter) && ((p.vendor ?? '').trim() || EMPTY) === vendor).length;
+    const typeCount = (ptype: string) => allProducts.filter(p => (storeFilter==='all' || p.__storeHost===storeFilter) && ((p.product_type ?? '').trim() || EMPTY) === ptype).length;
+    const collectionCount = (handle: string) => {
+      if (handle === 'all') return 0;
+      if (overrideProducts && collectionFilter === handle) return overrideProducts.length; // when loaded
+      // Fallback: unknown until loaded
+      return 0;
+    };
     const chips: { key: string; label: string; onClear: () => void }[] = [];
-    if (storeFilter !== 'all') chips.push({ key: 'store', label: `Store: ${storeFilter}`, onClear: () => setStoreFilter('all') });
-    if (collectionFilter !== 'all') chips.push({ key: 'collection', label: 'Collection: selected', onClear: () => setCollectionFilter('all') });
-    if (vendorFilter !== 'all') chips.push({ key: 'vendor', label: `Vendor: ${vendorFilter === EMPTY ? 'No Vendor' : vendorFilter}`, onClear: () => setVendorFilter('all') });
-    if (typeFilter !== 'all') chips.push({ key: 'type', label: `Type: ${typeFilter === EMPTY ? 'No Product Type' : typeFilter}`, onClear: () => setTypeFilter('all') });
-    if (globalFilter) chips.push({ key: 'q', label: `Search: ${globalFilter}`, onClear: () => setGlobalFilter('') });
+    if (storeFilter !== 'all') chips.push({ key: 'store', label: `Store: ${storeFilter} (${storeCount(storeFilter)})`, onClear: () => setStoreFilter('all') });
+    if (collectionFilter !== 'all') chips.push({ key: 'collection', label: `Collection: ${collectionFilter} (${collectionCount(collectionFilter)})`, onClear: () => setCollectionFilter('all') });
+    if (vendorFilter !== 'all') chips.push({ key: 'vendor', label: `Vendor: ${vendorFilter === EMPTY ? 'No Vendor' : vendorFilter} (${vendorCount(vendorFilter)})`, onClear: () => setVendorFilter('all') });
+    if (typeFilter !== 'all') chips.push({ key: 'type', label: `Type: ${typeFilter === EMPTY ? 'No Product Type' : typeFilter} (${typeCount(typeFilter)})`, onClear: () => setTypeFilter('all') });
+    if (globalFilter) chips.push({ key: 'q', label: `Search: ${globalFilter} (${tableData.length})`, onClear: () => setGlobalFilter('') });
     return chips;
-  }, [storeFilter, collectionFilter, vendorFilter, typeFilter, globalFilter]);
+  }, [storeFilter, collectionFilter, vendorFilter, typeFilter, globalFilter, allProducts, overrideProducts, tableData.length]);
 
   const handleExport = async () => {
     const response = await fetch('/api/export', {
@@ -394,7 +533,7 @@ export default function ConsolePage() {
 
 
   const selectedCount = table.getSelectedRowModel().rows.length;
-  const allListedCount = table.getPrePaginationRowModel().rows.length;
+  const allListedCount = pageProducts.length; // top-level products on current page
   const allListedSelected = selectedCount === allListedCount && allListedCount > 0;
 
   const renderTableBody = () => {
@@ -423,7 +562,7 @@ export default function ConsolePage() {
       return <tbody><tr><td colSpan={table.getAllColumns().length} className="p-6 text-sm text-muted-foreground">No products match current filters.</td></tr></tbody>;
     }
     return <TableBody>{table.getRowModel().rows.map(row => (
-      <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'} className="dark:bg-background">
+      <TableRow key={row.id} data-rowid={row.id} data-state={row.getIsSelected() && 'selected'} className="dark:bg-background">
         {row.getVisibleCells().map(cell => (
           <TableCell key={cell.id} className={cn('p-4 align-middle',
             cell.column.id === 'view' && 'sticky right-0 bg-background z-10',
@@ -600,17 +739,16 @@ export default function ConsolePage() {
             <Button size="sm" variant="outline" onClick={() => setRowSelection({})} disabled={selectedCount === 0}>Clear</Button>
             <Button size="sm" variant={allListedSelected ? 'outline' : 'default'} disabled={allListedSelected} onClick={() => {
               const map: Record<string, boolean> = {};
-              table.getPrePaginationRowModel().rows.forEach(r => { map[r.id] = true; });
+              // Select all current page top-level rows only
+              table.getRowModel().rows.forEach(r => { if (!isVariant(r.original)) map[r.id] = true; });
               setRowSelection(map);
             }}>Select All Products</Button>
             {table.getState().sorting.length > 0 && (
               <Button variant="link" onClick={() => table.resetSorting()}>Reset Sort</Button>
             )}
             <div className="ml-auto flex items-center gap-3 flex-wrap">
-              <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground font-medium">
-                <span>Total <span className="text-foreground font-semibold tabular-nums">{totalBaseCount}</span> products</span>
-                <span className="opacity-40">•</span>
-                <span>Showing <span className="font-semibold tabular-nums">{selectedRowCount}</span></span>
+              <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground font-medium" title={`Filtered products: ${filteredProductCount}`}> 
+                <span><span className="text-foreground font-semibold tabular-nums">{filteredProductCount}</span> of Total <span className="text-foreground font-semibold tabular-nums">{allProducts.length}</span> Products</span>
               </div>
             </div>
 
@@ -710,7 +848,7 @@ export default function ConsolePage() {
                   </TableRow>
                 ) : (
                   table.getRowModel().rows.map(row => (
-                    <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'} className="dark:bg-background border-b last:border-b-0">
+                    <TableRow key={row.id} data-rowid={row.id} data-state={row.getIsSelected() && 'selected'} className="dark:bg-background border-b last:border-b-0">
                       {row.getVisibleCells().map(cell => {
                         const cSize = cell.column.getSize();
                         return (
@@ -742,25 +880,25 @@ export default function ConsolePage() {
       <div className="flex items-center justify-between gap-4 py-4 w-full">
         <div className="flex-1" />
         <div className="flex flex-shrink-0 justify-center items-center gap-2">
-          <Button variant="outline" size="icon" aria-label="First page" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>
+          <Button variant="outline" size="icon" aria-label="First page" onClick={() => setProductPageIndex(0)} disabled={productPageIndex === 0}>
             <ChevronsLeft className="h-4 w-4" />
           </Button>
-          <Button variant="outline" size="icon" aria-label="Previous page" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
+          <Button variant="outline" size="icon" aria-label="Previous page" onClick={() => setProductPageIndex(i => Math.max(0, i - 1))} disabled={productPageIndex === 0}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <div className="px-2 text-sm text-muted-foreground whitespace-nowrap select-none">
-            Page <span className="font-medium">{table.getState().pagination.pageIndex + 1}</span> / {table.getPageCount() || 1}
+            Page <span className="font-medium">{productPageIndex + 1}</span> / {pageCount}
           </div>
-          <Button variant="outline" size="icon" aria-label="Next page" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
+          <Button variant="outline" size="icon" aria-label="Next page" onClick={() => setProductPageIndex(i => Math.min(pageCount - 1, i + 1))} disabled={productPageIndex >= pageCount - 1}>
             <ChevronRight className="h-4 w-4" />
           </Button>
-            <Button variant="outline" size="icon" aria-label="Last page" onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()}>
+            <Button variant="outline" size="icon" aria-label="Last page" onClick={() => setProductPageIndex(pageCount - 1)} disabled={productPageIndex >= pageCount - 1}>
             <ChevronsRight className="h-4 w-4" />
           </Button>
         </div>
         <div className="flex flex-1 justify-end items-center gap-2">
           <span className="text-sm text-muted-foreground">Show</span>
-          <Select value={`${table.getState().pagination.pageSize}`} onValueChange={value => table.setPageSize(Number(value))}>
+          <Select value={`${productPageSize}`} onValueChange={value => { setProductPageSize(Number(value)); setProductPageIndex(0); }}>
             <SelectTrigger className="w-[80px] h-9"><SelectValue placeholder="Page size" /></SelectTrigger>
             <SelectContent>
               {[10,25,50,100].map(size => (<SelectItem key={size} value={`${size}`}>{size}</SelectItem>))}

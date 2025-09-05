@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
+import { useConfirm } from '@/components/confirm-provider';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +11,7 @@ import { Search, Plus, Edit3, Trash2, Save, X, FolderPlus } from 'lucide-react';
 type ListMeta = { id: string; name: string; createdAt: string; items?: any[] };
 
 export default function ListsPage() {
+  const confirmModal = useConfirm();
   const [lists, setLists] = useState<ListMeta[]>([]);
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState('');
@@ -80,14 +82,23 @@ export default function ListsPage() {
   };
 
   const remove = async (id: string) => {
-    if (!confirm('Delete this list?')) return;
-    setLoading(true); setError('');
-    try {
-      const res = await fetch(`/api/lists/${id}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to remove');
-      await load();
-    } catch (e: any) { setError(e.message || 'Failed to remove'); } finally { setLoading(false); }
+    const ok = await confirmModal({
+      title: 'Delete List',
+      description: 'This will permanently remove the list and all its item references. Products themselves are untouched.',
+      confirmText: 'Delete List',
+      processingText: 'Deleting…',
+      variant: 'destructive',
+      onConfirm: async () => {
+        setLoading(true); setError('');
+        try {
+          const res = await fetch(`/api/lists/${id}`, { method: 'DELETE' });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Failed to remove');
+          await load();
+        } finally { setLoading(false); }
+      }
+    });
+    if (!ok) return;
   };
 
   return (

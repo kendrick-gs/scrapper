@@ -1,6 +1,7 @@
 "use client";
 import { useImageCacheStore } from '@/store/useImageCacheStore';
 import { useState, useMemo, useEffect } from 'react';
+import { useConfirm } from './confirm-provider';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -15,6 +16,7 @@ function formatBytes(bytes: number) {
 }
 
 export function CacheIndicator() {
+  const confirmModal = useConfirm();
   const { entries, totalBytes, clear, remove, expiryMinutes, setExpiryMinutes } = useImageCacheStore();
   const memoryCount = Object.keys(entries).length;
   const [open, setOpen] = useState(false);
@@ -152,12 +154,13 @@ function CacheToolbar({ canExpire, onPurgeAll, onPurgeToday, onPurgeExpired }: {
   onPurgeToday: () => void;
   onPurgeExpired: () => void;
 }) {
+  const confirmModal = useConfirm();
   return (
     <div className="flex flex-wrap items-center gap-2 border rounded-lg p-3 bg-surface-2/30 dark:bg-surface-2/10">
       <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground mr-2">Maintenance</span>
-      <Button size="sm" variant="destructive" onClick={() => { if (confirm('Permanently purge all cached images?')) onPurgeAll(); }}>Purge All</Button>
-      <Button size="sm" variant="outline" onClick={() => { if (confirm('Remove entries accessed today?')) onPurgeToday(); }}>Purge Today</Button>
-      <Button size="sm" variant="outline" disabled={!canExpire} onClick={() => { if (canExpire && confirm('Remove all expired entries now?')) onPurgeExpired(); }}>Purge Expired</Button>
+  <Button size="sm" variant="destructive" onClick={async () => { await confirmModal({ title: 'Purge All Cached Images', description: 'This permanently clears both in-memory and persistent cached image entries. Continue?', confirmText: 'Purge All', processingText: 'Purging…', variant: 'destructive', onConfirm: async ()=>{ onPurgeAll(); } }); }}>Purge All</Button>
+  <Button size="sm" variant="outline" onClick={async () => { await confirmModal({ title: 'Purge Today\'s Entries', description: 'Remove entries accessed today from the cache?', confirmText: 'Purge Today', processingText: 'Purging…', onConfirm: async ()=>{ onPurgeToday(); } }); }}>Purge Today</Button>
+  <Button size="sm" variant="outline" disabled={!canExpire} onClick={async () => { if(!canExpire) return; await confirmModal({ title: 'Purge Expired', description: 'Remove all expired entries now based on the configured auto-expire duration?', confirmText: 'Purge Expired', processingText: 'Purging…', onConfirm: async ()=>{ onPurgeExpired(); } }); }}>Purge Expired</Button>
     </div>
   );
 }
