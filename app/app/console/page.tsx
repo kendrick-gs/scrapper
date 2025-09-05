@@ -754,7 +754,7 @@ export default function ConsolePage() {
 
             {/* List Selection Dialog */}
             <Dialog open={listDialogOpen} onOpenChange={setListDialogOpen}>
-              <DialogContent>
+              <DialogContent className="max-w-lg">
                 <DialogHeader><DialogTitle>Add Selected Products To List</DialogTitle></DialogHeader>
                 <div className="space-y-3">
                   <div>
