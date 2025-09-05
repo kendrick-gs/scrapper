@@ -19,18 +19,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Deprecated
 - (placeholder)
 
-<<<<<<< HEAD
-=======
 ## [1.9.6] - 2025-09-05
 ### Added
+// Restored detailed entries for 1.9.6
+- Global confirmation modal system (`ConfirmProvider` + `useConfirm`) replacing native `window.confirm` for destructive actions.
+- Centralized promise-based confirm UX (title, description, variant styling) with consistent theming.
+- Async confirmation support with loading spinner, custom processing text & inline error feedback (bulk list item removal, store & list deletion, cache purges).
+- List Detail page: Preview Mode vs Edit Mode toggle.
+- Inline editable product fields inside lists (Title, Vendor, Type, Price, Compare at Price, Cost per item, SEO Title, SEO Description, Body HTML).
+- New exportable columns: Compare at Price, Cost per item, SEO Title (70 char max), SEO Description (160 char max).
+- Body HTML / Liquid dual-pane modal with live preview.
+- Dirty tracking & bulk save (PATCH) for list item edits.
+- `PATCH /api/lists/:id` endpoint for partial item updates.
+- Storage helper `updateListItems` with variant price/compare/cost merge logic.
+- Reusable `Textarea` UI component and `components/ui` barrel export index.
 
 ### Changed
+// Restored detailed entries for 1.9.6
+- Lists, List Detail, Stores & Cache maintenance actions now use themed confirmation dialog instead of browser dialogs.
+- Destructive actions show in-dialog progress instead of blocking UI silently.
+- Sortable product table headers invert styling on hover when unsorted for clearer affordance.
+- Light theme accent & ring tokens unified to brand accent `#6BBB77` (parity with dark theme change in 1.9.5).
+- List Detail table styling aligned with Console table density & surface tokens.
 
 ### Fixed
+// Restored detailed entries for 1.9.6
+- Module resolution for new textarea via barrel index.
 
 ### Deprecated
+// Restored detailed entries for 1.9.6
+- (none)
 
->>>>>>> 0a9d586 (chore: release 1.9.6 (confirmation system & list detail enhancements))
 ## [1.9.5] - 2025-09-05
 - Central `ServiceWorkerManager` (global SW registration + update toast) replacing per-page logic.
 
