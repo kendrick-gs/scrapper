@@ -31,8 +31,7 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({ label, placeholder='Al
   const toggle = (val: string) => {
     if (values.includes(val)) onChange(values.filter(v => v !== val));
     else onChange([...values, val]);
-    // Close after each selection interaction for quicker multi picks; OPTION: hold meta to keep open
-    setOpen(false);
+    // Keep menu open for multi-selection; user will press Done or click outside to close.
   };
   const clearAll = (e: React.MouseEvent) => { e.stopPropagation(); onChange([]); };
   const applied = values.length;
@@ -56,9 +55,12 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({ label, placeholder='Al
       </button>
       {open && (
         <div className="absolute z-40 mt-1 w-full max-h-72 overflow-auto rounded-md border bg-popover shadow-md p-1 animate-in fade-in">
-          <div className="flex items-center justify-between px-1 py-1">
-            <span className="text-xs text-muted-foreground">{options.length} options</span>
-            {values.length>0 && <button className="text-xs underline" onClick={clearAll}>Reset</button>}
+          <div className="sticky top-0 bg-popover px-1 py-1 border-b grid grid-cols-3 items-center gap-1">
+            <span className="text-[11px] text-muted-foreground">{options.length} options</span>
+            <button type="button" onClick={() => setOpen(false)} className="mx-auto text-[11px] font-medium bg-accent/40 hover:bg-accent/60 rounded px-2 py-0.5 transition">Done</button>
+            {values.length>0 ? (
+              <button type="button" className="text-[11px] underline justify-self-end" onClick={clearAll}>Reset</button>
+            ) : <span />}
           </div>
           {options.map(o => {
             const active = values.includes(o.value);

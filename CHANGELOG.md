@@ -14,6 +14,7 @@ _Add new changes here (Added/Changed/Fixed/Deprecated) until the next version bu
  - Console: Select All progress indicator (chunked selection with visual progress bar for large filtered sets).
  - Console: Multi-select filters for Stores, Vendors, and Product Types (replaces previous single-selects) with individual removable chips.
  - UI: Reusable `MultiSelect` component (accessible keyboard navigation, badges, clear-all) for tag-style filter selection.
+ - MultiSelect: Sticky header with option count, Reset, and Done button for improved multi-selection UX.
 
 ### Changed
 - Console "Add To List" dialog now uses new medium dialog size variant for balanced width (was nearly full viewport).
@@ -21,6 +22,7 @@ _Add new changes here (Added/Changed/Fixed/Deprecated) until the next version bu
  - Add To List button count now reflects unique products (variants collapsed) with tooltip showing row vs product counts when different.
  - Console toolbar: "Clear" button renamed to "Clear Selection" for clarity.
  - Console filter toolbar refactored: supports multiple values per filter, updated clear/reset logic, collection filter disabled until at least one store is selected.
+ - MultiSelect no longer auto-closes after each selection; user confirms via Done button or outside click.
 
 ### Fixed
 - (placeholder)
