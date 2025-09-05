@@ -14,6 +14,7 @@ _Add new changes here (Added/Changed/Fixed/Deprecated) until the next version bu
 
 ### Changed
 - Constrain Console "Add To List" dialog to a medium width (max-w-lg) instead of spanning nearly full viewport.
+ - Console Select All Products now selects all filtered products across pages (not just current page).
 
 ### Fixed
 - (placeholder)

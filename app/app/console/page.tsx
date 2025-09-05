@@ -533,7 +533,9 @@ export default function ConsolePage() {
 
 
   const selectedCount = table.getSelectedRowModel().rows.length;
-  const allListedCount = pageProducts.length; // top-level products on current page
+  // All top-level filtered products, not just current page
+  const allTopLevelFiltered = useMemo(()=> tableData.filter(p => !isVariant(p)), [tableData]);
+  const allListedCount = allTopLevelFiltered.length;
   const allListedSelected = selectedCount === allListedCount && allListedCount > 0;
 
   const renderTableBody = () => {
@@ -739,8 +741,8 @@ export default function ConsolePage() {
             <Button size="sm" variant="outline" onClick={() => setRowSelection({})} disabled={selectedCount === 0}>Clear</Button>
             <Button size="sm" variant={allListedSelected ? 'outline' : 'default'} disabled={allListedSelected} onClick={() => {
               const map: Record<string, boolean> = {};
-              // Select all current page top-level rows only
-              table.getRowModel().rows.forEach(r => { if (!isVariant(r.original)) map[r.id] = true; });
+              // Select all filtered top-level products across all pages
+              table.getPrePaginationRowModel().rows.forEach(r => { if (!isVariant(r.original)) map[r.id] = true; });
               setRowSelection(map);
             }}>Select All Products</Button>
             {table.getState().sorting.length > 0 && (
