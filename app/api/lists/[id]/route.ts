@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromRequest } from '@/lib/auth';
-import { addItemsToList, getList, renameList, deleteList } from '@/lib/storage';
+import { addItemsToList, getList, renameList, deleteList, updateListItems, removeListItems } from '@/lib/storage';
 
 export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   const email = getUserFromRequest(req);
@@ -35,6 +35,30 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
   const email = getUserFromRequest(req);
   if (!email) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const { id } = await context.params;
-  await deleteList(email, id);
-  return NextResponse.json({ ok: true });
+  const url = new URL(req.url);
+  const handlesParam = url.searchParams.get('handles');
+  if (handlesParam) {
+    const handles = handlesParam.split(',').map(h => h.trim()).filter(Boolean);
+    const list = await removeListItems(email, id, handles);
+    if (!list) return NextResponse.json({ error: 'List not found' }, { status: 404 });
+    return NextResponse.json({ ok: true, list });
+  } else {
+    await deleteList(email, id);
+    return NextResponse.json({ ok: true });
+  }
+}
+
+export async function PATCH(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const email = getUserFromRequest(req);
+  if (!email) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const { id } = await context.params;
+  try {
+    const { updates } = await req.json();
+    if (!Array.isArray(updates)) return NextResponse.json({ error: 'updates array required' }, { status: 400 });
+    const list = await updateListItems(email, id, updates);
+    if (!list) return NextResponse.json({ error: 'List not found' }, { status: 404 });
+    return NextResponse.json({ ok: true, list });
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message || 'Failed to update list' }, { status: 500 });
+  }
 }

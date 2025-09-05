@@ -50,17 +50,23 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  size = 'default',
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
-  showCloseButton?: boolean
+  showCloseButton?: boolean,
+  size?: 'default' | 'confirm'
 }) {
+  const sizeClasses = size === 'confirm'
+    ? 'max-w-sm sm:max-w-sm md:max-w-sm lg:max-w-sm p-5'
+    : 'max-w-[1200px] sm:max-w-[95vw] md:max-w-[90vw] lg:max-w-[1200px]';
   return (
     <DialogPortal data-slot="dialog-portal">
       <DialogOverlay />
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[1200px] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-lg duration-200 sm:max-w-[95vw] md:max-w-[90vw] lg:max-w-[1200px]",
+          "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border shadow-lg duration-200",
+          sizeClasses,
           className
         )}
         {...props}

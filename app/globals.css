@@ -11,9 +11,9 @@
     --color-surface-3: 210 14% 95%; /* headers */
     --color-surface-border: 210 16% 90%;
 
-    /* Brand greens */
-    --brand-green: #2E7D4D; /* darker accent */
-    --brand-green-rgb: 46 125 77;
+  /* Brand greens (updated to unified accent #6BBB77) */
+  --brand-green: #6BBB77; /* unified accent */
+  --brand-green-rgb: 107 187 119;
     --brand-green-light: #8FD79C;
     --brand-green-muted: #E3F6E6;
 
@@ -31,19 +31,20 @@
     --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
-    --primary: 148 46% 31%; /* brand green base */
-    --primary-foreground: 144 64% 93%;
+  /* Keep primary for now; accent tokens use unified green. If primary is used for solid backgrounds consider future contrast tuning. */
+  --primary: 148 46% 31%; /* unchanged solid green (darker) */
+  --primary-foreground: 144 64% 93%;
     --secondary: 210 16% 96%;
     --secondary-foreground: 222 47% 11%;
     --muted: 210 14% 95%;
     --muted-foreground: 215 16% 45%;
-    --accent: 148 46% 31%;
+  --accent: 129 37% 58%; /* #6BBB77 */
     --accent-foreground: 0 0% 100%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
     --border: 210 16% 88%;
     --input: 210 16% 92%;
-    --ring: 148 46% 31%;
+  --ring: 129 37% 58%;
     --radius: 0.55rem;
   }
 
@@ -54,25 +55,30 @@
     --color-surface-3: 240 5% 18%;
     --color-surface-border: 240 5% 24%;
 
+  /* Updated dark brand green (#6BBB77) */
+  --brand-green: #6BBB77;
+  --brand-green-rgb: 107 187 119;
+
     --background: 240 6% 8%;
     --foreground: 144 20% 92%;
     --card: 240 5% 13%;
     --card-foreground: 144 20% 92%;
     --popover: 240 5% 13%;
     --popover-foreground: 144 20% 92%;
-    --primary: 148 46% 41%;
-    --primary-foreground: 148 64% 12%;
+  /* Approx HSL for #6BBB77 => 129 37% 58% (tuned slightly for contrast) */
+  --primary: 129 38% 55%;
+  --primary-foreground: 140 64% 12%;
     --secondary: 240 5% 18%;
     --secondary-foreground: 144 20% 92%;
     --muted: 240 5% 18%;
     --muted-foreground: 148 10% 65%;
-    --accent: 148 46% 41%;
-    --accent-foreground: 148 64% 12%;
+  --accent: 129 38% 55%;
+  --accent-foreground: 140 64% 12%;
     --destructive: 0 72% 41%;
     --destructive-foreground: 0 0% 100%;
     --border: 240 5% 24%;
     --input: 240 5% 20%;
-    --ring: 148 46% 41%;
+  --ring: 129 38% 55%;
   }
 }
 

@@ -188,3 +188,47 @@ export async function deleteList(email: string, id: string): Promise<boolean> {
   await writeJSON(LISTS_FILE, next);
   return true;
 }
+
+// Partial update for list items (by id or handle key). Each update: { id? , handle?, data: Partial<Product> }
+export async function updateListItems(email: string, id: string, updates: { id?: string|number; handle?: string; data: any }[]): Promise<UserList | null> {
+  if (!Array.isArray(updates) || updates.length === 0) return getList(email, id);
+  const all = await readJSON<UserList[]>(LISTS_FILE, []);
+  const listIdx = all.findIndex(l => l.email === email && l.id === id);
+  if (listIdx === -1) return null;
+  const list = all[listIdx];
+  const items = list.items;
+  for (const u of updates) {
+    const keyId = u.id;
+    const keyHandle = u.handle;
+    const idx = items.findIndex((it: any) => (keyId != null && (it.id === keyId || it.variant_id === keyId)) || (keyHandle && it.handle === keyHandle));
+    if (idx >= 0) {
+      items[idx] = { ...items[idx], ...u.data, variants: mergeVariantEdits(items[idx].variants, u.data) };
+    }
+  }
+  all[listIdx].items = items;
+  await writeJSON(LISTS_FILE, all);
+  return all[listIdx];
+}
+
+function mergeVariantEdits(existing: any[], patch: any) {
+  if (!Array.isArray(existing) || existing.length === 0) return existing;
+  // If patch contains variant level keys (price/compare/cost) apply to first variant unless variantId specified
+  const variantKeys = ['price','compare_at_price','cost_per_item'];
+  const hasVariant = variantKeys.some(k => Object.prototype.hasOwnProperty.call(patch,k));
+  if (!hasVariant) return existing;
+  const clone = [...existing];
+  clone[0] = { ...clone[0] };
+  for (const k of variantKeys) if (patch[k] !== undefined) clone[0][k] = patch[k];
+  return clone;
+}
+
+export async function removeListItems(email: string, id: string, handles: string[]): Promise<UserList | null> {
+  if (!Array.isArray(handles) || handles.length === 0) return getList(email, id);
+  const all = await readJSON<UserList[]>(LISTS_FILE, []);
+  const listIdx = all.findIndex(l => l.email === email && l.id === id);
+  if (listIdx === -1) return null;
+  const set = new Set(handles);
+  all[listIdx].items = all[listIdx].items.filter((it: any) => !set.has(it.handle));
+  await writeJSON(LISTS_FILE, all);
+  return all[listIdx];
+}
