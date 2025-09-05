@@ -17,6 +17,21 @@ export interface ShopifyVariant {
   sku: string | null;
   created_at: string;
   updated_at: string;
+  option1?: string | null;
+  option2?: string | null;
+  option3?: string | null;
+  featured_image?: {
+    id: number;
+    product_id: number;
+    position: number;
+    created_at: string;
+    updated_at: string;
+    alt: string | null;
+    width: number;
+    height: number;
+    src: string;
+    variant_ids?: number[];
+  } | null;
 }
 
 // Defines the structure for a main product

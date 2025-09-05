@@ -26,6 +26,7 @@ import {
   ExpandedState,
 } from '@tanstack/react-table';
 import { columns as baseColumns, ProductRowData, isVariant } from '@/components/pages/columns';
+import { analyzeProducts } from '@/lib/productAnalyzer';
 
 type StoreMeta = { shopUrl: string; lastUpdated?: string; productCount?: number; collectionCount?: number };
 type MergedProduct = any & { __storeUrl: string; __storeHost: string };
@@ -83,7 +84,7 @@ export default function ConsolePage() {
         const data = await res.json();
         if (!active) return;
         // 3. Diff products (shallow by id + updated_at if present)
-        const newProducts = data.products || [];
+  const newProducts = analyzeProducts(data.products || []);
         if (!cached) {
           setAllProducts(newProducts);
         } else {

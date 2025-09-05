@@ -73,7 +73,14 @@ export const columns: ColumnDef<ProductRowData>[] = [
 		header: ({ column }) => <SortableHeader column={column} title="Product Title" />,
 		size: 350,
 		minSize: 220,
-		cell: ({ row, getValue }) => <span className={cn('line-clamp-2', isVariant(row.original) && 'text-muted-foreground pl-4')}>{getValue() as string}</span>
+		cell: ({ row, getValue }) => {
+			if (isVariant(row.original)) {
+				const v: any = row.original;
+				const opt = v.__optionValue || v.option1 || v.title;
+				return <span className="text-muted-foreground pl-4 line-clamp-2">{opt}</span>;
+			}
+			return <span className="line-clamp-2">{getValue() as string}</span>;
+		}
 	},
 	{
 		accessorKey: 'images',
@@ -81,7 +88,17 @@ export const columns: ColumnDef<ProductRowData>[] = [
 		size: 200,
 		minSize: 150,
 		cell: ({ row }) => {
-			if (isVariant(row.original)) return null;
+			// Variant row: show its own featured image (single thumb) if present
+			if (isVariant(row.original)) {
+				const v: any = row.original;
+				const img = v.featured_image?.src || v.__imageSrc;
+				if (!img) return null;
+				return (
+					<div className="h-12 w-12">
+						<CachedImage src={img} alt={v.title || 'Variant image'} className="h-12 w-12 rounded object-cover" />
+					</div>
+				);
+			}
 			const images = (row.original as ShopifyProduct).images;
 			if (!images || images.length === 0) return null;
 			// Each thumb 48px + 4px gap (approx). We'll measure container width via resize observer hook like pattern.
