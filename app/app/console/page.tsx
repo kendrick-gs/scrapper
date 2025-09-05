@@ -814,12 +814,14 @@ export default function ConsolePage() {
 
             {/* List Selection Dialog */}
             <Dialog open={listDialogOpen} onOpenChange={setListDialogOpen}>
-              <DialogContent size="medium">
-                <DialogHeader>
-                  <DialogTitle>Add Selected Products To List</DialogTitle>
-                  <DialogDescription>This dialog lets you add all currently selected (filtered) products to a list.</DialogDescription>
-                </DialogHeader>
-                <div className="space-y-3">
+              <DialogContent size="panel">
+                <div className="px-5 pt-5 pb-4 border-b bg-gradient-to-b from-background to-background/70 sticky top-0 z-10">
+                  <DialogHeader className="px-0 py-0">
+                    <DialogTitle>Add Selected Products To List</DialogTitle>
+                    <DialogDescription>This dialog lets you add all currently selected (filtered) products to a list.</DialogDescription>
+                  </DialogHeader>
+                </div>
+                <div className="flex-1 overflow-auto p-5 space-y-3">
                   <div>
                     <div className="text-sm text-muted-foreground mb-1">Choose a list</div>
                     <Select value={selectedListId} onValueChange={setSelectedListId}>
@@ -835,7 +837,7 @@ export default function ConsolePage() {
                   {selectedListId === '__new__' && (
                     <Input className="h-10 w-full text-sm placeholder:text-muted-foreground" placeholder="New list name" value={newListName} onChange={e=>setNewListName(e.target.value)} />
                   )}
-                  <div className="flex justify-end gap-2 pt-2">
+                  <div className="flex justify-end gap-2 pt-4">
                     <Button variant="outline" onClick={() => setListDialogOpen(false)}>Cancel</Button>
                     <Button size="sm" disabled={selectedCount === 0 || (!selectedListId || (selectedListId === '__new__' && !newListName.trim()))} onClick={async () => {
                   let targetListId = selectedListId;

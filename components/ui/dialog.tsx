@@ -54,7 +54,7 @@ function DialogContent({
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean,
-  size?: 'default' | 'confirm' | 'medium'
+  size?: 'default' | 'confirm' | 'medium' | 'panel'
 }) {
   let sizeClasses: string;
   switch (size) {
@@ -63,6 +63,10 @@ function DialogContent({
       break;
     case 'medium':
       sizeClasses = 'max-w-lg md:max-w-xl p-6';
+      break;
+    case 'panel':
+      // Standardized wide panel layout (zero outer padding, internal sections manage spacing)
+      sizeClasses = 'max-w-[1200px] w-[92vw] md:w-[88vw] max-h-[90vh] p-0 overflow-hidden flex flex-col';
       break;
     default:
       sizeClasses = 'max-w-[1200px] sm:max-w-[95vw] md:max-w-[90vw] lg:max-w-[1200px]';

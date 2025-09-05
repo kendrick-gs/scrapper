@@ -15,6 +15,7 @@ _Add new changes here (Added/Changed/Fixed/Deprecated) until the next version bu
  - Console: Multi-select filters for Stores, Vendors, and Product Types (replaces previous single-selects) with individual removable chips.
  - UI: Reusable `MultiSelect` component (accessible keyboard navigation, badges, clear-all) for tag-style filter selection.
  - MultiSelect: Sticky header with option count, Reset, and Done button for improved multi-selection UX.
+ - UI: Standardized wide dialog `panel` size variant (sticky header + scrollable body) added to dialog component.
 
 ### Changed
 - Console "Add To List" dialog now uses new medium dialog size variant for balanced width (was nearly full viewport).
@@ -26,6 +27,7 @@ _Add new changes here (Added/Changed/Fixed/Deprecated) until the next version bu
  - MultiSelect trigger now shows single selected value or 'N Selected' instead of inline pills (improves compactness).
  - Console: removed duplicate inline "Clear Filters" button (single consolidated clear control retained below filters).
  - Cache Panel: modern responsive redesign (constrained width, padded scroll region, sticky header, refined table sizing & spacing).
+ - Dialogs: Image viewer, All Images, Body HTML preview, Body HTML editor, Add To List now use unified panel layout (consistent max width, sticky header, internal padding) replacing ad-hoc max-w classes.
 
 ### Fixed
 - (placeholder)

@@ -53,7 +53,7 @@ export function CacheIndicator() {
           <span className="text-muted-foreground">{formatBytes(totalDisplayBytes)}</span>
         </button>
       </DialogTrigger>
-      <DialogContent className="max-w-[1200px] w-[92vw] md:w-[88vw] max-h-[90vh] p-0 overflow-hidden flex flex-col">
+  <DialogContent size="panel">
         <div className="px-5 pt-5 pb-4 border-b bg-gradient-to-b from-background to-background/70 sticky top-0 z-10">
           <DialogHeader className="px-0 py-0">
             <DialogTitle className="text-lg font-semibold tracking-tight flex items-center gap-3">
