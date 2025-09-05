@@ -4,10 +4,12 @@ export interface AnalyzedVariant extends ShopifyVariant {
   __primaryOptionName?: string;
   __optionValue?: string;
   __imageSrc?: string | null;
+  __options?: { name: string; value: string }[];
 }
 
 export interface AnalyzedProduct extends ShopifyProduct {
   __primaryOptionName?: string;
+  __optionNames?: string[];
   variants: AnalyzedVariant[];
 }
 
@@ -27,17 +29,30 @@ export function analyzeProduct(p: ShopifyProduct): AnalyzedProduct {
     const vals = new Set(variants.map((v: any) => (v as any)[k]).filter(Boolean));
     if (vals.size > bestDiversity) { bestDiversity = vals.size; bestKey = k; }
   }
+  const productOptionsMeta: { name: string; position: number; values: string[] }[] = (p as any).options || [];
   const analyzedVariants: AnalyzedVariant[] = variants.map((v: any) => {
     const value = bestKey ? (v as any)[bestKey] : v.title;
     let img = v.featured_image?.src || null;
     if (!img) {
-      // Fallback: find product image whose variant_ids contains this variant id
       const match = productImages.find(im => Array.isArray(im.variant_ids) && im.variant_ids.includes(v.id));
       if (match) img = match.src;
     }
-    return { ...v, __primaryOptionName: bestKey as string, __optionValue: value, __imageSrc: img };
+    // Multi option list
+    const opts: { name: string; value: string }[] = [];
+    for (let i = 1; i <= 3; i++) {
+      const key = `option${i}` as keyof ShopifyVariant;
+      const val = (v as any)[key];
+      if (!val) continue;
+      const meta = productOptionsMeta.find(o => o.position === i);
+      if (!meta) continue;
+      // Only include if diversity > 1 (meaningful) across product variants
+      const diversity = new Set(variants.map((vv: any) => (vv as any)[key]).filter(Boolean)).size;
+      if (diversity > 1) opts.push({ name: meta.name || `Option ${i}`, value: val });
+    }
+    return { ...v, __primaryOptionName: bestKey as string, __optionValue: value, __imageSrc: img, __options: opts };
   });
-  return { ...p, variants: analyzedVariants, __primaryOptionName: bestKey as string };
+  const optionNames = Array.from(new Set(analyzedVariants.flatMap(v => (v.__options||[]).map(o => o.name))));
+  return { ...p, variants: analyzedVariants, __primaryOptionName: bestKey as string, __optionNames: optionNames };
 }
 
 export function analyzeProducts(products: ShopifyProduct[]): AnalyzedProduct[] {

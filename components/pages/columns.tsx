@@ -57,13 +57,13 @@ export const columns: ColumnDef<ProductRowData>[] = [
 		cell: ({ row }) => {
 			if (isVariant(row.original)) {
 				const v: any = row.original;
-				const name = v.__primaryOptionName || 'Option';
-				const val = v.__optionValue || v.option1 || v.title;
-				return <span className="pl-4 text-muted-foreground line-clamp-2">{name}: {val}</span>;
+				const opts = v.__options && v.__options.length ? v.__options : [{ name: v.__primaryOptionName || 'Option', value: v.__optionValue || v.option1 || v.title }];
+				const text = opts.map((o: any) => `${o.name}: ${o.value}`).join(' • ');
+				return <span className="pl-4 text-muted-foreground line-clamp-2" title={text}>{text}</span>;
 			}
 			// Product row: show primary option name (if any) only (no values)
 			const pv: any = row.original;
-			return pv.__primaryOptionName ? <span className="font-medium">{pv.__primaryOptionName}</span> : '';
+			return pv.__optionNames?.length ? <span className="font-medium">{pv.__optionNames.join(' / ')}</span> : '';
 		}
 	},
 	{

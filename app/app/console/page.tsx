@@ -41,6 +41,7 @@ export default function ConsolePage() {
   const [error, setError] = useState('');
   const [stores, setStores] = useState<StoreMeta[]>([]);
   const [allProducts, setAllProducts] = useState<MergedProduct[]>([]);
+  const [hasVariantOptions, setHasVariantOptions] = useState(false);
   const [allCollections, setAllCollections] = useState<any[]>([]);
   const [overrideProducts, setOverrideProducts] = useState<MergedProduct[] | null>(null);
   const [isCollectionLoading, setCollectionLoading] = useState(false);
@@ -85,6 +86,8 @@ export default function ConsolePage() {
         if (!active) return;
         // 3. Diff products (shallow by id + updated_at if present)
   const newProducts = analyzeProducts(data.products || []);
+  const optionPresence = newProducts.some(p => p.variants?.some((v: any) => (v.__options && v.__options.length > 0)));
+  setHasVariantOptions(optionPresence);
         if (!cached) {
           setAllProducts(newProducts);
         } else {
@@ -272,7 +275,8 @@ export default function ConsolePage() {
 
   // Override the handle cell to show empty on variant rows (nested)
   const consoleColumns = useMemo(() => {
-    return baseColumns.map((col: any) => {
+    const cols = hasVariantOptions ? baseColumns : baseColumns.filter((c: any) => c.id !== 'option');
+    return cols.map((col: any) => {
       if (col.accessorKey === 'handle') {
         return {
           ...col,
@@ -294,7 +298,7 @@ export default function ConsolePage() {
       }
       return col;
     });
-  }, []);
+  }, [hasVariantOptions]);
 
   const table = useReactTable({
     data: tableData,
