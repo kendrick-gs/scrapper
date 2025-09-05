@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { getConsoleCache, setConsoleCache, buildProductIndex } from '@/lib/idbCache';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MultiSelect } from '@/components/ui/multi-select';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -45,9 +46,9 @@ export default function ConsolePage() {
   const [overrideProducts, setOverrideProducts] = useState<MergedProduct[] | null>(null);
   const [isCollectionLoading, setCollectionLoading] = useState(false);
 
-  const [storeFilter, setStoreFilter] = useState<string>(initialStoreParam);
-  const [vendorFilter, setVendorFilter] = useState<string>('all');
-  const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [storeFilters, setStoreFilters] = useState<string[]>(initialStoreParam === 'all' ? [] : [initialStoreParam]);
+  const [vendorFilters, setVendorFilters] = useState<string[]>([]);
+  const [typeFilters, setTypeFilters] = useState<string[]>([]);
   const [collectionFilter, setCollectionFilter] = useState<string>('all');
   const [globalFilter, setGlobalFilter] = useState('');
 
@@ -155,9 +156,9 @@ export default function ConsolePage() {
   // All filtered (top-level) products prior to product-level pagination
   const tableData = useMemo(() => {
     let products = [...(overrideProducts || allProducts)];
-    if (storeFilter !== 'all') products = products.filter(p => p.__storeHost === storeFilter);
-    if (vendorFilter !== 'all') products = products.filter(p => (((p.vendor ?? '').trim() || EMPTY)) === vendorFilter);
-    if (typeFilter !== 'all') products = products.filter(p => (((p.product_type ?? '').trim() || EMPTY)) === typeFilter);
+    if (storeFilters.length) products = products.filter(p => storeFilters.includes(p.__storeHost));
+    if (vendorFilters.length) products = products.filter(p => vendorFilters.includes(((p.vendor ?? '').trim() || EMPTY)));
+    if (typeFilters.length) products = products.filter(p => typeFilters.includes(((p.product_type ?? '').trim() || EMPTY)));
     if (globalFilter) {
       const f = globalFilter.toLowerCase();
       products = products.filter(product => {
@@ -174,7 +175,7 @@ export default function ConsolePage() {
       });
     }
     return products as any[];
-  }, [allProducts, overrideProducts, storeFilter, vendorFilter, typeFilter, globalFilter]);
+  }, [allProducts, overrideProducts, storeFilters, vendorFilters, typeFilters, globalFilter]);
 
   // Product-level pagination state (only counts top-level products, not variants)
   const [productPageSize, setProductPageSize] = useState<number>(25);
@@ -202,11 +203,9 @@ export default function ConsolePage() {
   // Validate deep link store param after stores loaded & hosts computed
   useEffect(() => {
     if (!stores.length) return;
-    if (storeFilter === 'all') return;
-    if (!availableStores.includes(storeFilter)) {
-      setStoreFilter('all');
-    }
-  }, [stores, availableStores, storeFilter]);
+    if (!storeFilters.length) return;
+    setStoreFilters(prev => prev.filter(s => availableStores.includes(s)));
+  }, [stores, availableStores, storeFilters]);
 
   const availableVendors = useMemo(() => {
     const vendorCounts: { [key: string]: number } = {};
@@ -225,23 +224,22 @@ export default function ConsolePage() {
 
   // collections list is not used for fetching in Console, just filtering by product fields (noop here).
   const availableCollections = useMemo(() => {
-    if (storeFilter === 'all') return [] as { handle: string; title: string; count: number }[];
-    const cols = allCollections.filter((c: any) => c.__storeHost === storeFilter);
+    if (!storeFilters.length) return [] as { handle: string; title: string; count: number }[];
+    const cols = allCollections.filter((c: any) => storeFilters.includes(c.__storeHost));
     return cols.map((c: any) => ({ handle: c.handle, title: c.title, count: c.products_count })).sort((a:any,b:any) => a.title.localeCompare(b.title));
-  }, [allCollections, storeFilter]);
+  }, [allCollections, storeFilters]);
 
   useEffect(() => {
-    // Reset collection filter when store changes
     setCollectionFilter('all');
     setOverrideProducts(null);
-  }, [storeFilter]);
+  }, [storeFilters]);
 
   const handleCollectionSelect = useCallback(async (handle: string) => {
     setCollectionFilter(handle);
     setOverrideProducts(null);
-    if (handle === 'all' || storeFilter === 'all') return;
+    if (handle === 'all' || !storeFilters.length) return;
     const store = stores.find(s => {
-      try { return new URL(s.shopUrl).hostname === storeFilter; } catch { return s.shopUrl === storeFilter; }
+      try { return new URL(s.shopUrl).hostname === storeFilters[0]; } catch { return s.shopUrl === storeFilters[0]; }
     });
     if (!store) return;
     setCollectionLoading(true);
@@ -249,13 +247,13 @@ export default function ConsolePage() {
       const res = await fetch('/api/collection-products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ shopUrl: store.shopUrl, collectionHandle: handle }) });
       const data = await res.json();
       if (res.ok && Array.isArray(data.products)) {
-        const annotated = data.products.map((p: any) => ({ ...p, __storeUrl: store.shopUrl, __storeHost: storeFilter }));
+        const annotated = data.products.map((p: any) => ({ ...p, __storeUrl: store.shopUrl, __storeHost: storeFilters[0] }));
         setOverrideProducts(annotated);
       }
     } finally {
       setCollectionLoading(false);
     }
-  }, [storeFilter, stores]);
+  }, [storeFilters, stores]);
 
   const selectColumn = useMemo(() => ([{
     id: 'select',
@@ -488,28 +486,26 @@ export default function ConsolePage() {
     }
   }, [tableData, columnSizing, table]);
   const totalBaseCount = useMemo(() => {
-    if (storeFilter === 'all') return allProducts.length;
-    return allProducts.filter(p => p.__storeHost === storeFilter).length;
-  }, [allProducts, storeFilter]);
+    if (!storeFilters.length) return allProducts.length;
+    return allProducts.filter(p => storeFilters.includes(p.__storeHost)).length;
+  }, [allProducts, storeFilters]);
   const activeFilterChips = useMemo(() => {
-    // Helper counters (counts operate on allProducts, optionally scoped by other higher-order filters when intuitive):
     const storeCount = (host: string) => allProducts.filter(p => p.__storeHost === host).length;
-    const vendorCount = (vendor: string) => allProducts.filter(p => (storeFilter==='all' || p.__storeHost===storeFilter) && ((p.vendor ?? '').trim() || EMPTY) === vendor).length;
-    const typeCount = (ptype: string) => allProducts.filter(p => (storeFilter==='all' || p.__storeHost===storeFilter) && ((p.product_type ?? '').trim() || EMPTY) === ptype).length;
+    const vendorCount = (vendor: string) => allProducts.filter(p => (!storeFilters.length || storeFilters.includes(p.__storeHost)) && ((p.vendor ?? '').trim() || EMPTY) === vendor).length;
+    const typeCount = (ptype: string) => allProducts.filter(p => (!storeFilters.length || storeFilters.includes(p.__storeHost)) && ((p.product_type ?? '').trim() || EMPTY) === ptype).length;
     const collectionCount = (handle: string) => {
       if (handle === 'all') return 0;
-      if (overrideProducts && collectionFilter === handle) return overrideProducts.length; // when loaded
-      // Fallback: unknown until loaded
+      if (overrideProducts && collectionFilter === handle) return overrideProducts.length;
       return 0;
     };
     const chips: { key: string; label: string; onClear: () => void }[] = [];
-    if (storeFilter !== 'all') chips.push({ key: 'store', label: `Store: ${storeFilter} (${storeCount(storeFilter)})`, onClear: () => setStoreFilter('all') });
+    if (storeFilters.length) storeFilters.forEach(sf => chips.push({ key: `store-${sf}`, label: `Store: ${sf} (${storeCount(sf)})`, onClear: () => setStoreFilters(prev => prev.filter(v => v !== sf)) }));
     if (collectionFilter !== 'all') chips.push({ key: 'collection', label: `Collection: ${collectionFilter} (${collectionCount(collectionFilter)})`, onClear: () => setCollectionFilter('all') });
-    if (vendorFilter !== 'all') chips.push({ key: 'vendor', label: `Vendor: ${vendorFilter === EMPTY ? 'No Vendor' : vendorFilter} (${vendorCount(vendorFilter)})`, onClear: () => setVendorFilter('all') });
-    if (typeFilter !== 'all') chips.push({ key: 'type', label: `Type: ${typeFilter === EMPTY ? 'No Product Type' : typeFilter} (${typeCount(typeFilter)})`, onClear: () => setTypeFilter('all') });
+    if (vendorFilters.length) vendorFilters.forEach(vf => chips.push({ key: `vendor-${vf}`, label: `Vendor: ${vf === EMPTY ? 'No Vendor' : vf} (${vendorCount(vf)})`, onClear: () => setVendorFilters(prev => prev.filter(v => v !== vf)) }));
+    if (typeFilters.length) typeFilters.forEach(tf => chips.push({ key: `type-${tf}`, label: `Type: ${tf === EMPTY ? 'No Product Type' : tf} (${typeCount(tf)})`, onClear: () => setTypeFilters(prev => prev.filter(v => v !== tf)) }));
     if (globalFilter) chips.push({ key: 'q', label: `Search: ${globalFilter} (${tableData.length})`, onClear: () => setGlobalFilter('') });
     return chips;
-  }, [storeFilter, collectionFilter, vendorFilter, typeFilter, globalFilter, allProducts, overrideProducts, tableData.length]);
+  }, [storeFilters, collectionFilter, vendorFilters, typeFilters, globalFilter, allProducts, overrideProducts, tableData.length]);
 
   const handleExport = async () => {
     const response = await fetch('/api/export', {
@@ -639,34 +635,34 @@ export default function ConsolePage() {
       <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
         <CollapsibleContent className="md:hidden space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Select value={storeFilter} onValueChange={setStoreFilter}>
-              <SelectTrigger className="h-10 w-full"><SelectValue placeholder="All Stores" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Stores</SelectItem>
-                {availableStores.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Select value={collectionFilter} onValueChange={handleCollectionSelect} disabled={storeFilter === 'all'}>
+            <MultiSelect
+              label="Stores"
+              values={storeFilters}
+              options={availableStores.map(s => ({ value: s, label: s }))}
+              placeholder="All Stores"
+              onChange={vals => { setStoreFilters(vals); setCollectionFilter('all'); }}
+            />
+            <Select value={collectionFilter} onValueChange={handleCollectionSelect} disabled={!storeFilters.length}>
               <SelectTrigger className="h-10 w-full"><SelectValue placeholder="All Collections" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Collections</SelectItem>
                 {availableCollections.map(c => (<SelectItem key={c.handle} value={c.handle}>{c.title} ({c.count})</SelectItem>))}
               </SelectContent>
             </Select>
-            <Select value={vendorFilter} onValueChange={setVendorFilter}>
-              <SelectTrigger className="h-10 w-full"><SelectValue placeholder="All Vendors" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Vendors</SelectItem>
-                {availableVendors.map(v => (<SelectItem key={v.name} value={v.name}>{v.name === EMPTY ? 'No Vendor' : v.name} ({v.count})</SelectItem>))}
-              </SelectContent>
-            </Select>
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="h-10 w-full"><SelectValue placeholder="All Product Types" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Product Types</SelectItem>
-                {availableProductTypes.map(t => (<SelectItem key={t} value={t}>{t === EMPTY ? 'No Product Type' : t}</SelectItem>))}
-              </SelectContent>
-            </Select>
+            <MultiSelect
+              label="Vendors"
+              values={vendorFilters}
+              options={availableVendors.map(v => ({ value: v.name, label: v.name === EMPTY ? 'No Vendor' : v.name }))}
+              placeholder="All Vendors"
+              onChange={vals => setVendorFilters(vals)}
+            />
+            <MultiSelect
+              label="Product Types"
+              values={typeFilters}
+              options={availableProductTypes.map(t => ({ value: t, label: t === EMPTY ? 'No Product Type' : t }))}
+              placeholder="All Product Types"
+              onChange={vals => setTypeFilters(vals)}
+            />
           </div>
           <div className="relative">
             <input className={cn('h-10 px-3 border rounded-md w-full text-sm placeholder:text-muted-foreground', globalFilter && 'border-2 border-brand-green')} placeholder="Search products..." value={globalFilter} onChange={e => setGlobalFilter(e.target.value)} />
@@ -680,7 +676,7 @@ export default function ConsolePage() {
                 <button onClick={chip.onClear} aria-label={`Clear ${chip.key}`}>×</button>
               </Badge>
             ))}
-              <Button variant="link" onClick={() => { setStoreFilter('all'); setVendorFilter('all'); setTypeFilter('all'); setCollectionFilter('all'); setGlobalFilter(''); setExpanded({}); }}>Clear All</Button>
+              <Button variant="link" onClick={() => { setStoreFilters([]); setVendorFilters([]); setTypeFilters([]); setCollectionFilter('all'); setGlobalFilter(''); setExpanded({}); }}>Clear All</Button>
               {table.getState().sorting.length > 0 && (<Button variant="link" onClick={() => table.resetSorting()}>Reset Sort</Button>)}
             </div>
           )}
@@ -689,21 +685,19 @@ export default function ConsolePage() {
 
       {/* Desktop filter toolbar above the table */}
       <div className="hidden md:flex items-center gap-3 flex-wrap">
-        <div style={{ width: '240px' }}>
-          <Select value={storeFilter} onValueChange={setStoreFilter}>
-            <SelectTrigger className={cn('h-10 w-full', storeFilter !== 'all' && 'filter-select border-2 border-brand-green')}>
-              <SelectValue placeholder="All Stores" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Stores</SelectItem>
-              {availableStores.map(h => (<SelectItem key={h} value={h}>{h}</SelectItem>))}
-            </SelectContent>
-          </Select>
+        <div style={{ width: '260px' }}>
+          <MultiSelect
+            label="Stores"
+            values={storeFilters}
+            options={availableStores.map(s => ({ value: s, label: s }))}
+            placeholder="All Stores"
+            onChange={vals => { setStoreFilters(vals); setCollectionFilter('all'); }}
+          />
         </div>
 
         <div className="h-10 w-2 flex-shrink-0 bg-brand-green-light rounded-full" />
         <div style={{ width: '240px' }}>
-          <Select value={collectionFilter} onValueChange={handleCollectionSelect} disabled={storeFilter === 'all'}>
+          <Select value={collectionFilter} onValueChange={handleCollectionSelect} disabled={!storeFilters.length}>
             <SelectTrigger className={cn('h-10 w-full', collectionFilter !== 'all' && 'filter-select border-2 border-brand-green')}>
               <SelectValue placeholder="All Collections" />
             </SelectTrigger>
@@ -718,36 +712,28 @@ export default function ConsolePage() {
 
         <div className="h-10 w-2 flex-shrink-0 bg-brand-green-light rounded-full" />
 
-        <div style={{ width: '200px' }}>
-          <Select value={vendorFilter} onValueChange={setVendorFilter}>
-            <SelectTrigger className={cn('h-10 w-full', vendorFilter !== 'all' && 'filter-select border-2 border-brand-green')}>
-              <SelectValue placeholder="All Vendors" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Vendors</SelectItem>
-              {availableVendors.map(v => (
-                <SelectItem key={v.name} value={v.name}>{v.name === EMPTY ? 'No Vendor' : v.name} ({v.count})</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div style={{ width: '220px' }}>
+          <MultiSelect
+            label="Vendors"
+            values={vendorFilters}
+            options={availableVendors.map(v => ({ value: v.name, label: v.name === EMPTY ? 'No Vendor' : v.name + ` (${v.count})` }))}
+            placeholder="All Vendors"
+            onChange={vals => setVendorFilters(vals)}
+          />
         </div>
 
-        <div style={{ width: '200px' }}>
-          <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className={cn('h-10 w-full', typeFilter !== 'all' && 'filter-select border-2 border-brand-green')}>
-              <SelectValue placeholder="All Product Types" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Product Types</SelectItem>
-              {availableProductTypes.map(t => (
-                <SelectItem key={t} value={t}>{t === EMPTY ? 'No Product Type' : t}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div style={{ width: '220px' }}>
+          <MultiSelect
+            label="Product Types"
+            values={typeFilters}
+            options={availableProductTypes.map(t => ({ value: t, label: t === EMPTY ? 'No Product Type' : t }))}
+            placeholder="All Product Types"
+            onChange={vals => setTypeFilters(vals)}
+          />
         </div>
 
-          {(storeFilter !== 'all' || vendorFilter !== 'all' || typeFilter !== 'all' || collectionFilter !== 'all' || globalFilter) && (
-            <Button variant="link" onClick={() => { setStoreFilter('all'); setVendorFilter('all'); setTypeFilter('all'); setCollectionFilter('all'); setGlobalFilter(''); setExpanded({}); }}>Clear Filters</Button>
+          {(storeFilters.length || vendorFilters.length || typeFilters.length || collectionFilter !== 'all' || globalFilter) && (
+            <Button variant="link" onClick={() => { setStoreFilters([]); setVendorFilters([]); setTypeFilters([]); setCollectionFilter('all'); setGlobalFilter(''); setExpanded({}); }}>Clear Filters</Button>
           )}
       </div>
         {/* Desktop active filter pills */}
@@ -759,7 +745,7 @@ export default function ConsolePage() {
                 <button className="text-xs rounded-sm hover:bg-muted px-1" onClick={chip.onClear} aria-label={`Clear ${chip.key}`}>×</button>
               </Badge>
             ))}
-            <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => { setStoreFilter('all'); setVendorFilter('all'); setTypeFilter('all'); setCollectionFilter('all'); setGlobalFilter(''); setExpanded({}); }}>Clear All</Button>
+            <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => { setStoreFilters([]); setVendorFilters([]); setTypeFilters([]); setCollectionFilter('all'); setGlobalFilter(''); setExpanded({}); }}>Clear All</Button>
           </div>
         )}
 
