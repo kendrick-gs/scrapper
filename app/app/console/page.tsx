@@ -437,8 +437,6 @@ export default function ConsolePage() {
         <div className="flex flex-col gap-1">
           <h2 className="text-2xl font-bold tracking-tight">Console</h2>
           <div className="text-xs sm:text-sm text-muted-foreground font-medium flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1"><span className="text-foreground font-semibold tabular-nums">{totalBaseCount}</span><span>total products</span></span>
-            <span className="opacity-40">•</span>
             <span>{storeFilter === 'all' ? 'All stores' : `Store: ${storeFilter}`}</span>
             {collectionFilter !== 'all' && <><span className="opacity-40">•</span><span>Collection: {collectionFilter}</span></>}
             {vendorFilter !== 'all' && <><span className="opacity-40">•</span><span>Vendor: {vendorFilter === EMPTY ? 'No Vendor' : vendorFilter}</span></>}
@@ -452,6 +450,9 @@ export default function ConsolePage() {
           <Button variant="outline" size="sm" className="md:hidden" onClick={() => setFiltersOpen(v => !v)}>
             {filtersOpen ? 'Hide Filters' : 'Show Filters'}
           </Button>
+          <div className="hidden md:flex items-center text-xs sm:text-sm text-muted-foreground font-medium whitespace-nowrap">
+            <span className="inline-flex items-center gap-1"><span className="text-foreground font-semibold tabular-nums">{totalBaseCount}</span><span>total products</span></span>
+          </div>
           <Button onClick={handleExport}>Export Products (CSV)</Button>
         </div>
       </div>

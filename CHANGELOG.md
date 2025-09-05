@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Design System: Montserrat font integration, semantic surface tokens (light & dark), JS design tokens module (`lib/designSystem.ts`).
 
 ### Changed
+- Console header: moved total products count to the title row (right-aligned) for quicker at-a-glance context.
 - Console table pagination controls now use compact icon buttons.
 - Images column now truncates thumbnails to fit and always reserves a slot for the "+N" overflow indicator (prevents vertical expansion; recalculates on resize).
 - Standardized sortable header sizing: centralized constant min widths with runtime enforcement (replaced prior experimental dynamic / intrinsic sizing iterations to eliminate icon/divider overlap & truncation).
