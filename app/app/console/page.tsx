@@ -741,8 +741,9 @@ export default function ConsolePage() {
             <Button size="sm" variant="outline" onClick={() => setRowSelection({})} disabled={selectedCount === 0}>Clear</Button>
             <Button size="sm" variant={allListedSelected ? 'outline' : 'default'} disabled={allListedSelected} onClick={() => {
               const map: Record<string, boolean> = {};
-              // Select all filtered top-level products across all pages
-              table.getPrePaginationRowModel().rows.forEach(r => { if (!isVariant(r.original)) map[r.id] = true; });
+              // Select all filtered top-level products (tableData) regardless of pagination
+              const topLevel = table.getCoreRowModel().rows.filter(r => !isVariant(r.original));
+              topLevel.forEach(r => { map[r.id] = true; });
               setRowSelection(map);
             }}>Select All Products</Button>
             {table.getState().sorting.length > 0 && (
