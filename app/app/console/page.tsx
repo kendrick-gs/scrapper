@@ -741,9 +741,14 @@ export default function ConsolePage() {
             <Button size="sm" variant="outline" onClick={() => setRowSelection({})} disabled={selectedCount === 0}>Clear</Button>
             <Button size="sm" variant={allListedSelected ? 'outline' : 'default'} disabled={allListedSelected} onClick={() => {
               const map: Record<string, boolean> = {};
-              // Select all filtered top-level products (tableData) regardless of pagination
-              const topLevel = table.getCoreRowModel().rows.filter(r => !isVariant(r.original));
-              topLevel.forEach(r => { map[r.id] = true; });
+              // Use pre-pagination data (all filtered) not just current pageProducts
+              table.getPrePaginationRowModel?.()?.rows
+                ?.filter(r => !isVariant(r.original))
+                .forEach(r => { map[r.id] = true; });
+              // Fallback to tableData if api not present
+              if (Object.keys(map).length === 0) {
+                tableData.filter(p => !isVariant(p)).forEach(p => { map[`product-${(p as any).id}`] = true; });
+              }
               setRowSelection(map);
             }}>Select All Products</Button>
             {table.getState().sorting.length > 0 && (
@@ -757,7 +762,7 @@ export default function ConsolePage() {
 
             {/* List Selection Dialog */}
             <Dialog open={listDialogOpen} onOpenChange={setListDialogOpen}>
-              <DialogContent className="max-w-lg">
+              <DialogContent size="medium">
                 <DialogHeader><DialogTitle>Add Selected Products To List</DialogTitle></DialogHeader>
                 <div className="space-y-3">
                   <div>

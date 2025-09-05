@@ -54,11 +54,19 @@ function DialogContent({
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean,
-  size?: 'default' | 'confirm'
+  size?: 'default' | 'confirm' | 'medium'
 }) {
-  const sizeClasses = size === 'confirm'
-    ? 'max-w-sm sm:max-w-sm md:max-w-sm lg:max-w-sm p-5'
-    : 'max-w-[1200px] sm:max-w-[95vw] md:max-w-[90vw] lg:max-w-[1200px]';
+  let sizeClasses: string;
+  switch (size) {
+    case 'confirm':
+      sizeClasses = 'max-w-sm sm:max-w-sm md:max-w-sm lg:max-w-sm p-5';
+      break;
+    case 'medium':
+      sizeClasses = 'max-w-lg md:max-w-xl p-6';
+      break;
+    default:
+      sizeClasses = 'max-w-[1200px] sm:max-w-[95vw] md:max-w-[90vw] lg:max-w-[1200px]';
+  }
   return (
     <DialogPortal data-slot="dialog-portal">
       <DialogOverlay />

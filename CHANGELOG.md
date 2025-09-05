@@ -13,13 +13,13 @@ _Add new changes here (Added/Changed/Fixed/Deprecated) until the next version bu
 - (placeholder)
 
 ### Changed
-- Constrain Console "Add To List" dialog to a medium width (max-w-lg) instead of spanning nearly full viewport.
- - Console Select All Products now selects all filtered products across pages (not just current page).
+- Console "Add To List" dialog now uses new medium dialog size variant for balanced width (was nearly full viewport).
+- Console Select All Products selects all filtered products across pages (not just current page).
 
 ### Fixed
 - (placeholder)
- - Console Select All Products now correctly selects every filtered product across all pages (previously only current page rows).
- - Force service worker version bump (v6) to ensure updated UI assets load for existing clients.
+- Console Select All Products logic upgraded to use full pre-pagination filtered dataset (previous version only selected current page rows in some cases).
+- Force service worker version bump (v6) to ensure updated UI assets load for existing clients.
 
 ### Deprecated
 - (placeholder)
