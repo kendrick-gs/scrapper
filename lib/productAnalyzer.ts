@@ -13,9 +13,14 @@ export interface AnalyzedProduct extends ShopifyProduct {
 
 // Determine the primary option dimension (e.g., Color, Size) by looking at variant titles/options.
 export function analyzeProduct(p: ShopifyProduct): AnalyzedProduct {
+  // If already analyzed (has __primaryOptionName on root or variants carry __imageSrc) return as-is
+  if ((p as any).__primaryOptionName || p.variants?.some((v: any) => v.__imageSrc)) {
+    return p as unknown as AnalyzedProduct;
+  }
   const variants = p.variants || [] as any;
   if (!variants.length) return { ...p, variants: [] } as AnalyzedProduct;
-  // Try to infer primary option name; Shopify supplies 'option1','option2','option3'. We'll pick the one with greatest diversity.
+  const productImages: any[] = (p as any).images || [];
+  // Determine primary option key (greatest diversity)
   const optionKeys: (keyof ShopifyVariant)[] = ['option1','option2','option3'];
   let bestKey: keyof ShopifyVariant | undefined; let bestDiversity = 0;
   for (const k of optionKeys) {
@@ -24,7 +29,12 @@ export function analyzeProduct(p: ShopifyProduct): AnalyzedProduct {
   }
   const analyzedVariants: AnalyzedVariant[] = variants.map((v: any) => {
     const value = bestKey ? (v as any)[bestKey] : v.title;
-    const img = v.featured_image?.src || null;
+    let img = v.featured_image?.src || null;
+    if (!img) {
+      // Fallback: find product image whose variant_ids contains this variant id
+      const match = productImages.find(im => Array.isArray(im.variant_ids) && im.variant_ids.includes(v.id));
+      if (match) img = match.src;
+    }
     return { ...v, __primaryOptionName: bestKey as string, __optionValue: value, __imageSrc: img };
   });
   return { ...p, variants: analyzedVariants, __primaryOptionName: bestKey as string };

@@ -17,6 +17,7 @@ export function isVariant(data: ProductRowData): data is ShopifyVariant { return
 const MIN_COLUMN_SIZES: Record<string, number> = {
 	handle: 180,
 	title: 220,
+	option: 140,
 	images: 150,
 	product_type: 180,
 	vendor: 170,
@@ -48,6 +49,23 @@ const SortableHeader = ({ column, title }: { column: any, title: string }) => {
 };
 
 export const columns: ColumnDef<ProductRowData>[] = [
+	{
+		id: 'option',
+		header: ({ column }) => <SortableHeader column={column} title="Option" />,
+		size: 160,
+		minSize: 140,
+		cell: ({ row }) => {
+			if (isVariant(row.original)) {
+				const v: any = row.original;
+				const name = v.__primaryOptionName || 'Option';
+				const val = v.__optionValue || v.option1 || v.title;
+				return <span className="pl-4 text-muted-foreground line-clamp-2">{name}: {val}</span>;
+			}
+			// Product row: show primary option name (if any) only (no values)
+			const pv: any = row.original;
+			return pv.__primaryOptionName ? <span className="font-medium">{pv.__primaryOptionName}</span> : '';
+		}
+	},
 	{
 		accessorKey: 'handle',
 		header: ({ column }) => <SortableHeader column={column} title="Handle" />,
