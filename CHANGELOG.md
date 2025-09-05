@@ -11,10 +11,12 @@ _Add new changes here (Added/Changed/Fixed/Deprecated) until the next version bu
 
 ### Added
 - (placeholder)
+ - Console: Select All progress indicator (chunked selection with visual progress bar for large filtered sets).
 
 ### Changed
 - Console "Add To List" dialog now uses new medium dialog size variant for balanced width (was nearly full viewport).
 - Console Select All Products selects ALL filtered products across pages (not just current page) and disables itself once fully selected.
+ - Add To List button count now reflects unique products (variants collapsed) with tooltip showing row vs product counts when different.
 
 ### Fixed
 - (placeholder)

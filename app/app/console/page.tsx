@@ -533,6 +533,21 @@ export default function ConsolePage() {
 
 
   // Selected row count (products + variants currently selected in table state)
+  // Count selected unique PRODUCTS (dedupe variants mapping back to parent product)
+  const selectedUniqueProductCount = useMemo(() => {
+    const rows = table.getSelectedRowModel().rows;
+    const map = new Set<string>();
+    for (const r of rows) {
+      const original: any = r.original;
+      if (isVariant(original)) {
+        const parent = r.getParentRow()?.original as any;
+        if (parent) map.add(String(parent.id));
+      } else {
+        map.add(String(original.id));
+      }
+    }
+    return map.size;
+  }, [table.getSelectedRowModel().rows]);
   const selectedCount = table.getSelectedRowModel().rows.length;
   // All filtered top-level products across ALL pages (tableData already filtered pre-pagination)
   const allTopLevelFiltered = useMemo(() => tableData.filter(p => !isVariant(p)), [tableData]);
@@ -549,6 +564,9 @@ export default function ConsolePage() {
   }, [allTopLevelFiltered]);
   // Whether every possible selectable row is currently chosen
   const allListedSelected = totalSelectableRows > 0 && selectedCount >= totalSelectableRows;
+  // Progress indicator for large select-all operations
+  const [selectAllProgress, setSelectAllProgress] = useState<{ total: number; done: number; active: boolean }>({ total: 0, done: 0, active: false });
+  const selectAllPercent = useMemo(() => selectAllProgress.total ? Math.min(100, Math.round((selectAllProgress.done / selectAllProgress.total) * 100)) : 0, [selectAllProgress]);
 
   const renderTableBody = () => {
     if (loading) {
@@ -749,15 +767,16 @@ export default function ConsolePage() {
                 <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => setGlobalFilter('')}>×</Button>
               )}
             </div>
-            <Button size="sm" onClick={() => setListDialogOpen(true)} disabled={selectedCount === 0}>Add To List ({selectedCount})</Button>
+            <Button size="sm" onClick={() => setListDialogOpen(true)} disabled={selectedUniqueProductCount === 0} title={selectedUniqueProductCount !== selectedCount ? `${selectedUniqueProductCount} products (${selectedCount} rows including variants)` : ''}>Add To List ({selectedUniqueProductCount})</Button>
             <Button size="sm" variant="outline" onClick={() => setRowSelection({})} disabled={selectedCount === 0}>Clear</Button>
             <Button size="sm" variant={allListedSelected ? 'outline' : 'default'} disabled={allListedSelected} onClick={() => {
               // Select ALL currently filtered products (across every page) + their variant rows
               // Provide a progressive feedback path if dataset is large by chunking (prevents blocking main thread for huge lists)
-              const CHUNK = 1000; // adjustable threshold
+              const CHUNK = 750; // adjustable threshold
               const selectionMap: Record<string, boolean> = {};
               let index = 0;
               const products = allTopLevelFiltered;
+              setSelectAllProgress({ total: products.length, done: 0, active: true });
               function processChunk() {
                 const end = Math.min(index + CHUNK, products.length);
                 for (; index < end; index++) {
@@ -768,17 +787,26 @@ export default function ConsolePage() {
                     for (const v of p.variants) selectionMap[`variant-${v.id}`] = true;
                   }
                 }
+                setSelectAllProgress(prev => ({ ...prev, done: index }));
                 if (index < products.length) {
-                  // Yield to UI then continue
                   requestAnimationFrame(processChunk);
                 } else {
                   setRowSelection(selectionMap);
+                  setTimeout(() => setSelectAllProgress({ total: 0, done: 0, active: false }), 400);
                 }
               }
               processChunk();
             }}>Select All Products</Button>
             {table.getState().sorting.length > 0 && (
               <Button variant="link" onClick={() => table.resetSorting()}>Reset Sort</Button>
+            )}
+            {selectAllProgress.active && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <div className="w-32 h-2 rounded bg-muted overflow-hidden">
+                  <div className="h-full bg-brand-green transition-all" style={{ width: `${selectAllPercent}%` }} />
+                </div>
+                <span>{selectAllPercent}%</span>
+              </div>
             )}
             <div className="ml-auto flex items-center gap-3 flex-wrap">
               <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground font-medium" title={`Filtered products: ${filteredProductCount}`}> 
