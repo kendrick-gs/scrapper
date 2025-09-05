@@ -18,6 +18,7 @@ _Add new changes here (Added/Changed/Fixed/Deprecated) until the next version bu
 
 ### Fixed
 - (placeholder)
+ - Console Select All Products now correctly selects every filtered product across all pages (previously only current page rows).
 
 ### Deprecated
 - (placeholder)
