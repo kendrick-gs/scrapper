@@ -435,23 +435,14 @@ export default function ConsolePage() {
     <div className="w-full mx-auto px-0 space-y-3 md:space-y-4">
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between md:gap-4">
         <h2 className="text-2xl font-bold tracking-tight">Console</h2>
-        <div className="flex flex-wrap items-center justify-between md:justify-end gap-3 md:gap-4">
+  <div className="flex flex-wrap items-center justify-between md:justify-end gap-3 md:gap-4">
           <Button variant="outline" size="sm" className="order-2 md:order-1 md:hidden" onClick={() => setFiltersOpen(v => !v)}>
             {filtersOpen ? 'Hide Filters' : 'Show Filters'}
           </Button>
-          <div className="text-xs sm:text-sm text-muted-foreground font-medium flex flex-wrap items-center gap-2 order-1 md:order-none">
-            <span className="inline-flex items-center gap-1"><span className="text-foreground font-semibold tabular-nums">{totalBaseCount}</span><span>total</span></span>
+          <div className="text-xs sm:text-sm text-muted-foreground font-medium flex items-center gap-2 order-1 md:order-none">
+            <span>Total <span className="text-foreground font-semibold tabular-nums">{totalBaseCount}</span> products</span>
             <span className="opacity-40">•</span>
-            <span><span className="font-semibold tabular-nums">{selectedRowCount}</span> visible</span>
-            {/* Optional extended context on wider screens */}
-            <span className="hidden lg:inline-flex items-center gap-2">
-              <span className="opacity-40">•</span>
-              <span>{storeFilter === 'all' ? 'All stores' : `Store: ${storeFilter}`}</span>
-              {collectionFilter !== 'all' && <><span className="opacity-40">•</span><span>Collection: {collectionFilter}</span></>}
-              {vendorFilter !== 'all' && <><span className="opacity-40">•</span><span>Vendor: {vendorFilter === EMPTY ? 'No Vendor' : vendorFilter}</span></>}
-              {typeFilter !== 'all' && <><span className="opacity-40">•</span><span>Type: {typeFilter === EMPTY ? 'No Product Type' : typeFilter}</span></>}
-              {globalFilter && <><span className="opacity-40">•</span><span>Search: "{globalFilter}"</span></>}
-            </span>
+            <span>Showing <span className="font-semibold tabular-nums">{selectedRowCount}</span></span>
           </div>
           <Button className="order-3" onClick={handleExport}>Export Products (CSV)</Button>
         </div>
@@ -569,10 +560,22 @@ export default function ConsolePage() {
           </Select>
         </div>
 
-        {(storeFilter !== 'all' || vendorFilter !== 'all' || typeFilter !== 'all' || collectionFilter !== 'all' || globalFilter) && (
-          <Button variant="link" onClick={() => { setStoreFilter('all'); setVendorFilter('all'); setTypeFilter('all'); setCollectionFilter('all'); setGlobalFilter(''); setExpanded({}); }}>Clear Filters</Button>
-        )}
+          {(storeFilter !== 'all' || vendorFilter !== 'all' || typeFilter !== 'all' || collectionFilter !== 'all' || globalFilter) && (
+            <Button variant="link" onClick={() => { setStoreFilter('all'); setVendorFilter('all'); setTypeFilter('all'); setCollectionFilter('all'); setGlobalFilter(''); setExpanded({}); }}>Clear Filters</Button>
+          )}
       </div>
+        {/* Desktop active filter pills */}
+        {activeFilterChips.length > 0 && (
+          <div className="hidden md:flex items-center gap-2 flex-wrap -mt-2 mb-1">
+            {activeFilterChips.map(chip => (
+              <Badge key={chip.key} variant="secondary" className="flex items-center gap-2 pr-1">
+                {chip.label}
+                <button className="text-xs rounded-sm hover:bg-muted px-1" onClick={chip.onClear} aria-label={`Clear ${chip.key}`}>×</button>
+              </Badge>
+            ))}
+            <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => { setStoreFilter('all'); setVendorFilter('all'); setTypeFilter('all'); setCollectionFilter('all'); setGlobalFilter(''); setExpanded({}); }}>Clear All</Button>
+          </div>
+        )}
 
   {/* Full-bleed table area */}
   <div className="full-bleed">
