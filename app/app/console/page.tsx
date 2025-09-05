@@ -435,16 +435,10 @@ export default function ConsolePage() {
     <div className="w-full mx-auto px-0 space-y-3 md:space-y-4">
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between md:gap-4">
         <h2 className="text-2xl font-bold tracking-tight">Console</h2>
-  <div className="flex flex-wrap items-center justify-between md:justify-end gap-3 md:gap-4">
-          <Button variant="outline" size="sm" className="order-2 md:order-1 md:hidden" onClick={() => setFiltersOpen(v => !v)}>
+        <div className="flex flex-wrap items-center justify-between md:justify-end gap-3 md:gap-4">
+          <Button variant="outline" size="sm" className="md:hidden" onClick={() => setFiltersOpen(v => !v)}>
             {filtersOpen ? 'Hide Filters' : 'Show Filters'}
           </Button>
-          <div className="text-xs sm:text-sm text-muted-foreground font-medium flex items-center gap-2 order-1 md:order-none">
-            <span>Total <span className="text-foreground font-semibold tabular-nums">{totalBaseCount}</span> products</span>
-            <span className="opacity-40">•</span>
-            <span>Showing <span className="font-semibold tabular-nums">{selectedRowCount}</span></span>
-          </div>
-          <Button className="order-3" onClick={handleExport}>Export Products (CSV)</Button>
         </div>
       </div>
 
@@ -584,7 +578,7 @@ export default function ConsolePage() {
           <div className="px-4 md:px-8">
           <div className="rounded-lg border bg-white dark:bg-neutral-900 shadow-sm overflow-hidden">
           {/* Toolbar inside the bordered & rounded wrapper */}
-          <div className="w-full px-4 py-3 flex items-center gap-3 text-sm">
+          <div className="w-full px-4 py-3 flex flex-wrap items-center gap-3 text-sm">
             <div className="relative" style={{ width: 320 }}>
               <input
                 className={cn('h-8 px-3 border rounded-md w-full text-sm placeholder:text-muted-foreground', globalFilter && 'border-2 border-brand-green')}
@@ -606,6 +600,14 @@ export default function ConsolePage() {
             {table.getState().sorting.length > 0 && (
               <Button variant="link" onClick={() => table.resetSorting()}>Reset Sort</Button>
             )}
+            <div className="ml-auto flex items-center gap-3 flex-wrap">
+              <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground font-medium">
+                <span>Total <span className="text-foreground font-semibold tabular-nums">{totalBaseCount}</span> products</span>
+                <span className="opacity-40">•</span>
+                <span>Showing <span className="font-semibold tabular-nums">{selectedRowCount}</span></span>
+              </div>
+              <Button size="sm" onClick={handleExport}>Export Products (CSV)</Button>
+            </div>
 
             {/* List Selection Dialog */}
             <Dialog open={listDialogOpen} onOpenChange={setListDialogOpen}>
