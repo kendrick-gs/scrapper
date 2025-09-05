@@ -35,19 +35,15 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({ label, placeholder='Al
   };
   const clearAll = (e: React.MouseEvent) => { e.stopPropagation(); onChange([]); };
   const applied = values.length;
-  const display = applied === 0 ? placeholder : `${applied} selected`;
   const selectedLabels = options.filter(o => values.includes(o.value)).map(o => o.label);
-  const visibleBadges = selectedLabels.slice(0, maxVisibleBadges);
-  const overflow = selectedLabels.length - visibleBadges.length;
+  let triggerLabel: string = placeholder;
+  if (applied === 1) triggerLabel = selectedLabels[0];
+  else if (applied > 1) triggerLabel = `${applied} Selected`;
   return (
     <div ref={containerRef} className={cn('relative text-sm', className)}>
       {label && <div className="mb-1 text-xs font-medium text-muted-foreground">{label}</div>}
       <button type="button" onClick={() => setOpen(o=>!o)} className={cn('h-10 px-3 w-full border rounded-md flex items-center justify-between text-left bg-background hover:bg-accent/30 transition', applied>0 && 'border-2 border-brand-green')}>
-        <span className="truncate flex items-center gap-1">
-          {visibleBadges.map(b => <span key={b} className="px-1.5 py-0.5 bg-muted rounded text-xs font-medium">{b}</span>)}
-          {overflow>0 && <span className="px-1.5 py-0.5 bg-muted rounded text-xs font-medium">+{overflow}</span>}
-          {visibleBadges.length===0 && placeholder}
-        </span>
+  <span className="truncate flex items-center gap-1 text-sm">{triggerLabel}</span>
         <div className="flex items-center gap-2">
           {applied>0 && <span onClick={clearAll} className="text-[11px] underline cursor-pointer" aria-label="Clear selection">Clear</span>}
           <ChevronDownIcon className="size-4 opacity-60" />
