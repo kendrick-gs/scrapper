@@ -43,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dark mode table cell background inversion fix.
 
 ### Fixed
+- Select dropdown panels now respect viewport height (previous overflow due to invalid Tailwind var syntax); long lists scroll inside the panel.
 - Table dark mode cells not inverting previously.
 
 ### Deprecated
