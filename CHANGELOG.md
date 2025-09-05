@@ -21,48 +21,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.9.6] - 2025-09-05
 ### Added
-- Global confirmation modal system (`ConfirmProvider` + `useConfirm`) replacing native `window.confirm` for destructive actions.
-- Centralized promise-based confirm UX (title, description, variant styling) with consistent theming.
-- Async confirmation support with loading spinner, custom processing text & inline error feedback (bulk list item removal, store & list deletion, cache purges).
-- List Detail page: Preview Mode vs Edit Mode toggle.
-- Inline editable product fields inside lists (Title, Vendor, Type, Price, Compare at Price, Cost per item, SEO Title, SEO Description, Body HTML).
-- New exportable columns: Compare at Price, Cost per item, SEO Title (70 char max), SEO Description (160 char max).
-- Body HTML / Liquid dual-pane modal with live preview.
-- Dirty tracking & bulk save (PATCH) for list item edits.
-- `PATCH /api/lists/:id` endpoint for partial item updates.
-- Storage helper `updateListItems` with variant price/compare/cost merge logic.
-- Reusable `Textarea` UI component and `components/ui` barrel export index.
 
 ### Changed
-- Lists, List Detail, Stores & Cache maintenance actions now use themed confirmation dialog instead of browser dialogs.
-- Destructive actions show in-dialog progress instead of blocking UI silently.
-- Sortable product table headers invert styling on hover when unsorted for clearer affordance.
-- Light theme accent & ring tokens unified to brand accent `#6BBB77` (parity with dark theme change in 1.9.5).
-- List Detail table styling aligned with Console table density & surface tokens.
 
 ### Fixed
-- Module resolution for new textarea via barrel index.
 
 ### Deprecated
-- (none)
 
 ## [1.9.5] - 2025-09-05
 ### Added
-- Options column show/hide (>> / << header icons) & column visibility state.
-- Central `ServiceWorkerManager` (global SW registration + update toast) replacing per-page logic.
 
 ### Changed
-- Variant badge relocated to Handle column; Title cell simplified.
-- Unified sort header icon colors & constant visibility.
-- Dark theme brand/primary green updated to `#6BBB77` (accent/ring tokens adjusted).
-- Service Worker strategy: network-first for build assets; reduced precache scope; consolidated update polling (5m interval).
 
 ### Fixed
-- Hydration mismatch risks: stable ThemeToggle markup; layout containers flagged with suppressHydrationWarning.
-- Stale asset issue requiring manual SW unregister (automatic reload on controllerchange now).
 
 ### Deprecated
-- Per-page SW registration/update code on Start page (removed).
 
 ## [1.9.4] - 2025-09-05
 ### Added
