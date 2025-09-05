@@ -40,7 +40,8 @@
     --muted-foreground: 215 16% 45%;
   --accent: 129 37% 58%; /* #6BBB77 */
     --accent-foreground: 0 0% 100%;
-    --destructive: 0 72% 51%;
+  /* Updated destructive red (#EC6161) */
+  --destructive: 0 80% 66%;
     --destructive-foreground: 0 0% 100%;
     --border: 210 16% 88%;
     --input: 210 16% 92%;
@@ -74,7 +75,8 @@
     --muted-foreground: 148 10% 65%;
   --accent: 129 38% 55%;
   --accent-foreground: 140 64% 12%;
-    --destructive: 0 72% 41%;
+  /* Updated destructive red (#EC6161) adjusted for dark contrast */
+  --destructive: 0 70% 58%;
     --destructive-foreground: 0 0% 100%;
     --border: 240 5% 24%;
     --input: 240 5% 20%;
