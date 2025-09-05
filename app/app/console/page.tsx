@@ -532,11 +532,23 @@ export default function ConsolePage() {
   };
 
 
+  // Selected row count (products + variants currently selected in table state)
   const selectedCount = table.getSelectedRowModel().rows.length;
   // All filtered top-level products across ALL pages (tableData already filtered pre-pagination)
   const allTopLevelFiltered = useMemo(() => tableData.filter(p => !isVariant(p)), [tableData]);
-  const allListedCount = allTopLevelFiltered.length;
-  const allListedSelected = allListedCount > 0 && selectedCount >= allListedCount;
+  // Total selectable rows across full filtered result set (product rows plus variant rows we expose when not a single Default Title)
+  const totalSelectableRows = useMemo(() => {
+    let total = 0;
+    for (const p of allTopLevelFiltered) {
+      total += 1; // product row
+      if (p.variants && p.variants.length > 1 && p.variants[0].title !== 'Default Title') {
+        total += p.variants.length; // each variant row is independently selectable
+      }
+    }
+    return total;
+  }, [allTopLevelFiltered]);
+  // Whether every possible selectable row is currently chosen
+  const allListedSelected = totalSelectableRows > 0 && selectedCount >= totalSelectableRows;
 
   const renderTableBody = () => {
     if (loading) {
@@ -740,18 +752,30 @@ export default function ConsolePage() {
             <Button size="sm" onClick={() => setListDialogOpen(true)} disabled={selectedCount === 0}>Add To List ({selectedCount})</Button>
             <Button size="sm" variant="outline" onClick={() => setRowSelection({})} disabled={selectedCount === 0}>Clear</Button>
             <Button size="sm" variant={allListedSelected ? 'outline' : 'default'} disabled={allListedSelected} onClick={() => {
-              // Build selection map of every filtered top-level product + its included variant rows for consistent selection state
-              const map: Record<string, boolean> = {};
-              for (const p of allTopLevelFiltered) {
-                const pid = (p as any).id;
-                map[`product-${pid}`] = true;
-                if (p.variants && p.variants.length > 1 && p.variants[0].title !== 'Default Title') {
-                  for (const v of p.variants) {
-                    map[`variant-${v.id}`] = true;
+              // Select ALL currently filtered products (across every page) + their variant rows
+              // Provide a progressive feedback path if dataset is large by chunking (prevents blocking main thread for huge lists)
+              const CHUNK = 1000; // adjustable threshold
+              const selectionMap: Record<string, boolean> = {};
+              let index = 0;
+              const products = allTopLevelFiltered;
+              function processChunk() {
+                const end = Math.min(index + CHUNK, products.length);
+                for (; index < end; index++) {
+                  const p: any = products[index];
+                  const pid = p.id;
+                  selectionMap[`product-${pid}`] = true;
+                  if (p.variants && p.variants.length > 1 && p.variants[0].title !== 'Default Title') {
+                    for (const v of p.variants) selectionMap[`variant-${v.id}`] = true;
                   }
                 }
+                if (index < products.length) {
+                  // Yield to UI then continue
+                  requestAnimationFrame(processChunk);
+                } else {
+                  setRowSelection(selectionMap);
+                }
               }
-              setRowSelection(map);
+              processChunk();
             }}>Select All Products</Button>
             {table.getState().sorting.length > 0 && (
               <Button variant="link" onClick={() => table.resetSorting()}>Reset Sort</Button>
