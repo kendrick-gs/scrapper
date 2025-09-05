@@ -200,27 +200,31 @@ export default function ConsolePage() {
     return Array.from(hosts).sort();
   }, [stores]);
 
-  // Validate deep link store param after stores loaded & hosts computed
+  // Validate deep link store param after stores loaded & hosts computed (only update if changed)
   useEffect(() => {
-    if (!stores.length) return;
-    if (!storeFilters.length) return;
-    setStoreFilters(prev => prev.filter(s => availableStores.includes(s)));
+    if (!stores.length || !storeFilters.length) return;
+    const filtered = storeFilters.filter(s => availableStores.includes(s));
+    if (filtered.length !== storeFilters.length) setStoreFilters(filtered);
   }, [stores, availableStores, storeFilters]);
 
+  // Vendors derived from raw dataset scoped only by non-vendor filters so multi-select can expand list
   const availableVendors = useMemo(() => {
-    const vendorCounts: { [key: string]: number } = {};
-    tableData.forEach((prod: any) => {
+    const base = (overrideProducts || allProducts).filter((p: any) => (!storeFilters.length || storeFilters.includes(p.__storeHost)) && (!typeFilters.length || typeFilters.includes(((p.product_type ?? '').trim() || EMPTY))));
+    const vendorCounts: Record<string, number> = {};
+    base.forEach((prod: any) => {
       const key = (prod.vendor ?? '').trim() || EMPTY;
       vendorCounts[key] = (vendorCounts[key] || 0) + 1;
     });
     return Object.keys(vendorCounts).map(name => ({ name, count: vendorCounts[name] })).sort((a,b) => a.name.localeCompare(b.name));
-  }, [tableData]);
+  }, [overrideProducts, allProducts, storeFilters, typeFilters]);
 
+  // Product types derived from raw dataset scoped only by non-type filters
   const availableProductTypes = useMemo(() => {
+    const base = (overrideProducts || allProducts).filter((p: any) => (!storeFilters.length || storeFilters.includes(p.__storeHost)) && (!vendorFilters.length || vendorFilters.includes(((p.vendor ?? '').trim() || EMPTY))));
     const types = new Set<string>();
-    tableData.forEach((p: any) => { types.add(((p.product_type ?? '').trim() || EMPTY)); });
+    base.forEach((p: any) => { types.add(((p.product_type ?? '').trim() || EMPTY)); });
     return Array.from(types).sort();
-  }, [tableData]);
+  }, [overrideProducts, allProducts, storeFilters, vendorFilters]);
 
   // collections list is not used for fetching in Console, just filtering by product fields (noop here).
   const availableCollections = useMemo(() => {
@@ -636,7 +640,6 @@ export default function ConsolePage() {
         <CollapsibleContent className="md:hidden space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <MultiSelect
-              label="Stores"
               values={storeFilters}
               options={availableStores.map(s => ({ value: s, label: s }))}
               placeholder="All Stores"
@@ -650,14 +653,12 @@ export default function ConsolePage() {
               </SelectContent>
             </Select>
             <MultiSelect
-              label="Vendors"
               values={vendorFilters}
               options={availableVendors.map(v => ({ value: v.name, label: v.name === EMPTY ? 'No Vendor' : v.name }))}
               placeholder="All Vendors"
               onChange={vals => setVendorFilters(vals)}
             />
             <MultiSelect
-              label="Product Types"
               values={typeFilters}
               options={availableProductTypes.map(t => ({ value: t, label: t === EMPTY ? 'No Product Type' : t }))}
               placeholder="All Product Types"
@@ -687,7 +688,6 @@ export default function ConsolePage() {
       <div className="hidden md:flex items-center gap-3 flex-wrap">
         <div style={{ width: '260px' }}>
           <MultiSelect
-            label="Stores"
             values={storeFilters}
             options={availableStores.map(s => ({ value: s, label: s }))}
             placeholder="All Stores"
@@ -714,7 +714,6 @@ export default function ConsolePage() {
 
         <div style={{ width: '220px' }}>
           <MultiSelect
-            label="Vendors"
             values={vendorFilters}
             options={availableVendors.map(v => ({ value: v.name, label: v.name === EMPTY ? 'No Vendor' : v.name + ` (${v.count})` }))}
             placeholder="All Vendors"
@@ -724,7 +723,6 @@ export default function ConsolePage() {
 
         <div style={{ width: '220px' }}>
           <MultiSelect
-            label="Product Types"
             values={typeFilters}
             options={availableProductTypes.map(t => ({ value: t, label: t === EMPTY ? 'No Product Type' : t }))}
             placeholder="All Product Types"

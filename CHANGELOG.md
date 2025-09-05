@@ -28,6 +28,8 @@ _Add new changes here (Added/Changed/Fixed/Deprecated) until the next version bu
 - Select All now also selects variant rows where applicable & dialog gains description to resolve accessibility warning.
 - Force service worker version bump (v6) to ensure updated UI assets load for existing clients.
  - Add To List now includes ALL filtered products after Select All (previously only first page subset).
+ - Console multi-select filters: resolved infinite render loop (Maximum update depth) by preventing redundant store filter normalization & deriving option lists from base dataset instead of already-filtered tableData.
+ - Console filter toolbar alignment: removed redundant labels inside multi-select components for consistent vertical centering with single collection select.
 
 ### Deprecated
 - (placeholder)
