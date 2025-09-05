@@ -24,6 +24,7 @@ _Add new changes here (Added/Changed/Fixed/Deprecated) until the next version bu
  - Console filter toolbar refactored: supports multiple values per filter, updated clear/reset logic, collection filter disabled until at least one store is selected.
  - MultiSelect no longer auto-closes after each selection; user confirms via Done button or outside click.
  - MultiSelect trigger now shows single selected value or 'N Selected' instead of inline pills (improves compactness).
+ - Console: removed duplicate inline "Clear Filters" button (single consolidated clear control retained below filters).
 
 ### Fixed
 - (placeholder)

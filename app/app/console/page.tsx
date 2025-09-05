@@ -731,9 +731,7 @@ export default function ConsolePage() {
           />
         </div>
 
-          {(storeFilters.length || vendorFilters.length || typeFilters.length || collectionFilter !== 'all' || globalFilter) && (
-            <Button variant="link" onClick={() => { setStoreFilters([]); setVendorFilters([]); setTypeFilters([]); setCollectionFilter('all'); setGlobalFilter(''); setExpanded({}); }}>Clear Filters</Button>
-          )}
+          {/* Removed duplicate Clear Filters button (single consolidated control below) */}
       </div>
         {/* Desktop active filter pills */}
         {activeFilterChips.length > 0 && (
