@@ -783,7 +783,7 @@ export default function ConsolePage() {
               )}
             </div>
             <Button size="sm" onClick={() => setListDialogOpen(true)} disabled={selectedUniqueProductCount === 0} title={selectedUniqueProductCount !== selectedCount ? `${selectedUniqueProductCount} products (${selectedCount} rows including variants)` : ''}>Add To List ({selectedUniqueProductCount})</Button>
-            <Button size="sm" variant="outline" onClick={() => setRowSelection({})} disabled={selectedCount === 0}>Clear</Button>
+            <Button size="sm" variant="outline" onClick={() => setRowSelection({})} disabled={selectedUniqueProductCount === 0}>Clear Selection</Button>
             <Button size="sm" variant={allListedSelected ? 'outline' : 'default'} disabled={allListedSelected} onClick={() => {
               // Select ALL currently filtered products (across every page) + their variant rows
               // Provide a progressive feedback path if dataset is large by chunking (prevents blocking main thread for huge lists)

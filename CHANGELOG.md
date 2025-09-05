@@ -17,6 +17,7 @@ _Add new changes here (Added/Changed/Fixed/Deprecated) until the next version bu
 - Console "Add To List" dialog now uses new medium dialog size variant for balanced width (was nearly full viewport).
 - Console Select All Products selects ALL filtered products across pages (not just current page) and disables itself once fully selected.
  - Add To List button count now reflects unique products (variants collapsed) with tooltip showing row vs product counts when different.
+ - Console toolbar: "Clear" button renamed to "Clear Selection" for clarity.
 
 ### Fixed
 - (placeholder)
