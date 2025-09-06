@@ -15,6 +15,7 @@ _Add new changes here (Added/Changed/Fixed/Deprecated) until the next version bu
  - Console: Multi-select filters for Stores, Vendors, and Product Types (replaces previous single-selects) with individual removable chips.
  - UI: Reusable `MultiSelect` component (accessible keyboard navigation, badges, clear-all) for tag-style filter selection.
  - MultiSelect: Sticky header with option count, Reset, and Done button for improved multi-selection UX.
+ - Lists Page: Multi-select filters (Stores, Vendors, Product Types) aligned with Console page behavior & styling.
  - UI: Standardized wide dialog `panel` size variant (sticky header + scrollable body) added to dialog component.
 
 ### Changed

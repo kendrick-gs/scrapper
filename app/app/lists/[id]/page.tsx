@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MultiSelect } from '@/components/ui/multi-select';
 import { cn } from '@/lib/utils';
 import { columns as baseColumns, ProductRowData, isVariant } from '@/components/pages/columns';
 import { ArrowUpRight, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-react';
@@ -35,10 +36,10 @@ export default function ListDetailPage(){
   const [showOptions,setShowOptions]=useState(false);
   const tableScrollRef = useRef<HTMLDivElement|null>(null);
 
-  // Filters
-  const [storeFilter,setStoreFilter]=useState('all');
-  const [vendorFilter,setVendorFilter]=useState('all');
-  const [typeFilter,setTypeFilter]=useState('all');
+  // Filters (multi-select like Console page)
+  const [storeFilters,setStoreFilters]=useState<string[]>([]);
+  const [vendorFilters,setVendorFilters]=useState<string[]>([]);
+  const [typeFilters,setTypeFilters]=useState<string[]>([]);
   const [globalFilter,setGlobalFilter]=useState('');
 
   // TanStack table state
@@ -55,12 +56,12 @@ export default function ListDetailPage(){
   const allProducts = useMemo(()=> localItems, [localItems]);
   const filteredProducts = useMemo(()=>{
     let items=[...allProducts];
-    if(storeFilter!=='all') items=items.filter(p=> (p.__storeHost||'')===storeFilter);
-    if(vendorFilter!=='all') items=items.filter(p=> (((p.vendor??'').trim()||EMPTY)===vendorFilter));
-    if(typeFilter!=='all') items=items.filter(p=> (((p.product_type??'').trim()||EMPTY)===typeFilter));
+    if(storeFilters.length) items=items.filter(p=> storeFilters.includes((p.__storeHost||'')));
+    if(vendorFilters.length) items=items.filter(p=> vendorFilters.includes(((p.vendor??'').trim()||EMPTY)));
+    if(typeFilters.length) items=items.filter(p=> typeFilters.includes(((p.product_type??'').trim()||EMPTY)));
     if(globalFilter){ const f=globalFilter.toLowerCase(); items=items.filter(p=> p.title?.toLowerCase().includes(f)||p.handle?.toLowerCase().includes(f)|| (p.vendor??'').toLowerCase().includes(f)|| (p.product_type??'').toLowerCase().includes(f) || p.variants?.some((v:any)=> v.title?.toLowerCase().includes(f) || (v.sku&&v.sku.toLowerCase().includes(f)))); }
     return items;
-  },[allProducts,storeFilter,vendorFilter,typeFilter,globalFilter]);
+  },[allProducts,storeFilters,vendorFilters,typeFilters,globalFilter]);
 
   // Pagination (product-level)
   const [pageSize,setPageSize]=useState(25); const [pageIndex,setPageIndex]=useState(0);
@@ -115,7 +116,7 @@ export default function ListDetailPage(){
   const availableStores = useMemo(()=>{ const s=new Set<string>(); allProducts.forEach(p=>{ if(p.__storeHost) s.add(p.__storeHost); }); return Array.from(s).sort(); },[allProducts]);
   const availableVendors = useMemo(()=>{ const map:Record<string,number>={}; allProducts.forEach(p=>{ const key=((p.vendor??'').trim()||EMPTY); map[key]=(map[key]||0)+1; }); return Object.keys(map).map(name=>({ name,count:map[name] })).sort((a,b)=>a.name.localeCompare(b.name)); },[allProducts]);
   const availableTypes = useMemo(()=>{ const set=new Set<string>(); allProducts.forEach(p=> set.add(((p.product_type??'').trim()||EMPTY))); return Array.from(set).sort(); },[allProducts]);
-  const filterChips = useMemo(()=>{ const chips: {key:string; label:string; onClear:()=>void}[]=[]; if(storeFilter!=='all') chips.push({key:'store', label:`Store: ${storeFilter}`, onClear:()=>setStoreFilter('all')}); if(vendorFilter!=='all') chips.push({key:'vendor', label:`Vendor: ${vendorFilter===EMPTY?'No Vendor':vendorFilter}`, onClear:()=>setVendorFilter('all')}); if(typeFilter!=='all') chips.push({key:'type', label:`Type: ${typeFilter===EMPTY?'No Type':typeFilter}`, onClear:()=>setTypeFilter('all')}); if(globalFilter) chips.push({key:'q', label:`Search: ${globalFilter} (${filteredProducts.length})`, onClear:()=>setGlobalFilter('')}); return chips; },[storeFilter,vendorFilter,typeFilter,globalFilter,filteredProducts.length]);
+  const filterChips = useMemo(()=>{ const chips: {key:string; label:string; onClear:()=>void}[]=[]; storeFilters.forEach(sf=> chips.push({key:`store-${sf}`, label:`Store: ${sf}` , onClear:()=> setStoreFilters(prev=> prev.filter(v=>v!==sf))})); vendorFilters.forEach(vf=> chips.push({key:`vendor-${vf}`, label:`Vendor: ${vf===EMPTY?'No Vendor':vf}`, onClear:()=> setVendorFilters(prev=> prev.filter(v=>v!==vf))})); typeFilters.forEach(tf=> chips.push({key:`type-${tf}`, label:`Type: ${tf===EMPTY?'No Type':tf}`, onClear:()=> setTypeFilters(prev=> prev.filter(v=>v!==tf))})); if(globalFilter) chips.push({key:'q', label:`Search: ${globalFilter} (${filteredProducts.length})`, onClear:()=>setGlobalFilter('')}); return chips; },[storeFilters,vendorFilters,typeFilters,globalFilter,filteredProducts.length]);
 
   const handleExport=async()=>{ if(!list) return; try{ const r=await fetch('/api/export',{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ products: filteredProducts }) }); if(!r.ok) throw new Error('Export failed'); const blob=await r.blob(); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`${list.name||'list'}-export.csv`; document.body.appendChild(a); a.click(); a.remove(); } catch(e:any){ alert(e.message||'Export failed'); } };
 
@@ -131,31 +132,37 @@ export default function ListDetailPage(){
       </div>
     </div>
     <div className="hidden md:flex items-center gap-3 flex-wrap px-4 md:px-8">
-      <div style={{width:'200px'}}>
-        <Select value={storeFilter} onValueChange={setStoreFilter}>
-          <SelectTrigger className={cn('h-10 w-full', storeFilter!=='all' && 'filter-select border-2 border-brand-green')}><SelectValue placeholder="All Stores"/></SelectTrigger>
-          <SelectContent><SelectItem value="all">All Stores</SelectItem>{availableStores.map(h=> <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
-        </Select>
+      <div style={{width:'240px'}}>
+        <MultiSelect
+          values={storeFilters}
+          options={availableStores.map(s=> ({ value:s, label:s }))}
+          placeholder="All Stores"
+          onChange={vals=> setStoreFilters(vals)}
+        />
       </div>
-      <div style={{width:'200px'}}>
-        <Select value={vendorFilter} onValueChange={setVendorFilter}>
-          <SelectTrigger className={cn('h-10 w-full', vendorFilter!=='all' && 'filter-select border-2 border-brand-green')}><SelectValue placeholder="All Vendors"/></SelectTrigger>
-          <SelectContent><SelectItem value="all">All Vendors</SelectItem>{availableVendors.map(v=> <SelectItem key={v.name} value={v.name}>{v.name===EMPTY?'No Vendor':v.name} ({v.count})</SelectItem>)}</SelectContent>
-        </Select>
+      <div style={{width:'220px'}}>
+        <MultiSelect
+          values={vendorFilters}
+          options={availableVendors.map(v=> ({ value:v.name, label: v.name===EMPTY? 'No Vendor': `${v.name} (${v.count})` }))}
+          placeholder="All Vendors"
+          onChange={vals=> setVendorFilters(vals)}
+        />
       </div>
-      <div style={{width:'200px'}}>
-        <Select value={typeFilter} onValueChange={setTypeFilter}>
-          <SelectTrigger className={cn('h-10 w-full', typeFilter!=='all' && 'filter-select border-2 border-brand-green')}><SelectValue placeholder="All Types"/></SelectTrigger>
-          <SelectContent><SelectItem value="all">All Types</SelectItem>{availableTypes.map(t=> <SelectItem key={t} value={t}>{t===EMPTY?'No Product Type':t}</SelectItem>)}</SelectContent>
-        </Select>
+      <div style={{width:'220px'}}>
+        <MultiSelect
+          values={typeFilters}
+          options={availableTypes.map(t=> ({ value:t, label: t===EMPTY? 'No Product Type': t }))}
+          placeholder="All Product Types"
+          onChange={vals=> setTypeFilters(vals)}
+        />
       </div>
       <div className="relative" style={{width:320}}>
         <input className={cn('h-10 px-3 border rounded-md w-full text-sm placeholder:text-muted-foreground', globalFilter && 'border-2 border-brand-green')} placeholder="Search products..." value={globalFilter} onChange={e=>setGlobalFilter(e.target.value)} />
         {globalFilter && <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8" onClick={()=>setGlobalFilter('')}>×</Button>}
       </div>
-      {(storeFilter!=='all'||vendorFilter!=='all'||typeFilter!=='all'||globalFilter) && <Button variant="link" onClick={()=>{ setStoreFilter('all'); setVendorFilter('all'); setTypeFilter('all'); setGlobalFilter(''); setExpanded({}); }}>Clear Filters</Button>}
+      {(storeFilters.length||vendorFilters.length||typeFilters.length||globalFilter) && <Button variant="link" onClick={()=>{ setStoreFilters([]); setVendorFilters([]); setTypeFilters([]); setGlobalFilter(''); setExpanded({}); }}>Clear Filters</Button>}
     </div>
-    {filterChips.length>0 && <div className="hidden md:flex items-center gap-2 flex-wrap px-4 md:px-8 -mt-2 mb-1">{filterChips.map(chip=> <Badge key={chip.key} variant="secondary" className="flex items-center gap-1 pr-1">{chip.label}<button className="text-xs rounded-sm hover:bg-muted px-1" onClick={chip.onClear}>×</button></Badge>)}<Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={()=>{ setStoreFilter('all'); setVendorFilter('all'); setTypeFilter('all'); setGlobalFilter(''); setExpanded({}); }}>Clear All</Button></div>}
+    {filterChips.length>0 && <div className="hidden md:flex items-center gap-2 flex-wrap px-4 md:px-8 -mt-2 mb-1">{filterChips.map(chip=> <Badge key={chip.key} variant="secondary" className="flex items-center gap-1 pr-1">{chip.label}<button className="text-xs rounded-sm hover:bg-muted px-1" onClick={chip.onClear}>×</button></Badge>)}<Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={()=>{ setStoreFilters([]); setVendorFilters([]); setTypeFilters([]); setGlobalFilter(''); setExpanded({}); }}>Clear All</Button></div>}
 
     <div className="full-bleed">
       <Card className="py-0 rounded-none border-0 shadow-none bg-transparent"><CardContent className="p-0"><div className="px-4 md:px-8"><div className="rounded-lg border bg-white dark:bg-neutral-900 shadow-sm overflow-hidden">
