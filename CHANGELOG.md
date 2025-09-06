@@ -33,6 +33,8 @@ _Add new changes here (Added/Changed/Fixed/Deprecated) until the next version bu
  - Lists Page: Unified styling of Compare At, Cost, SEO Title, SEO Description columns; single Body HTML column now shows View/Edit button depending on mode.
  - Lists Page: Additional column headers now use native table header styling (removed custom span styles) for perfect alignment with core columns.
  - Lists Page: Drag-and-drop column reordering with persistence (localStorage), excluding selection & view columns.
+ - Lists Page: Column drag target now shows vivid green insertion bar for precise drop positioning.
+ - API: `/api/user/prefs` endpoint (temporary in-memory) for storing per-user preferences (column order groundwork).
 
 ### Fixed
 - (placeholder)

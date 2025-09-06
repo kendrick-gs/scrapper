@@ -15,6 +15,7 @@ import { MultiSelect } from '@/components/ui/multi-select';
 import { cn } from '@/lib/utils';
 import { columns as baseColumns, ProductRowData, isVariant } from '@/components/pages/columns';
 import { ArrowUpRight, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, GripVertical } from 'lucide-react';
+import { useAuthStore } from '@/store/useAuthStore';
 import { useReactTable, getCoreRowModel, getExpandedRowModel, getSortedRowModel, flexRender, SortingState, ColumnSizingState, ExpandedState } from '@tanstack/react-table';
 
 interface ListItemProduct { id?: string|number; handle: string; title: string; vendor?: string; product_type?: string; variants?: any[]; body_html?: string; seo_title?: string; seo_description?: string; [k:string]: any }
@@ -50,6 +51,8 @@ export default function ListDetailPage(){
   const [columnVisibility,setColumnVisibility]=useState<any>({ option:false });
   const [columnOrder,setColumnOrder]=useState<string[]>([]);
   const COLUMN_ORDER_KEY = 'list_column_order_v1';
+  const { user } = useAuthStore();
+  const saveServerColumnOrder = async (order:string[])=>{ try { if(!user) return; await fetch('/api/user/prefs', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ columnOrder: order }) }); } catch {/* ignore */} };
 
   const load=async()=>{ if(!id) return; setLoading(true); setError(''); try{ const r=await fetch(`/api/lists/${id}`); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Failed to load list'); if(!d.list){ setError('List not found'); setList(null);} else { setList(d.list); setLocalItems(d.list.items||[]);} } catch(e:any){ setError(e.message||'Failed to load'); } finally{ setLoading(false);} };
   useEffect(()=>{ load(); },[id]);
@@ -150,14 +153,17 @@ export default function ListDetailPage(){
     if(next.length!==columnOrder.length) setColumnOrder(next);
   },[extendedColumns]);
 
-  useEffect(()=>{ if(columnOrder) localStorage.setItem(COLUMN_ORDER_KEY, JSON.stringify(columnOrder)); },[columnOrder]);
+  useEffect(()=>{ if(columnOrder){ localStorage.setItem(COLUMN_ORDER_KEY, JSON.stringify(columnOrder)); saveServerColumnOrder(columnOrder);} },[columnOrder]);
 
   const table = useReactTable({ data: pageProducts as ProductRowData[], columns: extendedColumns as any, state:{ sorting,columnSizing,expanded,rowSelection,columnVisibility, columnOrder }, onSortingChange:setSorting, onExpandedChange:setExpanded, onColumnSizingChange:setColumnSizing, onRowSelectionChange:setRowSelection, onColumnVisibilityChange:setColumnVisibility, onColumnOrderChange:setColumnOrder, getCoreRowModel:getCoreRowModel(), getSortedRowModel:getSortedRowModel(), getExpandedRowModel:getExpandedRowModel(), columnResizeMode:'onChange', getRowId:(row:any)=> isVariant(row)? `variant-${row.id}`: `product-${row.id}`, getSubRows:(original:ProductRowData)=>{ if(!isVariant(original) && original.variants?.length>1 && original.variants[0].title!=='Default Title'){ return original.variants; } return undefined; }, autoResetPageIndex:false, enableRowSelection:true });
 
   const dragState = useRef<{src:string|null}>({src:null});
   const handleDragStart = (id:string)=> (e:React.DragEvent)=> { dragState.current.src=id; e.dataTransfer.setData('text/col', id); e.dataTransfer.effectAllowed='move'; };
-  const handleDragOver = (id:string)=> (e:React.DragEvent)=> { if(!dragState.current.src || dragState.current.src===id) return; e.preventDefault(); e.dataTransfer.dropEffect='move'; };
-  const handleDrop = (id:string)=> (e:React.DragEvent)=> { e.preventDefault(); const src=dragState.current.src|| e.dataTransfer.getData('text/col'); dragState.current.src=null; if(!src|| src===id) return; setColumnOrder(prev=>{ if(!prev) return prev; const next = prev.filter(c=>c!==src); const idx = next.indexOf(id); if(idx===-1){ next.push(src); } else { next.splice(idx,0,src); } return [...next]; }); };
+  const dragOverId = useRef<string|null>(null);
+  const [, forceRender] = useState(0);
+  const handleDragOver = (id:string)=> (e:React.DragEvent)=> { if(!dragState.current.src || dragState.current.src===id) return; e.preventDefault(); e.dataTransfer.dropEffect='move'; if(dragOverId.current!==id){ dragOverId.current=id; forceRender(x=>x+1);} };
+  const handleDragLeave = (id:string)=> (e:React.DragEvent)=> { if(dragOverId.current===id){ dragOverId.current=null; forceRender(x=>x+1);} };
+  const handleDrop = (id:string)=> (e:React.DragEvent)=> { e.preventDefault(); const src=dragState.current.src|| e.dataTransfer.getData('text/col'); dragState.current.src=null; if(!src|| src===id) return; dragOverId.current=null; setColumnOrder(prev=>{ if(!prev) return prev; const next = prev.filter(c=>c!==src); const idx = next.indexOf(id); if(idx===-1){ next.push(src); } else { next.splice(idx,0,src); } return [...next]; }); };
   const reorderable = (colId:string)=> !['select','view'].includes(colId);
 
   // Store lists for filters
@@ -237,10 +243,11 @@ export default function ListDetailPage(){
             <TableHeader>{table.getHeaderGroups().map(hg=> <TableRow key={hg.id} className="bg-gray-200 dark:bg-gray-800/70">{hg.headers.map(h=>{ const size=h.getSize(); const colId = h.column.id; const idAttr = h.id; const draggable = reorderable(colId); return (<TableHead
                   key={idAttr}
                   style={{width:size,minWidth:size,maxWidth:size}}
-                  className={cn('relative px-4 border-r last:border-r-0 border-l [&:first-child]:border-l-0 group', draggable && 'cursor-move')}
+                  className={cn('relative px-4 border-r last:border-r-0 border-l [&:first-child]:border-l-0 group', draggable && 'cursor-move', dragOverId.current===colId && 'before:absolute before:inset-y-0 before:-left-[2px] before:w-1 before:bg-brand-green before:rounded-full')}
                   draggable={draggable}
                   onDragStart={draggable? handleDragStart(colId):undefined}
                   onDragOver={draggable? handleDragOver(colId):undefined}
+                  onDragLeave={draggable? handleDragLeave(colId):undefined}
                   onDrop={draggable? handleDrop(colId):undefined}
                 >
                   <div className="flex items-center gap-2">
