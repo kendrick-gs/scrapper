@@ -18,6 +18,7 @@ _Add new changes here (Added/Changed/Fixed/Deprecated) until the next version bu
 - Data Presets page: Modern tabbed interface with search, pagination, per-category counts, bulk clear, and responsive grid layout for large datasets.
 - Lists: Dedicated Tags editor modal (Edit Tags button in edit mode) for uncluttered inline layout.
 - User Prefs: JSON file-backed persistence layer ensuring Data Presets & column settings survive dev/server restarts.
+- User Prefs: Per-user file storage with schema versioning, debounced writes & corruption auto-recovery (replaces single shared file).
 
 ### Changed
 - Console Add To List dialog fieldset offering preset import checkboxes.
