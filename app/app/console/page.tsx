@@ -65,6 +65,9 @@ export default function ConsolePage() {
   const [selectedListId, setSelectedListId] = useState<string>('');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [listDialogOpen, setListDialogOpen] = useState(false);
+  // Progress for Add To List batch operation
+  const [addListProgress, setAddListProgress] = useState<{ active:boolean; total:number; done:number; error?:string }>({ active:false, total:0, done:0 });
+  const addListPercent = useMemo(()=> addListProgress.total? Math.min(100, Math.round((addListProgress.done / addListProgress.total)*100)):0, [addListProgress]);
   const tableScrollRef = useRef<HTMLDivElement | null>(null);
   // Track mount to guard against library-triggered state updates before initial commit
   const mountedRef = useRef(false);
@@ -851,8 +854,8 @@ export default function ConsolePage() {
                       <p className="text-[10px] text-muted-foreground">Checked sets will merge unique values from selected products into your account presets.</p>
                     </fieldset>
                     <div className="flex justify-end gap-2">
-                      <Button variant="outline" onClick={() => setListDialogOpen(false)}>Cancel</Button>
-                      <Button size="sm" disabled={selectedCount === 0 || (!selectedListId || (selectedListId === '__new__' && !newListName.trim()))} onClick={async () => {
+                      <Button variant="outline" disabled={addListProgress.active} onClick={() => setListDialogOpen(false)}>Cancel</Button>
+                      <Button size="sm" disabled={addListProgress.active || selectedCount === 0 || (!selectedListId || (selectedListId === '__new__' && !newListName.trim()))} onClick={async () => {
                     let targetListId = selectedListId;
                     if (targetListId === '__new__') {
                       if (!newListName.trim()) return;
@@ -865,7 +868,23 @@ export default function ConsolePage() {
                     }
                     if (!targetListId) return;
                     const productsToAdd = allTopLevelFiltered.filter((p: any) => selectedProductIds.has(String(p.id)));
-                    await fetch(`/api/lists/${targetListId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ products: productsToAdd }) });
+                    const CHUNK = 250;
+                    if(productsToAdd.length > CHUNK){
+                      setAddListProgress({ active:true, total: productsToAdd.length, done:0 });
+                      for(let i=0;i<productsToAdd.length;i+=CHUNK){
+                        const slice = productsToAdd.slice(i,i+CHUNK);
+                        try {
+                          const resp = await fetch(`/api/lists/${targetListId}`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ products: slice }) });
+                          if(!resp.ok){ throw new Error('Failed adding batch'); }
+                        } catch(e:any){
+                          setAddListProgress(p=>({ ...p, error:e.message||'Batch failed'}));
+                          break;
+                        }
+                        setAddListProgress(p=> ({ ...p, done: Math.min(productsToAdd.length, i+slice.length) }));
+                      }
+                    } else {
+                      await fetch(`/api/lists/${targetListId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ products: productsToAdd }) });
+                    }
                     try {
                       const importVendors = (document.getElementById('import-vendor') as HTMLInputElement)?.checked;
                       const importTypes = (document.getElementById('import-type') as HTMLInputElement)?.checked;
@@ -884,9 +903,23 @@ export default function ConsolePage() {
                       }
                     } catch {/* ignore */}
                     setRowSelection({});
-                    setListDialogOpen(false);
+                    if(addListProgress.active){
+                      // allow brief visual completion display
+                      setTimeout(()=>{ setAddListProgress(p=>({ ...p, active:false })); setListDialogOpen(false); }, 400);
+                    } else {
+                      setListDialogOpen(false);
+                    }
                   }}>Add To List</Button>
                     </div>
+                    {addListProgress.active && (
+                      <div className="pt-2 space-y-1">
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <div className="w-40 h-2 rounded bg-muted overflow-hidden"><div className="h-full bg-brand-green transition-all" style={{ width: `${addListPercent}%` }} /></div>
+                          <span>{addListPercent}% ({addListProgress.done}/{addListProgress.total})</span>
+                        </div>
+                        {addListProgress.error && <div className="text-[11px] text-destructive">{addListProgress.error}</div>}
+                      </div>
+                    )}
                   </div>
                 </div>
               </DialogContent>

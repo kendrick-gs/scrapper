@@ -14,6 +14,7 @@ _Add new changes here (Added/Changed/Fixed/Deprecated) until the next version bu
 - Inline vendor/type selects & tag editor in List Edit Mode powered by Data Presets.
 - Optional import of Vendors / Product Types / Tags from selected products into presets via Add To List dialog.
 - Local IndexedDB caching of Data Presets (schema v3) for instant hydration & offline-friendly editing.
+- Console Add To List: Progressive batch add with live progress bar for large product selections (chunked API posts) and error surface.
 
 ### Changed
 - Console Add To List dialog fieldset offering preset import checkboxes.
