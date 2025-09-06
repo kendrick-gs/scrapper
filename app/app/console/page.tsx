@@ -856,6 +856,10 @@ export default function ConsolePage() {
                     <div className="flex justify-end gap-2">
                       <Button variant="outline" disabled={addListProgress.active} onClick={() => setListDialogOpen(false)}>Cancel</Button>
                       <Button size="sm" disabled={addListProgress.active || selectedCount === 0 || (!selectedListId || (selectedListId === '__new__' && !newListName.trim()))} onClick={async () => {
+                    // Capture import checkbox flags early (before any state changes from new list creation)
+                    const flagVendors = !!(document.getElementById('import-vendor') as HTMLInputElement)?.checked;
+                    const flagTypes = !!(document.getElementById('import-type') as HTMLInputElement)?.checked;
+                    const flagTags = !!(document.getElementById('import-tags') as HTMLInputElement)?.checked;
                     let targetListId = selectedListId;
                     if (targetListId === '__new__') {
                       if (!newListName.trim()) return;
@@ -886,17 +890,14 @@ export default function ConsolePage() {
                       await fetch(`/api/lists/${targetListId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ products: productsToAdd }) });
                     }
                     try {
-                      const importVendors = (document.getElementById('import-vendor') as HTMLInputElement)?.checked;
-                      const importTypes = (document.getElementById('import-type') as HTMLInputElement)?.checked;
-                      const importTags = (document.getElementById('import-tags') as HTMLInputElement)?.checked;
-                      if(importVendors || importTypes || importTags){
+                      if(flagVendors || flagTypes || flagTags){
                         const prefsRes = await fetch('/api/user/prefs');
                         const prefsData = await prefsRes.json();
                         const current = prefsData.prefs?.dataPresets || { vendors:[], productTypes:[], tags:[] };
                         const next = { ...current } as any;
-                        if(importVendors){ const set = new Set<string>(current.vendors||[]); productsToAdd.forEach((p:any)=>{ const v=(p.vendor||'').trim(); if(v) set.add(v); }); next.vendors = Array.from(set).sort((a:string,b:string)=>a.localeCompare(b)); }
-                        if(importTypes){ const set = new Set<string>(current.productTypes||[]); productsToAdd.forEach((p:any)=>{ const v=(p.product_type||'').trim(); if(v) set.add(v); }); next.productTypes = Array.from(set).sort((a:string,b:string)=>a.localeCompare(b)); }
-                        if(importTags){ const set = new Set<string>(current.tags||[]); productsToAdd.forEach((p:any)=>{ let tags=p.tags; let arr: string[] = Array.isArray(tags)? tags : typeof tags==='string'? tags.split(',').map((t:string)=>t.trim()).filter(Boolean): []; arr.forEach((t:string)=> set.add(t)); }); next.tags = Array.from(set).sort((a:string,b:string)=>a.localeCompare(b)); }
+                        if(flagVendors){ const set = new Set<string>(current.vendors||[]); productsToAdd.forEach((p:any)=>{ const v=(p.vendor||'').trim(); if(v) set.add(v); }); next.vendors = Array.from(set).sort((a:string,b:string)=>a.localeCompare(b)); }
+                        if(flagTypes){ const set = new Set<string>(current.productTypes||[]); productsToAdd.forEach((p:any)=>{ const v=(p.product_type||'').trim(); if(v) set.add(v); }); next.productTypes = Array.from(set).sort((a:string,b:string)=>a.localeCompare(b)); }
+                        if(flagTags){ const set = new Set<string>(current.tags||[]); productsToAdd.forEach((p:any)=>{ let tags=p.tags; let arr: string[] = Array.isArray(tags)? tags : typeof tags==='string'? tags.split(',').map((t:string)=>t.trim()).filter(Boolean): []; arr.forEach((t:string)=> set.add(t)); }); next.tags = Array.from(set).sort((a:string,b:string)=>a.localeCompare(b)); }
                         await fetch('/api/user/prefs',{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ dataPresets: next }) });
                         setDataPresets(next);
                         updateCachedDataPresets(user?.email || 'anon', next).catch(()=>{});

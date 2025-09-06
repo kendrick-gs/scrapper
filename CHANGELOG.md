@@ -15,6 +15,7 @@ _Add new changes here (Added/Changed/Fixed/Deprecated) until the next version bu
 - Optional import of Vendors / Product Types / Tags from selected products into presets via Add To List dialog.
 - Local IndexedDB caching of Data Presets (schema v3) for instant hydration & offline-friendly editing.
 - Console Add To List: Progressive batch add with live progress bar for large product selections (chunked API posts) and error surface.
+- Data Presets page: Modern tabbed interface with search, pagination, per-category counts, bulk clear, and responsive grid layout for large datasets.
 
 ### Changed
 - Console Add To List dialog fieldset offering preset import checkboxes.
@@ -22,6 +23,7 @@ _Add new changes here (Added/Changed/Fixed/Deprecated) until the next version bu
 
 ### Fixed
 - Preset imports now write-through to local cache preventing stale options until next full console load.
+- New list creation path in Add To List dialog now correctly imports selected presets (vendors/types/tags).
 
 ### Deprecated
 - (none)
