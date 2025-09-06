@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { MultiSelect } from '@/components/ui/multi-select';
 import { cn } from '@/lib/utils';
 import { columns as baseColumns, ProductRowData, isVariant } from '@/components/pages/columns';
-import { ArrowUpRight, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, GripVertical } from 'lucide-react';
+import { ArrowUpRight, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, GripVertical, ArrowUp, ArrowDown } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useReactTable, getCoreRowModel, getExpandedRowModel, getSortedRowModel, flexRender, SortingState, ColumnSizingState, ExpandedState } from '@tanstack/react-table';
 
@@ -56,6 +56,7 @@ export default function ListDetailPage(){
   const { user } = useAuthStore();
   const saveServerColumnOrder = async (order:string[])=>{ try { if(!user) return; await fetch('/api/user/prefs', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ columnOrder: order }) }); } catch {/* ignore */} };
   const saveServerColumnSizing = async (sizes:Record<string,number>)=>{ try { if(!user) return; await fetch('/api/user/prefs', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ listColumnSizing: sizes }) }); } catch {/* ignore */} };
+  const saveServerColumnVisibility = async (visibility:Record<string,boolean>)=>{ try { if(!user) return; await fetch('/api/user/prefs', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ listColumnVisibility: visibility }) }); } catch {/* ignore */} };
 
   const load=async()=>{ if(!id) return; setLoading(true); setError(''); try{ const r=await fetch(`/api/lists/${id}`); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Failed to load list'); if(!d.list){ setError('List not found'); setList(null);} else { setList(d.list); setLocalItems(d.list.items||[]);} } catch(e:any){ setError(e.message||'Failed to load'); } finally{ setLoading(false);} };
   useEffect(()=>{ load(); },[id]);
@@ -84,12 +85,12 @@ export default function ListDetailPage(){
       // Override handle column to inject show/hide options controls
       if(col.accessorKey==='handle'){
         return { ...col, header:(ctx:any)=>{ const Original=(col as any).header; return (
-          <div className="flex items-center gap-1 w-full pr-1 min-h-[36px]">
+          <div className="flex items-center gap-1 w-full pl-0 pr-0 min-h-[36px]">
             <div className="flex-1 min-w-0 truncate">{typeof Original==='function'?Original(ctx):Original}</div>
             {!showOptions && (
               <button
                 type="button"
-                onClick={(e)=>{e.stopPropagation(); setShowOptions(true);} }
+                onClick={(e)=>{e.stopPropagation(); const next=true; setShowOptions(next); setColumnVisibility((prev:any)=>{ const v={...prev, option:next}; localStorage.setItem('list_column_visibility_v1', JSON.stringify(v)); saveServerColumnVisibility(v); return v; });} }
                 className="flex-none text-[10px] font-semibold text-muted-foreground hover:text-foreground px-1.5 py-1 rounded border border-border/70 hover:border-border transition-colors bg-background shadow-sm"
               >{'>>'}</button>
             )}
@@ -97,14 +98,27 @@ export default function ListDetailPage(){
       }
       // Collapse option column
       if(col.id==='option'){
-        return { ...col, header:(ctx:any)=>{ const Original=(col as any).header; return (
-          <div className="flex items-center gap-1 w-full pr-1 min-h-[36px]">
+        return { ...col, header:(ctx:any)=>{ const column=ctx.column; const sortDir = column.getIsSorted(); const upActive=sortDir==='asc'; const downActive=sortDir==='desc'; return (
+          <div className="flex items-center gap-1 w-full pl-3 pr-3 min-h-[36px]">
             <button
               type="button"
-              onClick={(e)=>{e.stopPropagation(); setShowOptions(false);} }
+              onClick={(e)=>{e.stopPropagation(); const next=false; setShowOptions(next); setColumnVisibility((prev:any)=>{ const v={...prev, option:next}; localStorage.setItem('list_column_visibility_v1', JSON.stringify(v)); saveServerColumnVisibility(v); return v; });} }
               className="flex-none text-[10px] font-semibold text-muted-foreground hover:text-foreground px-1.5 py-1 rounded border border-border/70 hover:border-border transition-colors bg-background shadow-sm"
+              aria-label="Hide options column"
             >{'<<'}</button>
-            <div className="flex-1 min-w-0 truncate">{typeof Original==='function'?Original(ctx):Original}</div>
+            <button
+              type="button"
+              onClick={()=> column.toggleSorting(sortDir==='asc') }
+              aria-sort={sortDir==='asc'? 'ascending': sortDir==='desc'? 'descending':'none'}
+              className={cn('group flex items-center h-7 px-2 rounded-md gap-1.5 text-sm font-medium transition-colors', sortDir? 'bg-primary text-primary-foreground':'hover:bg-primary hover:text-primary-foreground text-foreground')}
+            >
+              <span className={cn('whitespace-nowrap')}>Options</span>
+              <span className="flex items-center gap-0.5 pointer-events-none">
+                <ArrowUp className={cn('h-4 w-4', upActive? 'text-primary-foreground':'opacity-50 group-hover:opacity-90')} />
+                <ArrowDown className={cn('h-4 w-4', downActive? 'text-primary-foreground':'opacity-50 group-hover:opacity-90')} />
+              </span>
+            </button>
+            <div aria-hidden="true" className="flex-none" style={{width:'12px'}} />
           </div>); } };
       }
       // Replace existing body_html column so we don't add an extra custom one later.
@@ -154,8 +168,15 @@ export default function ListDetailPage(){
     return [selectCol, ...cols, previewCol];
   },[baseColumns,editMode,showOptions]);
 
-  // Sync options visibility
-  useEffect(()=>{ setColumnVisibility((prev:any)=>({...prev, option:showOptions})); },[showOptions]);
+  // Load column visibility (including option column) once
+  useEffect(()=>{
+    try {
+      const ls = localStorage.getItem('list_column_visibility_v1');
+      if(ls){ const parsed = JSON.parse(ls); if(parsed && typeof parsed==='object'){ setColumnVisibility((prev:any)=> ({...prev, ...parsed})); if(parsed.option) setShowOptions(true); } }
+    } catch {/* ignore */}
+  },[]);
+  // Sync option visibility when showOptions toggled directly (fallback)
+  useEffect(()=>{ setColumnVisibility((prev:any)=>{ if(prev.option===showOptions) return prev; const v={...prev, option:showOptions}; localStorage.setItem('list_column_visibility_v1', JSON.stringify(v)); saveServerColumnVisibility(v); return v; }); },[showOptions]);
 
   const applyLocalChange=(handle:string, patch:Partial<ListItemProduct>)=>{ setLocalItems(items=> items.map(i=> i.handle===handle? {...i,...patch}:i)); dirtyMap.set(handle, JSON.stringify({ ...(dirtyMap.get(handle)? JSON.parse(dirtyMap.get(handle) as string):{}), ...patch })); };
   const openBodyEditor=(p:ListItemProduct)=>{ setCurrentBodyHandle(p.handle); setBodyDraft(p.body_html||''); setBodyEditorOpen(true); };
@@ -299,12 +320,12 @@ export default function ListDetailPage(){
                     <TableHead
                       key={idAttr}
                       style={{width:size,minWidth:size,maxWidth:size}}
-                      className={cn('relative px-1.5 sm:px-2 border-r last:border-r-0 border-l [&:first-child]:border-l-0 group overflow-visible [&[data-sort-button]]:!text-foreground [&_button]:!text-foreground [&_button:hover]:!text-foreground [&_button]:!opacity-100 [&_*]:!text-foreground', dragOverId.current===colId && 'before:absolute before:inset-y-0 before:-left-[2px] before:w-1 before:bg-brand-green before:rounded-full')}
+                      className={cn('relative px-0 sm:px-0 border-r last:border-r-0 border-l [&:first-child]:border-l-0 group overflow-visible [&[data-sort-button]]:!text-foreground [&_button]:!text-foreground [&_button:hover]:!text-foreground [&_button]:!opacity-100 [&_*]:!text-foreground', dragOverId.current===colId && 'before:absolute before:inset-y-0 before:-left-[2px] before:w-1 before:bg-brand-green before:rounded-full')}
                       onDragOver={draggable? handleDragOver(colId):undefined}
                       onDragLeave={draggable? handleDragLeave(colId):undefined}
                       onDrop={draggable? handleDrop(colId):undefined}
                     >
-                      <div className="flex items-center gap-1.5 min-h-[34px]">
+                      <div className="flex items-center gap-1.5 min-h-[36px] overflow-visible pl-3 pr-3 mr-1"> 
                         {draggable && (
                           <span
                             className="flex items-center justify-center h-4 w-4 cursor-grab active:cursor-grabbing text-muted-foreground opacity-60 group-hover:opacity-100"
@@ -315,7 +336,7 @@ export default function ListDetailPage(){
                             <GripVertical className="h-3.5 w-3.5" />
                           </span>
                         )}
-                        <div className="flex-1 min-w-0 truncate select-none text-foreground">
+                        <div className="flex-1 select-none text-foreground whitespace-normal break-words overflow-visible leading-tight">
                           {flexRender(h.column.columnDef.header, h.getContext())}
                         </div>
                       </div>
@@ -323,7 +344,7 @@ export default function ListDetailPage(){
                         <div
                           onMouseDown={h.getResizeHandler()}
                           onTouchStart={h.getResizeHandler()}
-                          className={cn('resizer', h.column.getIsResizing() && 'isResizing')}
+                          className={cn('resizer z-10', h.column.getIsResizing() && 'isResizing')}
                           role="separator"
                           aria-orientation="vertical"
                           aria-label={`Resize ${colId} column`}

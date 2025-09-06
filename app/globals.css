@@ -146,7 +146,7 @@ body.dark::-webkit-scrollbar-thumb { background: hsl(var(--border)); }
 }
 
 .resizer {
-  @apply absolute top-1/2 right-0 h-4/5 w-1.5 -translate-y-1/2 cursor-col-resize select-none touch-none rounded-full bg-white dark:bg-white/20 opacity-75 transition-all duration-200;
+  @apply absolute top-1/2 right-0 h-4/5 w-1 -translate-y-1/2 cursor-col-resize select-none touch-none rounded-full bg-white dark:bg-white/20 opacity-75 transition-all duration-200;
 }
 
 .resizer.isResizing,
