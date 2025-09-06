@@ -17,6 +17,7 @@ _Add new changes here (Added/Changed/Fixed/Deprecated) until the next version bu
 - Console Add To List: Progressive batch add with live progress bar for large product selections (chunked API posts) and error surface.
 - Data Presets page: Modern tabbed interface with search, pagination, per-category counts, bulk clear, and responsive grid layout for large datasets.
 - Lists: Dedicated Tags editor modal (Edit Tags button in edit mode) for uncluttered inline layout.
+- User Prefs: JSON file-backed persistence layer ensuring Data Presets & column settings survive dev/server restarts.
 
 ### Changed
 - Console Add To List dialog fieldset offering preset import checkboxes.
