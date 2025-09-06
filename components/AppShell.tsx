@@ -48,6 +48,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <>
                 {navLink('/app/console','Console')}
                 {navLink('/app/stores','Stores')}
+                {navLink('/app/data-presets','Data Presets')}
                 {navLink('/app/lists','Lists')}
               </>
             )}

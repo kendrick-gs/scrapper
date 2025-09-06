@@ -814,7 +814,7 @@ export default function ConsolePage() {
 
             {/* List Selection Dialog */}
             <Dialog open={listDialogOpen} onOpenChange={setListDialogOpen}>
-              <DialogContent size="panel">
+              <DialogContent size="medium">
                 <div className="px-5 pt-5 pb-4 border-b bg-gradient-to-b from-background to-background/70 sticky top-0 z-10">
                   <DialogHeader className="px-0 py-0">
                     <DialogTitle>Add Selected Products To List</DialogTitle>
@@ -837,26 +837,51 @@ export default function ConsolePage() {
                   {selectedListId === '__new__' && (
                     <Input className="h-10 w-full text-sm placeholder:text-muted-foreground" placeholder="New list name" value={newListName} onChange={e=>setNewListName(e.target.value)} />
                   )}
-                  <div className="flex justify-end gap-2 pt-4">
-                    <Button variant="outline" onClick={() => setListDialogOpen(false)}>Cancel</Button>
-                    <Button size="sm" disabled={selectedCount === 0 || (!selectedListId || (selectedListId === '__new__' && !newListName.trim()))} onClick={async () => {
-                  let targetListId = selectedListId;
-                  if (targetListId === '__new__') {
-                    if (!newListName.trim()) return;
-                    const r = await fetch('/api/lists', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: newListName }) });
-                    const d = await r.json();
-                    targetListId = d.list?.id;
-                    setLists(prev => [...prev, d.list]);
-                    setSelectedListId(targetListId);
-                    setNewListName('');
-                  }
-                  if (!targetListId) return;
-                  // Collect selected products across ALL pages using selectedProductIds instead of visible table rows only
-                  const productsToAdd = allTopLevelFiltered.filter((p: any) => selectedProductIds.has(String(p.id)));
-                  await fetch(`/api/lists/${targetListId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ products: productsToAdd }) });
-                  setRowSelection({});
-                   setListDialogOpen(false);
-                }}>Add To List</Button>
+                  <div className="space-y-4 pt-2">
+                    <fieldset className="border rounded-md p-3 space-y-2">
+                      <legend className="text-xs font-medium px-1">Import field values to Data Presets</legend>
+                      <div className="flex flex-col gap-1 text-xs">
+                        <label className="flex items-center gap-2"><input type="checkbox" className="scale-90" id="import-vendor" /> <span>Vendors</span></label>
+                        <label className="flex items-center gap-2"><input type="checkbox" className="scale-90" id="import-type" /> <span>Product Types</span></label>
+                        <label className="flex items-center gap-2"><input type="checkbox" className="scale-90" id="import-tags" /> <span>Tags</span></label>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">Checked sets will merge unique values from selected products into your account presets.</p>
+                    </fieldset>
+                    <div className="flex justify-end gap-2">
+                      <Button variant="outline" onClick={() => setListDialogOpen(false)}>Cancel</Button>
+                      <Button size="sm" disabled={selectedCount === 0 || (!selectedListId || (selectedListId === '__new__' && !newListName.trim()))} onClick={async () => {
+                    let targetListId = selectedListId;
+                    if (targetListId === '__new__') {
+                      if (!newListName.trim()) return;
+                      const r = await fetch('/api/lists', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: newListName }) });
+                      const d = await r.json();
+                      targetListId = d.list?.id;
+                      setLists(prev => [...prev, d.list]);
+                      setSelectedListId(targetListId);
+                      setNewListName('');
+                    }
+                    if (!targetListId) return;
+                    const productsToAdd = allTopLevelFiltered.filter((p: any) => selectedProductIds.has(String(p.id)));
+                    await fetch(`/api/lists/${targetListId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ products: productsToAdd }) });
+                    try {
+                      const importVendors = (document.getElementById('import-vendor') as HTMLInputElement)?.checked;
+                      const importTypes = (document.getElementById('import-type') as HTMLInputElement)?.checked;
+                      const importTags = (document.getElementById('import-tags') as HTMLInputElement)?.checked;
+                      if(importVendors || importTypes || importTags){
+                        const prefsRes = await fetch('/api/user/prefs');
+                        const prefsData = await prefsRes.json();
+                        const current = prefsData.prefs?.dataPresets || { vendors:[], productTypes:[], tags:[] };
+                        const next = { ...current } as any;
+                        if(importVendors){ const set = new Set<string>(current.vendors||[]); productsToAdd.forEach((p:any)=>{ const v=(p.vendor||'').trim(); if(v) set.add(v); }); next.vendors = Array.from(set).sort((a:string,b:string)=>a.localeCompare(b)); }
+                        if(importTypes){ const set = new Set<string>(current.productTypes||[]); productsToAdd.forEach((p:any)=>{ const v=(p.product_type||'').trim(); if(v) set.add(v); }); next.productTypes = Array.from(set).sort((a:string,b:string)=>a.localeCompare(b)); }
+                        if(importTags){ const set = new Set<string>(current.tags||[]); productsToAdd.forEach((p:any)=>{ let tags=p.tags; let arr: string[] = Array.isArray(tags)? tags : typeof tags==='string'? tags.split(',').map((t:string)=>t.trim()).filter(Boolean): []; arr.forEach((t:string)=> set.add(t)); }); next.tags = Array.from(set).sort((a:string,b:string)=>a.localeCompare(b)); }
+                        await fetch('/api/user/prefs',{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ dataPresets: next }) });
+                      }
+                    } catch {/* ignore */}
+                    setRowSelection({});
+                    setListDialogOpen(false);
+                  }}>Add To List</Button>
+                    </div>
                   </div>
                 </div>
               </DialogContent>
