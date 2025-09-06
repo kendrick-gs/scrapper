@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { MultiSelect } from '@/components/ui/multi-select';
 import { cn } from '@/lib/utils';
 import { columns as baseColumns, ProductRowData, isVariant } from '@/components/pages/columns';
-import { ArrowUpRight, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-react';
+import { ArrowUpRight, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, GripVertical } from 'lucide-react';
 import { useReactTable, getCoreRowModel, getExpandedRowModel, getSortedRowModel, flexRender, SortingState, ColumnSizingState, ExpandedState } from '@tanstack/react-table';
 
 interface ListItemProduct { id?: string|number; handle: string; title: string; vendor?: string; product_type?: string; variants?: any[]; body_html?: string; seo_title?: string; seo_description?: string; [k:string]: any }
@@ -48,6 +48,8 @@ export default function ListDetailPage(){
   const [expanded,setExpanded]=useState<ExpandedState>({});
   const [rowSelection,setRowSelection]=useState({});
   const [columnVisibility,setColumnVisibility]=useState<any>({ option:false });
+  const [columnOrder,setColumnOrder]=useState<string[]>([]);
+  const COLUMN_ORDER_KEY = 'list_column_order_v1';
 
   const load=async()=>{ if(!id) return; setLoading(true); setError(''); try{ const r=await fetch(`/api/lists/${id}`); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Failed to load list'); if(!d.list){ setError('List not found'); setList(null);} else { setList(d.list); setLocalItems(d.list.items||[]);} } catch(e:any){ setError(e.message||'Failed to load'); } finally{ setLoading(false);} };
   useEffect(()=>{ load(); },[id]);
@@ -130,7 +132,33 @@ export default function ListDetailPage(){
   const saveEdits=async()=>{ if(!list || dirtyMap.size===0) return; setPending(true); try{ const updates:any[]=[]; for(const [h,p] of dirtyMap.entries()){ updates.push({ handle:h, data: JSON.parse(p) }); } const r=await fetch(`/api/lists/${list.id}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ updates })}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Save failed'); setList(d.list); setLocalItems(d.list.items||[]); dirtyMap.clear(); setEditMode(false);} catch(e:any){ alert(e.message||'Save failed'); } finally{ setPending(false);} };
 
   // Build table
-  const table = useReactTable({ data: pageProducts as ProductRowData[], columns: extendedColumns as any, state:{ sorting,columnSizing,expanded,rowSelection,columnVisibility }, onSortingChange:setSorting, onExpandedChange:setExpanded, onColumnSizingChange:setColumnSizing, onRowSelectionChange:setRowSelection, onColumnVisibilityChange:setColumnVisibility, getCoreRowModel:getCoreRowModel(), getSortedRowModel:getSortedRowModel(), getExpandedRowModel:getExpandedRowModel(), columnResizeMode:'onChange', getRowId:(row:any)=> isVariant(row)? `variant-${row.id}`: `product-${row.id}`, getSubRows:(original:ProductRowData)=>{ if(!isVariant(original) && original.variants?.length>1 && original.variants[0].title!=='Default Title'){ return original.variants; } return undefined; }, autoResetPageIndex:false, enableRowSelection:true });
+  // Initialize column order from localStorage or current columns
+  useEffect(()=>{
+    if(!extendedColumns) return;
+    const allIds = (extendedColumns as any[]).map(c=> c.id || c.accessorKey).filter(Boolean);
+    if(columnOrder.length===0){
+      try { const saved = JSON.parse(localStorage.getItem(COLUMN_ORDER_KEY)||'[]'); if(Array.isArray(saved) && saved.length){
+        const merged = [...saved.filter((id:string)=> allIds.includes(id)), ...allIds.filter(id=> !saved.includes(id))];
+        setColumnOrder(merged);
+        return;
+      }} catch { /* ignore */ }
+      setColumnOrder(allIds);
+      return;
+    }
+    // Ensure any new columns appended
+    const next = [...columnOrder.filter(id=> allIds.includes(id)), ...allIds.filter(id=> !columnOrder.includes(id))];
+    if(next.length!==columnOrder.length) setColumnOrder(next);
+  },[extendedColumns]);
+
+  useEffect(()=>{ if(columnOrder) localStorage.setItem(COLUMN_ORDER_KEY, JSON.stringify(columnOrder)); },[columnOrder]);
+
+  const table = useReactTable({ data: pageProducts as ProductRowData[], columns: extendedColumns as any, state:{ sorting,columnSizing,expanded,rowSelection,columnVisibility, columnOrder }, onSortingChange:setSorting, onExpandedChange:setExpanded, onColumnSizingChange:setColumnSizing, onRowSelectionChange:setRowSelection, onColumnVisibilityChange:setColumnVisibility, onColumnOrderChange:setColumnOrder, getCoreRowModel:getCoreRowModel(), getSortedRowModel:getSortedRowModel(), getExpandedRowModel:getExpandedRowModel(), columnResizeMode:'onChange', getRowId:(row:any)=> isVariant(row)? `variant-${row.id}`: `product-${row.id}`, getSubRows:(original:ProductRowData)=>{ if(!isVariant(original) && original.variants?.length>1 && original.variants[0].title!=='Default Title'){ return original.variants; } return undefined; }, autoResetPageIndex:false, enableRowSelection:true });
+
+  const dragState = useRef<{src:string|null}>({src:null});
+  const handleDragStart = (id:string)=> (e:React.DragEvent)=> { dragState.current.src=id; e.dataTransfer.setData('text/col', id); e.dataTransfer.effectAllowed='move'; };
+  const handleDragOver = (id:string)=> (e:React.DragEvent)=> { if(!dragState.current.src || dragState.current.src===id) return; e.preventDefault(); e.dataTransfer.dropEffect='move'; };
+  const handleDrop = (id:string)=> (e:React.DragEvent)=> { e.preventDefault(); const src=dragState.current.src|| e.dataTransfer.getData('text/col'); dragState.current.src=null; if(!src|| src===id) return; setColumnOrder(prev=>{ if(!prev) return prev; const next = prev.filter(c=>c!==src); const idx = next.indexOf(id); if(idx===-1){ next.push(src); } else { next.splice(idx,0,src); } return [...next]; }); };
+  const reorderable = (colId:string)=> !['select','view'].includes(colId);
 
   // Store lists for filters
   const availableStores = useMemo(()=>{ const s=new Set<string>(); allProducts.forEach(p=>{ if(p.__storeHost) s.add(p.__storeHost); }); return Array.from(s).sort(); },[allProducts]);
@@ -206,7 +234,21 @@ export default function ListDetailPage(){
         </div>
         <div className="overflow-auto" ref={tableScrollRef}>
           <Table className="w-full" style={{width: table.getTotalSize()}}>
-            <TableHeader>{table.getHeaderGroups().map(hg=> <TableRow key={hg.id} className="bg-gray-200 dark:bg-gray-800/70">{hg.headers.map(h=>{ const size=h.getSize(); return (<TableHead key={h.id} style={{width:size,minWidth:size,maxWidth:size}} className="relative px-4 border-r last:border-r-0 border-l [&:first-child]:border-l-0">{flexRender(h.column.columnDef.header, h.getContext())}{h.column.getCanResize() && (<div onMouseDown={h.getResizeHandler()} onTouchStart={h.getResizeHandler()} className={cn('resizer', h.column.getIsResizing() && 'isResizing')} />)}</TableHead>); })}</TableRow>)}</TableHeader>
+            <TableHeader>{table.getHeaderGroups().map(hg=> <TableRow key={hg.id} className="bg-gray-200 dark:bg-gray-800/70">{hg.headers.map(h=>{ const size=h.getSize(); const colId = h.column.id; const idAttr = h.id; const draggable = reorderable(colId); return (<TableHead
+                  key={idAttr}
+                  style={{width:size,minWidth:size,maxWidth:size}}
+                  className={cn('relative px-4 border-r last:border-r-0 border-l [&:first-child]:border-l-0 group', draggable && 'cursor-move')}
+                  draggable={draggable}
+                  onDragStart={draggable? handleDragStart(colId):undefined}
+                  onDragOver={draggable? handleDragOver(colId):undefined}
+                  onDrop={draggable? handleDrop(colId):undefined}
+                >
+                  <div className="flex items-center gap-2">
+                    {draggable && <GripVertical className="h-3.5 w-3.5 text-muted-foreground opacity-60 group-hover:opacity-100 flex-none" />}
+                    <div className="flex-1 min-w-0 truncate">{flexRender(h.column.columnDef.header, h.getContext())}</div>
+                  </div>
+                  {h.column.getCanResize() && (<div onMouseDown={h.getResizeHandler()} onTouchStart={h.getResizeHandler()} className={cn('resizer', h.column.getIsResizing() && 'isResizing')} />)}
+                </TableHead>); })}</TableRow>)}</TableHeader>
             <TableBody>{loading? (<TableRow><TableCell colSpan={table.getAllColumns().length} className="p-6 text-sm text-muted-foreground">Loading products…</TableCell></TableRow>): table.getRowModel().rows.map(row=> (<TableRow key={row.id} data-rowid={row.id} data-state={row.getIsSelected() && 'selected'} className="dark:bg-background border-b last:border-b-0">{row.getVisibleCells().map(cell=>{ const cSize=cell.column.getSize(); return (<TableCell key={cell.id} style={{width:cSize,minWidth:cSize,maxWidth:cSize}} className="p-4 align-middle border-r last:border-r-0 border-l [&:first-child]:border-l-0">{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>); })}</TableRow>))}</TableBody>
           </Table>
         </div>
