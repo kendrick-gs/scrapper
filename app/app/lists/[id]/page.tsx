@@ -243,18 +243,36 @@ export default function ListDetailPage(){
             <TableHeader>{table.getHeaderGroups().map(hg=> <TableRow key={hg.id} className="bg-gray-200 dark:bg-gray-800/70">{hg.headers.map(h=>{ const size=h.getSize(); const colId = h.column.id; const idAttr = h.id; const draggable = reorderable(colId); return (<TableHead
                   key={idAttr}
                   style={{width:size,minWidth:size,maxWidth:size}}
-                  className={cn('relative px-4 border-r last:border-r-0 border-l [&:first-child]:border-l-0 group', draggable && 'cursor-move', dragOverId.current===colId && 'before:absolute before:inset-y-0 before:-left-[2px] before:w-1 before:bg-brand-green before:rounded-full')}
-                  draggable={draggable}
-                  onDragStart={draggable? handleDragStart(colId):undefined}
+                  className={cn('relative px-2 sm:px-4 border-r last:border-r-0 border-l [&:first-child]:border-l-0 group', dragOverId.current===colId && 'before:absolute before:inset-y-0 before:-left-[2px] before:w-1 before:bg-brand-green before:rounded-full')}
                   onDragOver={draggable? handleDragOver(colId):undefined}
                   onDragLeave={draggable? handleDragLeave(colId):undefined}
                   onDrop={draggable? handleDrop(colId):undefined}
                 >
                   <div className="flex items-center gap-2">
-                    {draggable && <GripVertical className="h-3.5 w-3.5 text-muted-foreground opacity-60 group-hover:opacity-100 flex-none" />}
-                    <div className="flex-1 min-w-0 truncate">{flexRender(h.column.columnDef.header, h.getContext())}</div>
+                    {draggable && (
+                      <span
+                        className="flex items-center justify-center h-4 w-4 cursor-grab active:cursor-grabbing text-muted-foreground opacity-60 group-hover:opacity-100"
+                        draggable
+                        onDragStart={handleDragStart(colId)}
+                        aria-label="Drag column"
+                      >
+                        <GripVertical className="h-3.5 w-3.5" />
+                      </span>
+                    )}
+                    <div className="flex-1 min-w-0 truncate select-none">
+                      {flexRender(h.column.columnDef.header, h.getContext())}
+                    </div>
                   </div>
-                  {h.column.getCanResize() && (<div onMouseDown={h.getResizeHandler()} onTouchStart={h.getResizeHandler()} className={cn('resizer', h.column.getIsResizing() && 'isResizing')} />)}
+                  {h.column.getCanResize() && (
+                    <div
+                      onMouseDown={h.getResizeHandler()}
+                      onTouchStart={h.getResizeHandler()}
+                      className={cn('resizer', h.column.getIsResizing() && 'isResizing')}
+                      role="separator"
+                      aria-orientation="vertical"
+                      aria-label={`Resize ${colId} column`}
+                    />
+                  )}
                 </TableHead>); })}</TableRow>)}</TableHeader>
             <TableBody>{loading? (<TableRow><TableCell colSpan={table.getAllColumns().length} className="p-6 text-sm text-muted-foreground">Loading products…</TableCell></TableRow>): table.getRowModel().rows.map(row=> (<TableRow key={row.id} data-rowid={row.id} data-state={row.getIsSelected() && 'selected'} className="dark:bg-background border-b last:border-b-0">{row.getVisibleCells().map(cell=>{ const cSize=cell.column.getSize(); return (<TableCell key={cell.id} style={{width:cSize,minWidth:cSize,maxWidth:cSize}} className="p-4 align-middle border-r last:border-r-0 border-l [&:first-child]:border-l-0">{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>); })}</TableRow>))}</TableBody>
           </Table>
