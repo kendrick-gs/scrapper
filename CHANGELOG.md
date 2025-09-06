@@ -7,50 +7,65 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-_Add new changes here (Added/Changed/Fixed/Deprecated) until the next version bump. Do not edit past release sections; when releasing, move the accumulated Unreleased entries into a new versioned section and reset placeholders._
+_Add new changes here (Added/Changed/Fixed/Deprecated) until the next version bump. Keep one placeholder bullet per section._
 
 ### Added
 - (placeholder)
- - Console: Select All progress indicator (chunked selection with visual progress bar for large filtered sets).
- - Console: Multi-select filters for Stores, Vendors, and Product Types (replaces previous single-selects) with individual removable chips.
- - UI: Reusable `MultiSelect` component (accessible keyboard navigation, badges, clear-all) for tag-style filter selection.
- - MultiSelect: Sticky header with option count, Reset, and Done button for improved multi-selection UX.
- - Lists Page: Multi-select filters (Stores, Vendors, Product Types) aligned with Console page behavior & styling.
- - UI: Standardized wide dialog `panel` size variant (sticky header + scrollable body) added to dialog component.
+
+### Changed
+- (placeholder)
+
+### Fixed
+- (placeholder)
+
+### Deprecated
+- (placeholder)
+
+## [1.9.7] - 2025-09-06
+### Added
+- Console: Select All progress indicator (chunked selection with visual progress bar for large filtered sets).
+- Console: Multi-select filters for Stores, Vendors, and Product Types (replaces previous single-selects) with individual removable chips.
+- UI: Reusable `MultiSelect` component (accessible keyboard navigation, badges, clear-all) for tag-style filter selection.
+- MultiSelect: Sticky header with option count, Reset, and Done button for improved multi-selection UX.
+- Lists Page: Multi-select filters (Stores, Vendors, Product Types) aligned with Console page behavior & styling.
+- UI: Standardized wide dialog `panel` size variant (sticky header + scrollable body) added to dialog component.
+- Lists Page: Option column visibility persistence (local + server) with automatic restore.
+- Lists Page: Custom Option column header controls (collapse + sort) with internal spacer gutter.
 
 ### Changed
 - Console "Add To List" dialog now uses new medium dialog size variant for balanced width (was nearly full viewport).
 - Console Select All Products selects ALL filtered products across pages (not just current page) and disables itself once fully selected.
- - Add To List button count now reflects unique products (variants collapsed) with tooltip showing row vs product counts when different.
- - Console toolbar: "Clear" button renamed to "Clear Selection" for clarity.
- - Console filter toolbar refactored: supports multiple values per filter, updated clear/reset logic, collection filter disabled until at least one store is selected.
- - MultiSelect no longer auto-closes after each selection; user confirms via Done button or outside click.
- - MultiSelect trigger now shows single selected value or 'N Selected' instead of inline pills (improves compactness).
- - Console: removed duplicate inline "Clear Filters" button (single consolidated clear control retained below filters).
- - Cache Panel: modern responsive redesign (constrained width, padded scroll region, sticky header, refined table sizing & spacing).
- - Dialogs: Image viewer, All Images, Body HTML preview, Body HTML editor, Add To List now use unified panel layout (consistent max width, sticky header, internal padding) replacing ad-hoc max-w classes.
- - Lists Page: Toolbar now displays 'Filtered of Total' product counts (parity with Console) plus selected count.
- - Lists Page: Unified styling of Compare At, Cost, SEO Title, SEO Description columns; single Body HTML column now shows View/Edit button depending on mode.
- - Lists Page: Additional column headers now use native table header styling (removed custom span styles) for perfect alignment with core columns.
- - Lists Page: Drag-and-drop column reordering with persistence (localStorage), excluding selection & view columns.
- - Lists Page: Column drag target now shows vivid green insertion bar for precise drop positioning.
- - API: `/api/user/prefs` endpoint (temporary in-memory) for storing per-user preferences (column order groundwork).
- - Lists Page: Column size persistence (local + server) with Reset Sizes control.
-### Fixed
-- Lists Page: Column resize no longer unintentionally initiates drag; drag restricted to dedicated grip handle.
+- Add To List button count now reflects unique products (variants collapsed) with tooltip showing row vs product counts when different.
+- Console toolbar: "Clear" button renamed to "Clear Selection" for clarity.
+- Console filter toolbar refactored: supports multiple values per filter, updated clear/reset logic, collection filter disabled until at least one store is selected.
+- MultiSelect no longer auto-closes after each selection; user confirms via Done button or outside click.
+- MultiSelect trigger now shows single selected value or 'N Selected' instead of inline pills (improves compactness).
+- Console: removed duplicate inline "Clear Filters" button (single consolidated clear control retained below filters).
+- Cache Panel: modern responsive redesign (constrained width, padded scroll region, sticky header, refined table sizing & spacing).
+- Dialogs: Image viewer, All Images, Body HTML preview, Body HTML editor, Add To List now use unified panel layout (consistent max width, sticky header, internal padding) replacing ad-hoc max-w classes.
+- Lists Page: Toolbar now displays 'Filtered of Total' product counts (parity with Console) plus selected count.
+- Lists Page: Unified styling of Compare At, Cost, SEO Title, SEO Description columns; single Body HTML column now shows View/Edit button depending on mode.
+- Lists Page: Additional column headers now use native table header styling (removed custom span styles) for perfect alignment with core columns.
+- Lists Page: Drag-and-drop column reordering with persistence (localStorage), excluding selection & view columns.
+- Lists Page: Column drag target now shows vivid green insertion bar for precise drop positioning.
+- API: `/api/user/prefs` endpoint (temporary in-memory) for storing per-user preferences (column order groundwork).
+- Lists Page: Column size persistence (local + server) with Reset Sizes control.
+- Lists Page: Header min-width adjustments (Product Type, Updated At) & enforced single-line titles to prevent wrapping.
+- Lists Page: Standardized header internal spacing to eliminate icon/divider crowding.
 
 ### Fixed
-- (placeholder)
+- Lists Page: Column resize no longer unintentionally initiates drag; drag restricted to dedicated grip handle.
 - Console Select All Products logic now directly maps all filtered top-level products (tableData) ensuring count & disabled state stay accurate across pagination.
 - Select All now also selects variant rows where applicable & dialog gains description to resolve accessibility warning.
 - Force service worker version bump (v6) to ensure updated UI assets load for existing clients.
- - Add To List now includes ALL filtered products after Select All (previously only first page subset).
- - Console multi-select filters: resolved infinite render loop (Maximum update depth) by preventing redundant store filter normalization & deriving option lists from base dataset instead of already-filtered tableData.
- - Console filter toolbar alignment: removed redundant labels inside multi-select components for consistent vertical centering with single collection select.
- - Console multi-select: fixed duplicate key warnings by scoping collections to a single selected store; dropdown now closes on outside click & after each selection.
+- Add To List now includes ALL filtered products after Select All (previously only first page subset).
+- Console multi-select filters: resolved infinite render loop (Maximum update depth) by preventing redundant store filter normalization & deriving option lists from base dataset instead of already-filtered tableData.
+- Console filter toolbar alignment: removed redundant labels inside multi-select components for consistent vertical centering with single collection select.
+- Console multi-select: fixed duplicate key warnings by scoping collections to a single selected store; dropdown now closes on outside click & after each selection.
+- Lists Page: Option column header divider overlap resolved using fixed-width transparent spacer.
 
 ### Deprecated
-- (placeholder)
+- (none)
 
 ## [1.9.6] - 2025-09-05
 ### Added
@@ -201,7 +216,8 @@ _Add new changes here (Added/Changed/Fixed/Deprecated) until the next version bu
 
 ---
 
-[Unreleased]: https://github.com/kendrick-gs/scrapper/compare/v1.9.6...HEAD
+[Unreleased]: https://github.com/kendrick-gs/scrapper/compare/v1.9.7...HEAD
+[1.9.7]: https://github.com/kendrick-gs/scrapper/compare/v1.9.6...v1.9.7
 [1.9.6]: https://github.com/kendrick-gs/scrapper/compare/v1.9.5...v1.9.6
 [1.9.5]: https://github.com/kendrick-gs/scrapper/compare/v1.9.4...v1.9.5
 [1.9.4]: https://github.com/kendrick-gs/scrapper/compare/v1.9.3...v1.9.4
