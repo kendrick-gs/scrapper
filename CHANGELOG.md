@@ -35,6 +35,7 @@ _Add new changes here (Added/Changed/Fixed/Deprecated) until the next version bu
  - Lists Page: Drag-and-drop column reordering with persistence (localStorage), excluding selection & view columns.
  - Lists Page: Column drag target now shows vivid green insertion bar for precise drop positioning.
  - API: `/api/user/prefs` endpoint (temporary in-memory) for storing per-user preferences (column order groundwork).
+ - Lists Page: Column size persistence (local + server) with Reset Sizes control.
 ### Fixed
 - Lists Page: Column resize no longer unintentionally initiates drag; drag restricted to dedicated grip handle.
 

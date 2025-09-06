@@ -51,8 +51,10 @@ export default function ListDetailPage(){
   const [columnVisibility,setColumnVisibility]=useState<any>({ option:false });
   const [columnOrder,setColumnOrder]=useState<string[]>([]);
   const COLUMN_ORDER_KEY = 'list_column_order_v1';
+  const COLUMN_SIZING_KEY = 'list_column_sizing_v1';
   const { user } = useAuthStore();
   const saveServerColumnOrder = async (order:string[])=>{ try { if(!user) return; await fetch('/api/user/prefs', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ columnOrder: order }) }); } catch {/* ignore */} };
+  const saveServerColumnSizing = async (sizes:Record<string,number>)=>{ try { if(!user) return; await fetch('/api/user/prefs', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ listColumnSizing: sizes }) }); } catch {/* ignore */} };
 
   const load=async()=>{ if(!id) return; setLoading(true); setError(''); try{ const r=await fetch(`/api/lists/${id}`); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Failed to load list'); if(!d.list){ setError('List not found'); setList(null);} else { setList(d.list); setLocalItems(d.list.items||[]);} } catch(e:any){ setError(e.message||'Failed to load'); } finally{ setLoading(false);} };
   useEffect(()=>{ load(); },[id]);
@@ -154,6 +156,24 @@ export default function ListDetailPage(){
   },[extendedColumns]);
 
   useEffect(()=>{ if(columnOrder){ localStorage.setItem(COLUMN_ORDER_KEY, JSON.stringify(columnOrder)); saveServerColumnOrder(columnOrder);} },[columnOrder]);
+  // Load sizing from server/localStorage once
+  useEffect(()=>{
+    (async()=>{
+      try {
+        const ls = localStorage.getItem(COLUMN_SIZING_KEY);
+        if(ls){ const parsed = JSON.parse(ls); if(parsed && typeof parsed==='object') setColumnSizing(parsed); }
+        const res = await fetch('/api/user/prefs');
+        if(res.ok){ const d=await res.json(); if(d.prefs?.listColumnSizing){ setColumnSizing(d.prefs.listColumnSizing); localStorage.setItem(COLUMN_SIZING_KEY, JSON.stringify(d.prefs.listColumnSizing)); } }
+      } catch {/* ignore */}
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[]);
+  // Persist sizing (debounced)
+  const sizingDebounce = useRef<NodeJS.Timeout|null>(null);
+  useEffect(()=>{
+    if(sizingDebounce.current) clearTimeout(sizingDebounce.current);
+    sizingDebounce.current = setTimeout(()=>{ localStorage.setItem(COLUMN_SIZING_KEY, JSON.stringify(columnSizing)); saveServerColumnSizing(columnSizing as any); },400);
+  },[columnSizing]);
 
   const table = useReactTable({ data: pageProducts as ProductRowData[], columns: extendedColumns as any, state:{ sorting,columnSizing,expanded,rowSelection,columnVisibility, columnOrder }, onSortingChange:setSorting, onExpandedChange:setExpanded, onColumnSizingChange:setColumnSizing, onRowSelectionChange:setRowSelection, onColumnVisibilityChange:setColumnVisibility, onColumnOrderChange:setColumnOrder, getCoreRowModel:getCoreRowModel(), getSortedRowModel:getSortedRowModel(), getExpandedRowModel:getExpandedRowModel(), columnResizeMode:'onChange', getRowId:(row:any)=> isVariant(row)? `variant-${row.id}`: `product-${row.id}`, getSubRows:(original:ProductRowData)=>{ if(!isVariant(original) && original.variants?.length>1 && original.variants[0].title!=='Default Title'){ return original.variants; } return undefined; }, autoResetPageIndex:false, enableRowSelection:true });
 
@@ -243,12 +263,13 @@ export default function ListDetailPage(){
             <TableHeader>{table.getHeaderGroups().map(hg=> <TableRow key={hg.id} className="bg-gray-200 dark:bg-gray-800/70">{hg.headers.map(h=>{ const size=h.getSize(); const colId = h.column.id; const idAttr = h.id; const draggable = reorderable(colId); return (<TableHead
                   key={idAttr}
                   style={{width:size,minWidth:size,maxWidth:size}}
-                  className={cn('relative px-2 sm:px-4 border-r last:border-r-0 border-l [&:first-child]:border-l-0 group', dragOverId.current===colId && 'before:absolute before:inset-y-0 before:-left-[2px] before:w-1 before:bg-brand-green before:rounded-full')}
+                      className={cn('relative px-2 sm:px-4 border-r last:border-r-0 border-l [&:first-child]:border-l-0 group [&_button]:!text-foreground [&_button:hover]:!text-foreground [&_button]:!opacity-100', dragOverId.current===colId && 'before:absolute before:inset-y-0 before:-left-[2px] before:w-1 before:bg-brand-green before:rounded-full')}
                   onDragOver={draggable? handleDragOver(colId):undefined}
                   onDragLeave={draggable? handleDragLeave(colId):undefined}
                   onDrop={draggable? handleDrop(colId):undefined}
                 >
                   <div className="flex items-center gap-2">
+          {selectedCount>0 && <Button size="sm" variant="link" className="font-semibold" onClick={()=>{ setColumnSizing({}); localStorage.removeItem(COLUMN_SIZING_KEY); saveServerColumnSizing({}); }}>Reset Sizes</Button>}
                     {draggable && (
                       <span
                         className="flex items-center justify-center h-4 w-4 cursor-grab active:cursor-grabbing text-muted-foreground opacity-60 group-hover:opacity-100"
