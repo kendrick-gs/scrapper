@@ -174,7 +174,15 @@ export default function ListDetailPage(){
           {selectedCount>0 && <Button size="sm" variant="link" className="font-semibold" onClick={()=> setRowSelection({})}>Deselect</Button>}
           {selectedCount>0 && <Button size="sm" variant="destructive" onClick={async()=>{ if(!list) return; const ok = await confirmModal({ title: 'Remove Products', description: `Remove ${selectedCount} selected product${selectedCount>1?'s':''} from this list?`, confirmText: 'Remove', processingText: 'Removing…', variant: 'destructive', onConfirm: async ()=>{ const selected = table.getSelectedRowModel().rows.map(r=>{ const prod:any = isVariant(r.original)? (r.getParentRow()?.original): r.original; return prod.handle; }); const handles=[...new Set(selected)]; const res=await fetch(`/api/lists/${list.id}?handles=${encodeURIComponent(handles.join(','))}`, { method:'DELETE' }); const d=await res.json(); if(res.ok){ setList(d.list); setLocalItems(d.list.items||[]); setRowSelection({}); } else { throw new Error(d.error||'Remove failed'); } } }); if(!ok) return; }}>Remove From List</Button>}
           {table.getState().sorting.length>0 && <Button variant="link" className="font-semibold" onClick={()=>table.resetSorting()}>Reset Sort</Button>}
-          <div className="ml-auto flex items-center gap-3 text-xs sm:text-sm text-muted-foreground font-medium"><span><span className="text-foreground font-semibold tabular-nums">{filteredProducts.length}</span> Products</span>{selectedCount>0 && <span><span className="text-foreground font-semibold tabular-nums">{selectedCount}</span> selected</span>}</div>
+          <div className="ml-auto flex items-center gap-3 text-xs sm:text-sm text-muted-foreground font-medium" title={`Filtered products: ${filteredProducts.length}`}>
+            <span>
+              <span className="text-foreground font-semibold tabular-nums">{filteredProducts.length}</span>
+              {` of Total `}
+              <span className="text-foreground font-semibold tabular-nums">{allProducts.length}</span>
+              {` Products`}
+            </span>
+            {selectedCount>0 && <span><span className="text-foreground font-semibold tabular-nums">{selectedCount}</span> selected</span>}
+          </div>
         </div>
         <div className="overflow-auto" ref={tableScrollRef}>
           <Table className="w-full" style={{width: table.getTotalSize()}}>
