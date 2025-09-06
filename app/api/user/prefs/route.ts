@@ -5,13 +5,14 @@ import { NextRequest, NextResponse } from 'next/server';
 const memoryStore: Record<string, any> = {};
 
 export async function GET(req: NextRequest) {
-  const email = req.headers.get('x-user-email');
+  // Primary: header injected by middleware. Fallback: direct cookie (in case middleware misconfigured in dev).
+  const email = req.headers.get('x-user-email') || req.cookies.get('auth_email')?.value;
   if(!email) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });
   return NextResponse.json({ prefs: memoryStore[email] || {} });
 }
 
 export async function POST(req: NextRequest) {
-  const email = req.headers.get('x-user-email');
+  const email = req.headers.get('x-user-email') || req.cookies.get('auth_email')?.value;
   if(!email) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });
   const body = await req.json();
   memoryStore[email] = { ...(memoryStore[email]||{}), ...body };

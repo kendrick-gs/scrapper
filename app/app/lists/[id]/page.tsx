@@ -50,6 +50,7 @@ export default function ListDetailPage(){
   const [rowSelection,setRowSelection]=useState({});
   const [columnVisibility,setColumnVisibility]=useState<any>({ option:false });
   const [columnOrder,setColumnOrder]=useState<string[]>([]);
+   const initialOrderRef = useRef<string[]|null>(null);
   const COLUMN_ORDER_KEY = 'list_column_order_v1';
   const COLUMN_SIZING_KEY = 'list_column_sizing_v1';
   const { user } = useAuthStore();
@@ -155,7 +156,7 @@ export default function ListDetailPage(){
     if(next.length!==columnOrder.length) setColumnOrder(next);
   },[extendedColumns]);
 
-  useEffect(()=>{ if(columnOrder){ localStorage.setItem(COLUMN_ORDER_KEY, JSON.stringify(columnOrder)); saveServerColumnOrder(columnOrder);} },[columnOrder]);
+  useEffect(()=>{ if(columnOrder){ if(!initialOrderRef.current) initialOrderRef.current = columnOrder; localStorage.setItem(COLUMN_ORDER_KEY, JSON.stringify(columnOrder)); saveServerColumnOrder(columnOrder);} },[columnOrder]);
   // Load sizing from server/localStorage once
   useEffect(()=>{
     (async()=>{
@@ -248,6 +249,8 @@ export default function ListDetailPage(){
           {selectedCount>0 && <Button size="sm" variant="link" className="font-semibold" onClick={()=> setRowSelection({})}>Deselect</Button>}
           {selectedCount>0 && <Button size="sm" variant="destructive" onClick={async()=>{ if(!list) return; const ok = await confirmModal({ title: 'Remove Products', description: `Remove ${selectedCount} selected product${selectedCount>1?'s':''} from this list?`, confirmText: 'Remove', processingText: 'Removing…', variant: 'destructive', onConfirm: async ()=>{ const selected = table.getSelectedRowModel().rows.map(r=>{ const prod:any = isVariant(r.original)? (r.getParentRow()?.original): r.original; return prod.handle; }); const handles=[...new Set(selected)]; const res=await fetch(`/api/lists/${list.id}?handles=${encodeURIComponent(handles.join(','))}`, { method:'DELETE' }); const d=await res.json(); if(res.ok){ setList(d.list); setLocalItems(d.list.items||[]); setRowSelection({}); } else { throw new Error(d.error||'Remove failed'); } } }); if(!ok) return; }}>Remove From List</Button>}
           {table.getState().sorting.length>0 && <Button variant="link" className="font-semibold" onClick={()=>table.resetSorting()}>Reset Sort</Button>}
+          <Button size="sm" variant="link" className="font-semibold" onClick={()=>{ setColumnSizing({}); localStorage.removeItem(COLUMN_SIZING_KEY); saveServerColumnSizing({}); }}>Reset Sizes</Button>
+          <Button size="sm" variant="link" className="font-semibold" onClick={()=>{ if(initialOrderRef.current){ setColumnOrder(initialOrderRef.current); } }}>Reset Order</Button>
           <div className="ml-auto flex items-center gap-3 text-xs sm:text-sm text-muted-foreground font-medium" title={`Filtered products: ${filteredProducts.length}`}>
             <span>
               <span className="text-foreground font-semibold tabular-nums">{filteredProducts.length}</span>
@@ -260,41 +263,52 @@ export default function ListDetailPage(){
         </div>
         <div className="overflow-auto" ref={tableScrollRef}>
           <Table className="w-full" style={{width: table.getTotalSize()}}>
-            <TableHeader>{table.getHeaderGroups().map(hg=> <TableRow key={hg.id} className="bg-gray-200 dark:bg-gray-800/70">{hg.headers.map(h=>{ const size=h.getSize(); const colId = h.column.id; const idAttr = h.id; const draggable = reorderable(colId); return (<TableHead
-                  key={idAttr}
-                  style={{width:size,minWidth:size,maxWidth:size}}
+            <TableHeader>{table.getHeaderGroups().map(hg=> (
+              <TableRow key={hg.id} className="bg-gray-200 dark:bg-gray-800/70">
+                {hg.headers.map(h=>{
+                  const size=h.getSize();
+                  const colId = h.column.id;
+                  const idAttr = h.id;
+                  const draggable = reorderable(colId);
+                  return (
+                    <TableHead
+                      key={idAttr}
+                      style={{width:size,minWidth:size,maxWidth:size}}
                       className={cn('relative px-2 sm:px-4 border-r last:border-r-0 border-l [&:first-child]:border-l-0 group [&_button]:!text-foreground [&_button:hover]:!text-foreground [&_button]:!opacity-100', dragOverId.current===colId && 'before:absolute before:inset-y-0 before:-left-[2px] before:w-1 before:bg-brand-green before:rounded-full')}
-                  onDragOver={draggable? handleDragOver(colId):undefined}
-                  onDragLeave={draggable? handleDragLeave(colId):undefined}
-                  onDrop={draggable? handleDrop(colId):undefined}
-                >
-                  <div className="flex items-center gap-2">
-          {selectedCount>0 && <Button size="sm" variant="link" className="font-semibold" onClick={()=>{ setColumnSizing({}); localStorage.removeItem(COLUMN_SIZING_KEY); saveServerColumnSizing({}); }}>Reset Sizes</Button>}
-                    {draggable && (
-                      <span
-                        className="flex items-center justify-center h-4 w-4 cursor-grab active:cursor-grabbing text-muted-foreground opacity-60 group-hover:opacity-100"
-                        draggable
-                        onDragStart={handleDragStart(colId)}
-                        aria-label="Drag column"
-                      >
-                        <GripVertical className="h-3.5 w-3.5" />
-                      </span>
-                    )}
-                    <div className="flex-1 min-w-0 truncate select-none">
-                      {flexRender(h.column.columnDef.header, h.getContext())}
-                    </div>
-                  </div>
-                  {h.column.getCanResize() && (
-                    <div
-                      onMouseDown={h.getResizeHandler()}
-                      onTouchStart={h.getResizeHandler()}
-                      className={cn('resizer', h.column.getIsResizing() && 'isResizing')}
-                      role="separator"
-                      aria-orientation="vertical"
-                      aria-label={`Resize ${colId} column`}
-                    />
-                  )}
-                </TableHead>); })}</TableRow>)}</TableHeader>
+                      onDragOver={draggable? handleDragOver(colId):undefined}
+                      onDragLeave={draggable? handleDragLeave(colId):undefined}
+                      onDrop={draggable? handleDrop(colId):undefined}
+                    >
+                      <div className="flex items-center gap-2">
+                        {draggable && (
+                          <span
+                            className="flex items-center justify-center h-4 w-4 cursor-grab active:cursor-grabbing text-muted-foreground opacity-60 group-hover:opacity-100"
+                            draggable
+                            onDragStart={handleDragStart(colId)}
+                            aria-label="Drag column"
+                          >
+                            <GripVertical className="h-3.5 w-3.5" />
+                          </span>
+                        )}
+                        <div className="flex-1 min-w-0 truncate select-none">
+                          {flexRender(h.column.columnDef.header, h.getContext())}
+                        </div>
+                      </div>
+                      {h.column.getCanResize() && (
+                        <div
+                          onMouseDown={h.getResizeHandler()}
+                          onTouchStart={h.getResizeHandler()}
+                          className={cn('resizer', h.column.getIsResizing() && 'isResizing')}
+                          role="separator"
+                          aria-orientation="vertical"
+                          aria-label={`Resize ${colId} column`}
+                        />
+                      )}
+                    </TableHead>
+                  );
+                })}
+              </TableRow>
+            ))}</TableHeader>
             <TableBody>{loading? (<TableRow><TableCell colSpan={table.getAllColumns().length} className="p-6 text-sm text-muted-foreground">Loading products…</TableCell></TableRow>): table.getRowModel().rows.map(row=> (<TableRow key={row.id} data-rowid={row.id} data-state={row.getIsSelected() && 'selected'} className="dark:bg-background border-b last:border-b-0">{row.getVisibleCells().map(cell=>{ const cSize=cell.column.getSize(); return (<TableCell key={cell.id} style={{width:cSize,minWidth:cSize,maxWidth:cSize}} className="p-4 align-middle border-r last:border-r-0 border-l [&:first-child]:border-l-0">{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>); })}</TableRow>))}</TableBody>
           </Table>
         </div>
