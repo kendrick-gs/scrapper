@@ -299,7 +299,7 @@ export default function ListDetailPage(){
                     <TableHead
                       key={idAttr}
                       style={{width:size,minWidth:size,maxWidth:size}}
-                      className={cn('relative px-1.5 sm:px-2 border-r last:border-r-0 border-l [&:first-child]:border-l-0 group [&[data-sort-button]]:!text-foreground [&_button]:!text-foreground [&_button:hover]:!text-foreground [&_button]:!opacity-100 [&_*]:!text-foreground', dragOverId.current===colId && 'before:absolute before:inset-y-0 before:-left-[2px] before:w-1 before:bg-brand-green before:rounded-full')}
+                      className={cn('relative px-1.5 sm:px-2 border-r last:border-r-0 border-l [&:first-child]:border-l-0 group overflow-visible [&[data-sort-button]]:!text-foreground [&_button]:!text-foreground [&_button:hover]:!text-foreground [&_button]:!opacity-100 [&_*]:!text-foreground', dragOverId.current===colId && 'before:absolute before:inset-y-0 before:-left-[2px] before:w-1 before:bg-brand-green before:rounded-full')}
                       onDragOver={draggable? handleDragOver(colId):undefined}
                       onDragLeave={draggable? handleDragLeave(colId):undefined}
                       onDrop={draggable? handleDrop(colId):undefined}

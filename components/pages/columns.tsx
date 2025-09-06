@@ -31,7 +31,7 @@ const SortableHeader = ({ column, title }: { column: any; title: string }) => {
 			variant={sortDir? 'default':'ghost'}
 			onClick={()=>column.toggleSorting(sortDir==='asc')}
 			className={cn(
-				'group w-full h-full justify-start px-3 pr-5 gap-2 whitespace-nowrap transition-colors text-foreground',
+				'group w-full h-full justify-start px-3 pr-7 gap-2 whitespace-nowrap transition-colors text-foreground overflow-visible',
 				!sortDir && 'hover:bg-primary hover:text-primary-foreground'
 			)}
 			style={{minWidth:minForCol}}
@@ -40,7 +40,7 @@ const SortableHeader = ({ column, title }: { column: any; title: string }) => {
 				'whitespace-nowrap leading-none transition-colors',
 				sortDir ? 'text-primary-foreground' : 'text-foreground group-hover:text-primary-foreground'
 			)}>{title}</span>
-			<div className="ml-auto flex items-center gap-0.5 pl-1 pr-1">
+			<div className="ml-auto flex items-center gap-0.5 pl-1 pr-0 w-9 justify-end">
 				<ArrowUp className={cn('h-4 w-4 flex-none transition-colors',
 					upActive ? 'text-primary-foreground' : (sortDir ? inactiveOnActiveBg : 'text-muted-foreground/55 group-hover:text-primary-foreground/90')
 				)} />
