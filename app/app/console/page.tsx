@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, useCallback, useLayoutEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { getConsoleCache, setConsoleCache, buildProductIndex } from '@/lib/idbCache';
+import { getConsoleCache, setConsoleCache, buildProductIndex, updateCachedDataPresets } from '@/lib/idbCache';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MultiSelect } from '@/components/ui/multi-select';
@@ -43,6 +43,7 @@ export default function ConsolePage() {
   const [allProducts, setAllProducts] = useState<MergedProduct[]>([]);
   const [hasVariantOptions, setHasVariantOptions] = useState(false);
   const [allCollections, setAllCollections] = useState<any[]>([]);
+  const [dataPresets, setDataPresets] = useState<{ vendors:string[]; productTypes:string[]; tags:string[] }>({ vendors:[], productTypes:[], tags:[] });
   const [overrideProducts, setOverrideProducts] = useState<MergedProduct[] | null>(null);
   const [isCollectionLoading, setCollectionLoading] = useState(false);
 
@@ -72,15 +73,16 @@ export default function ConsolePage() {
   useEffect(() => {
     let active = true;
     const controller = new AbortController();
+    const userKey = user?.email || 'anon';
     (async () => {
       setLoading(true); setError('');
       // 1. Hydrate from cache immediately if present
-      const userKey = user?.email || 'anon';
       const cached = await getConsoleCache(userKey);
       if (cached && active) {
         setStores(cached.stores || []);
         setAllProducts(cached.products || []);
         setAllCollections(cached.collections || []);
+        if(cached.dataPresets){ setDataPresets(cached.dataPresets); }
         setLoading(false); // show cached instantly
       }
       // 2. Fetch latest
@@ -128,7 +130,8 @@ export default function ConsolePage() {
             collections: data.collections || [],
           updatedAt: Date.now(),
           user: userKey,
-          schemaVersion: 2,
+          schemaVersion: 3,
+          dataPresets: cached?.dataPresets || dataPresets || { vendors:[], productTypes:[], tags:[] },
         };
         setConsoleCache(payload).catch(()=>{});
       } catch (e: any) {
@@ -876,6 +879,8 @@ export default function ConsolePage() {
                         if(importTypes){ const set = new Set<string>(current.productTypes||[]); productsToAdd.forEach((p:any)=>{ const v=(p.product_type||'').trim(); if(v) set.add(v); }); next.productTypes = Array.from(set).sort((a:string,b:string)=>a.localeCompare(b)); }
                         if(importTags){ const set = new Set<string>(current.tags||[]); productsToAdd.forEach((p:any)=>{ let tags=p.tags; let arr: string[] = Array.isArray(tags)? tags : typeof tags==='string'? tags.split(',').map((t:string)=>t.trim()).filter(Boolean): []; arr.forEach((t:string)=> set.add(t)); }); next.tags = Array.from(set).sort((a:string,b:string)=>a.localeCompare(b)); }
                         await fetch('/api/user/prefs',{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ dataPresets: next }) });
+                        setDataPresets(next);
+                        updateCachedDataPresets(user?.email || 'anon', next).catch(()=>{});
                       }
                     } catch {/* ignore */}
                     setRowSelection({});

@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { columns as baseColumns, ProductRowData, isVariant } from '@/components/pages/columns';
 import { ArrowUpRight, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, GripVertical, ArrowUp, ArrowDown } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
+import { updateCachedDataPresets } from '@/lib/idbCache';
 import { useReactTable, getCoreRowModel, getExpandedRowModel, getSortedRowModel, flexRender, SortingState, ColumnSizingState, ExpandedState } from '@tanstack/react-table';
 
 interface ListItemProduct { id?: string|number; handle: string; title: string; vendor?: string; product_type?: string; variants?: any[]; body_html?: string; seo_title?: string; seo_description?: string; [k:string]: any }
@@ -48,6 +49,10 @@ export default function ListDetailPage(){
   const [columnSizing,setColumnSizing]=useState<ColumnSizingState>({});
   const [expanded,setExpanded]=useState<ExpandedState>({});
   const [rowSelection,setRowSelection]=useState({});
+  // Data Presets (vendors, productTypes, tags)
+  const [dataPresets,setDataPresets]=useState<{ vendors:string[]; productTypes:string[]; tags:string[] }>({ vendors:[], productTypes:[], tags:[] });
+  useEffect(()=>{ (async()=>{ try { const r=await fetch('/api/user/prefs'); const d=await r.json(); if(r.ok && d.prefs?.dataPresets){ setDataPresets({ vendors:d.prefs.dataPresets.vendors||[], productTypes:d.prefs.dataPresets.productTypes||[], tags:d.prefs.dataPresets.tags||[] }); } } catch {/* ignore */} })(); },[]);
+  const savePresets = async(next:{ vendors:string[]; productTypes:string[]; tags:string[] })=>{ setDataPresets(next); try { await fetch('/api/user/prefs', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ dataPresets: next }) }); updateCachedDataPresets((user?.email)||'anon', next).catch(()=>{}); } catch {/* ignore */} };
   const [columnVisibility,setColumnVisibility]=useState<any>({ option:false });
   const [columnOrder,setColumnOrder]=useState<string[]>([]);
    const initialOrderRef = useRef<string[]|null>(null);
@@ -81,7 +86,7 @@ export default function ListDetailPage(){
   const extendedColumns = useMemo(()=>{
     // start from base (option visibility handled by showOptions)
     const source = baseColumns as any[];
-    const cols = source.map(col=>{
+  const cols = source.map(col=>{
       // Override handle column to inject show/hide options controls
       if(col.accessorKey==='handle'){
         return { ...col, header:(ctx:any)=>{ const Original=(col as any).header; return (
@@ -133,6 +138,42 @@ export default function ListDetailPage(){
             return <Button size="sm" variant="outline" onClick={()=>openBodyEditor(row.original)}>{editMode? 'Edit':'View'}</Button>;
           }
         };
+      }
+      // Enhance vendor/product_type/tags cells when editing using presets
+      if(col.accessorKey==='vendor'){
+        return { ...col, cell: ({row}:any)=>{ if(isVariant(row.original)) return null; const value=(row.original as any).vendor||''; if(!editMode) return <span className="line-clamp-2">{value|| <span className='text-muted-foreground'>—</span>}</span>; const allOptions = Array.from(new Set([value, ...dataPresets.vendors])).filter(Boolean).sort((a,b)=>a.localeCompare(b)); return (
+          <div className="flex flex-col gap-1">
+            <select className="h-8 border rounded px-2 text-sm bg-background" value={value} onChange={e=>{ const v=e.target.value; applyLocalChange(row.original.handle,{ vendor:v }); if(v && !dataPresets.vendors.includes(v)){ savePresets({ ...dataPresets, vendors:[...dataPresets.vendors, v].sort((a,b)=>a.localeCompare(b)), productTypes:dataPresets.productTypes, tags:dataPresets.tags }); } }}>
+              <option value="">—</option>
+              {allOptions.map(o=> <option key={o} value={o}>{o}</option>)}
+            </select>
+            <Input placeholder="New vendor" className="h-7 text-xs" onKeyDown={e=>{ if(e.key==='Enter'){ const v=(e.target as HTMLInputElement).value.trim(); if(!v) return; applyLocalChange(row.original.handle,{ vendor:v }); if(!dataPresets.vendors.includes(v)){ savePresets({ ...dataPresets, vendors:[...dataPresets.vendors, v].sort((a,b)=>a.localeCompare(b)), productTypes:dataPresets.productTypes, tags:dataPresets.tags }); } (e.target as HTMLInputElement).value=''; } }} />
+          </div>
+        ); } };
+      }
+      if(col.accessorKey==='product_type'){
+        return { ...col, cell: ({row}:any)=>{ if(isVariant(row.original)) return null; const value=(row.original as any).product_type||''; if(!editMode) return <span className="line-clamp-1">{value|| <span className='text-muted-foreground'>—</span>}</span>; const allOptions = Array.from(new Set([value, ...dataPresets.productTypes])).filter(Boolean).sort((a,b)=>a.localeCompare(b)); return (
+          <div className="flex flex-col gap-1">
+            <select className="h-8 border rounded px-2 text-sm bg-background" value={value} onChange={e=>{ const v=e.target.value; applyLocalChange(row.original.handle,{ product_type:v }); if(v && !dataPresets.productTypes.includes(v)){ savePresets({ ...dataPresets, productTypes:[...dataPresets.productTypes, v].sort((a,b)=>a.localeCompare(b)), vendors:dataPresets.vendors, tags:dataPresets.tags }); } }}>
+              <option value="">—</option>
+              {allOptions.map(o=> <option key={o} value={o}>{o}</option>)}
+            </select>
+            <Input placeholder="New type" className="h-7 text-xs" onKeyDown={e=>{ if(e.key==='Enter'){ const v=(e.target as HTMLInputElement).value.trim(); if(!v) return; applyLocalChange(row.original.handle,{ product_type:v }); if(!dataPresets.productTypes.includes(v)){ savePresets({ ...dataPresets, productTypes:[...dataPresets.productTypes, v].sort((a,b)=>a.localeCompare(b)), vendors:dataPresets.vendors, tags:dataPresets.tags }); } (e.target as HTMLInputElement).value=''; } }} />
+          </div>
+        ); } };
+      }
+      if(col.accessorKey==='tags'){
+        return { ...col, cell: ({row}:any)=>{ if(isVariant(row.original)) return null; const raw=(row.original as any).tags; const tagArray:string[] = typeof raw==='string'? raw.split(',').map((t:string)=>t.trim()).filter(Boolean): Array.isArray(raw)? raw.filter(Boolean): []; if(!editMode){ if(!tagArray.length) return null; return <div className="flex flex-wrap gap-1">{tagArray.slice(0,3).map(t=> <span key={t} className="text-xs bg-muted px-1.5 py-0.5 rounded">{t}</span>)}{tagArray.length>3 && <span className="text-xs text-muted-foreground">+{tagArray.length-3}</span>}</div>; } const allOptions = Array.from(new Set([...tagArray, ...dataPresets.tags])).filter(Boolean).sort((a,b)=>a.localeCompare(b)); const updateTags=(next:string[])=>{ const val=next.join(', '); applyLocalChange(row.original.handle,{ tags:val }); let changed=false; const newSet=[...dataPresets.tags]; next.forEach(t=>{ if(!newSet.includes(t)){ newSet.push(t); changed=true; } }); if(changed){ savePresets({ ...dataPresets, tags:newSet.sort((a,b)=>a.localeCompare(b)) }); } }; return (
+          <div className="flex flex-col gap-1">
+            <div className="flex flex-wrap gap-1">
+              {tagArray.map(t=> <button key={t} onClick={()=>updateTags(tagArray.filter(x=>x!==t))} className="text-xs bg-muted px-1.5 py-0.5 rounded hover:bg-destructive hover:text-destructive-foreground" title="Remove tag">{t} ×</button>)}
+              <input className="h-6 w-20 text-xs border rounded px-1" placeholder="Add" onKeyDown={e=>{ if(e.key==='Enter'){ const v=(e.target as HTMLInputElement).value.trim(); if(!v) return; updateTags([...tagArray,v]); (e.target as HTMLInputElement).value=''; } }} />
+            </div>
+            <div className="flex flex-wrap gap-1 max-h-14 overflow-auto pr-1">
+              {allOptions.filter(o=> !tagArray.includes(o)).slice(0,25).map(t=> <button key={t} onClick={()=>updateTags([...tagArray,t])} className="text-xs border rounded px-1.5 py-0.5 hover:bg-primary hover:text-primary-foreground" title="Add tag preset">{t} +</button>)}
+            </div>
+          </div>
+        ); } };
       }
       return col;
     });

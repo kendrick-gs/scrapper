@@ -10,16 +10,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 _Add new changes here (Added/Changed/Fixed/Deprecated) until the next version bump. Keep one placeholder bullet per section._
 
 ### Added
-- (placeholder)
+- Data Presets management page (Vendors, Product Types, Tags) with inline add/remove & multi-add for tags.
+- Inline vendor/type selects & tag editor in List Edit Mode powered by Data Presets.
+- Optional import of Vendors / Product Types / Tags from selected products into presets via Add To List dialog.
+- Local IndexedDB caching of Data Presets (schema v3) for instant hydration & offline-friendly editing.
 
 ### Changed
-- (placeholder)
+- Console Add To List dialog fieldset offering preset import checkboxes.
+- Cache schema bumped to v3 (adds dataPresets) with automatic migration.
 
 ### Fixed
-- (placeholder)
+- Preset imports now write-through to local cache preventing stale options until next full console load.
 
 ### Deprecated
-- (placeholder)
+- (none)
 
 ## [1.9.7] - 2025-09-06
 ### Added
