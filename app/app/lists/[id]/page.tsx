@@ -72,18 +72,39 @@ export default function ListDetailPage(){
   const extendedColumns = useMemo(()=>{
     // start from base (option visibility handled by showOptions)
     const source = baseColumns as any[];
-    const cols = source.map(col=>{ if(col.accessorKey==='handle'){ return { ...col, header:(ctx:any)=>{ const Original=(col as any).header; return (<div className="flex items-center gap-1 w-full pr-1"> <div className="flex-1">{typeof Original==='function'?Original(ctx):Original}</div>{!showOptions && (<button type="button" onClick={(e)=>{e.stopPropagation(); setShowOptions(true);} } className="flex-none text-[10px] font-semibold text-muted-foreground hover:text-foreground px-1.5 py-1 rounded border border-border/50 hover:border-border transition-colors bg-background">{'>>'}</button> )}</div>); }, cell: ({row}:any)=>{ const isParent=row.getCanExpand(); const product=isVariant(row.original)? (row.getParentRow()?.original): row.original; const handle=isVariant(row.original)?'':product?.handle; return (<div style={{paddingLeft:`${row.depth*1.5}rem`}} className="flex items-center gap-1">{isParent? <button onClick={row.getToggleExpandedHandler()} className="mr-1 cursor-pointer text-xs font-semibold text-muted-foreground hover:text-foreground">{row.getIsExpanded()? '▼':'►'}</button>: <span className="mr-1 w-4 inline-block" /> }<span className="line-clamp-2 font-medium">{handle}</span></div>); } }; }
-      if(col.id==='option'){ return { ...col, header:(ctx:any)=>{ const Original=(col as any).header; return (<div className="flex items-center gap-1 w-full pr-1"><button type="button" onClick={(e)=>{e.stopPropagation(); setShowOptions(false);} } className="flex-none text-[10px] font-semibold text-muted-foreground hover:text-foreground px-1.5 py-1 rounded border border-border/50 hover:border-border transition-colors bg-background">{'<<'}</button><div className="flex-1">{typeof Original==='function'?Original(ctx):Original}</div></div>); } }; }
-      return col; });
+    const cols = source.map(col=>{
+      // Override handle column to inject show/hide options controls
+      if(col.accessorKey==='handle'){
+        return { ...col, header:(ctx:any)=>{ const Original=(col as any).header; return (<div className="flex items-center gap-1 w-full pr-1"> <div className="flex-1">{typeof Original==='function'?Original(ctx):Original}</div>{!showOptions && (<button type="button" onClick={(e)=>{e.stopPropagation(); setShowOptions(true);} } className="flex-none text-[10px] font-semibold text-muted-foreground hover:text-foreground px-1.5 py-1 rounded border border-border/50 hover:border-border transition-colors bg-background">{'>>'}</button> )}</div>); }, cell: ({row}:any)=>{ const isParent=row.getCanExpand(); const product=isVariant(row.original)? (row.getParentRow()?.original): row.original; const handle=isVariant(row.original)?'':product?.handle; return (<div style={{paddingLeft:`${row.depth*1.5}rem`}} className="flex items-center gap-1">{isParent? <button onClick={row.getToggleExpandedHandler()} className="mr-1 cursor-pointer text-xs font-semibold text-muted-foreground hover:text-foreground">{row.getIsExpanded()? '▼':'►'}</button>: <span className="mr-1 w-4 inline-block" /> }<span className="line-clamp-2 font-medium">{handle}</span></div>); } };
+      }
+      // Collapse option column
+      if(col.id==='option'){
+        return { ...col, header:(ctx:any)=>{ const Original=(col as any).header; return (<div className="flex items-center gap-1 w-full pr-1"><button type="button" onClick={(e)=>{e.stopPropagation(); setShowOptions(false);} } className="flex-none text-[10px] font-semibold text-muted-foreground hover:text-foreground px-1.5 py-1 rounded border border-border/50 hover:border-border transition-colors bg-background">{'<<'}</button><div className="flex-1">{typeof Original==='function'?Original(ctx):Original}</div></div>); } };
+      }
+      // Replace existing body_html column so we don't add an extra custom one later.
+      if(col.accessorKey==='body_html'){
+        return {
+          ...col,
+          header: 'Body HTML',
+          cell: ({row}: any) => {
+            if(isVariant(row.original)) return null;
+            const val = (row.original as any).body_html;
+            if(!val) return <span className="text-muted-foreground">—</span>;
+            return <Button size="sm" variant="outline" onClick={()=>openBodyEditor(row.original)}>{editMode? 'Edit':'View'}</Button>;
+          }
+        };
+      }
+      return col;
+    });
     // Additional columns (after price / before body_html)
     const insertAfterId='price';
     const idx = cols.findIndex(c=> c.id==='price' || c.accessorKey==='price');
+    const headerClass = 'text-[12px] font-medium tracking-tight';
     const extra=[
-      { id:'compare_at_price', header: ({column}:any)=> <span className="text-xs font-medium">Compare At</span>, size:150, cell: ({row}:any)=>{ if(isVariant(row.original)) return null; const v=row.original.variants?.[0]; const val=v?.compare_at_price||''; return editMode? <Input defaultValue={val} onChange={e=>applyLocalChange(row.original.handle,{ compare_at_price:e.target.value })} className="h-8" /> : (val|| <span className="text-muted-foreground">—</span>); } },
-      { id:'cost_per_item', header: ({column}:any)=> <span className="text-xs font-medium">Cost</span>, size:120, cell: ({row}:any)=>{ if(isVariant(row.original)) return null; const v=row.original.variants?.[0]; const val=v?.cost_per_item||''; return editMode? <Input defaultValue={val} onChange={e=>applyLocalChange(row.original.handle,{ cost_per_item:e.target.value })} className="h-8" /> : (val|| <span className="text-muted-foreground">—</span>); } },
-      { id:'seo_title', header: ({column}:any)=> <span className="text-xs font-medium">SEO Title</span>, size:220, cell: ({row}:any)=>{ if(isVariant(row.original)) return null; const val=row.original.seo_title||''; return editMode? <Input defaultValue={val} maxLength={70} onChange={e=>applyLocalChange(row.original.handle,{ seo_title:e.target.value.slice(0,70) })} className="h-8" /> : (val|| <span className="text-muted-foreground">—</span>); } },
-      { id:'seo_description', header: ({column}:any)=> <span className="text-xs font-medium">SEO Description</span>, size:300, cell: ({row}:any)=>{ if(isVariant(row.original)) return null; const val=row.original.seo_description||''; return editMode? <Textarea defaultValue={val} rows={2} maxLength={160} onChange={(e:React.ChangeEvent<HTMLTextAreaElement>)=>applyLocalChange(row.original.handle,{ seo_description:e.target.value.slice(0,160) })} className="text-xs" /> : (<div className="line-clamp-2 min-h-[1.25rem]">{val || <span className="text-muted-foreground">—</span>}</div>); } },
-      { id:'body_html_editor', header: ()=> <span className="text-xs font-medium">Body HTML</span>, size:130, cell: ({row}:any)=>{ if(isVariant(row.original)) return null; const val=row.original.body_html; return editMode? <Button size="sm" variant="outline" onClick={()=>openBodyEditor(row.original)}>{val? 'Edit':'Add'}</Button> : (val? <Button size="sm" variant="outline" onClick={()=>openBodyEditor(row.original)}>View</Button>: <span className="text-muted-foreground">—</span>); } }
+      { id:'compare_at_price', header: ()=> <span className={headerClass}>Compare At</span>, size:150, cell: ({row}:any)=>{ if(isVariant(row.original)) return null; const v=row.original.variants?.[0]; const val=v?.compare_at_price||''; return editMode? <Input defaultValue={val} onChange={e=>applyLocalChange(row.original.handle,{ compare_at_price:e.target.value })} className="h-8" /> : (val|| <span className="text-muted-foreground">—</span>); } },
+      { id:'cost_per_item', header: ()=> <span className={headerClass}>Cost</span>, size:120, cell: ({row}:any)=>{ if(isVariant(row.original)) return null; const v=row.original.variants?.[0]; const val=v?.cost_per_item||''; return editMode? <Input defaultValue={val} onChange={e=>applyLocalChange(row.original.handle,{ cost_per_item:e.target.value })} className="h-8" /> : (val|| <span className="text-muted-foreground">—</span>); } },
+      { id:'seo_title', header: ()=> <span className={headerClass}>SEO Title</span>, size:220, cell: ({row}:any)=>{ if(isVariant(row.original)) return null; const val=row.original.seo_title||''; return editMode? <Input defaultValue={val} maxLength={70} onChange={e=>applyLocalChange(row.original.handle,{ seo_title:e.target.value.slice(0,70) })} className="h-8" /> : (val|| <span className="text-muted-foreground">—</span>); } },
+      { id:'seo_description', header: ()=> <span className={headerClass}>SEO Description</span>, size:300, cell: ({row}:any)=>{ if(isVariant(row.original)) return null; const val=row.original.seo_description||''; return editMode? <Textarea defaultValue={val} rows={2} maxLength={160} onChange={(e:React.ChangeEvent<HTMLTextAreaElement>)=>applyLocalChange(row.original.handle,{ seo_description:e.target.value.slice(0,160) })} className="text-xs" /> : (<div className="line-clamp-2 min-h-[1.25rem]">{val || <span className="text-muted-foreground">—</span>}</div>); } }
     ];
     if(idx>=0){ cols.splice(idx+1,0,...extra); } else { cols.push(...extra); }
     // Add select column at start

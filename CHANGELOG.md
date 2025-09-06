@@ -30,6 +30,7 @@ _Add new changes here (Added/Changed/Fixed/Deprecated) until the next version bu
  - Cache Panel: modern responsive redesign (constrained width, padded scroll region, sticky header, refined table sizing & spacing).
  - Dialogs: Image viewer, All Images, Body HTML preview, Body HTML editor, Add To List now use unified panel layout (consistent max width, sticky header, internal padding) replacing ad-hoc max-w classes.
  - Lists Page: Toolbar now displays 'Filtered of Total' product counts (parity with Console) plus selected count.
+ - Lists Page: Unified styling of Compare At, Cost, SEO Title, SEO Description columns; single Body HTML column now shows View/Edit button depending on mode.
 
 ### Fixed
 - (placeholder)
