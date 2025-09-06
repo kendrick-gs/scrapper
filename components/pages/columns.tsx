@@ -27,10 +27,11 @@ const SortableHeader = ({ column, title }: { column: any; title: string }) => {
 	const inactiveOnActiveBg = 'text-primary-foreground/35';
 	return (
 		<Button
+			data-sort-button
 			variant={sortDir? 'default':'ghost'}
 			onClick={()=>column.toggleSorting(sortDir==='asc')}
 			className={cn(
-				'group w-full h-full justify-start px-3 pr-5 gap-2 whitespace-nowrap transition-colors',
+				'group w-full h-full justify-start px-3 pr-5 gap-2 whitespace-nowrap transition-colors text-foreground',
 				!sortDir && 'hover:bg-primary hover:text-primary-foreground'
 			)}
 			style={{minWidth:minForCol}}
@@ -41,10 +42,10 @@ const SortableHeader = ({ column, title }: { column: any; title: string }) => {
 			)}>{title}</span>
 			<div className="ml-auto flex items-center gap-0.5 pl-1 pr-1">
 				<ArrowUp className={cn('h-4 w-4 flex-none transition-colors',
-					upActive ? 'text-primary-foreground' : (sortDir ? inactiveOnActiveBg : 'text-muted-foreground/45 group-hover:text-primary-foreground/90')
+					upActive ? 'text-primary-foreground' : (sortDir ? inactiveOnActiveBg : 'text-muted-foreground/55 group-hover:text-primary-foreground/90')
 				)} />
 				<ArrowDown className={cn('h-4 w-4 flex-none transition-colors',
-					downActive ? 'text-primary-foreground' : (sortDir ? inactiveOnActiveBg : 'text-muted-foreground/45 group-hover:text-primary-foreground/90')
+					downActive ? 'text-primary-foreground' : (sortDir ? inactiveOnActiveBg : 'text-muted-foreground/55 group-hover:text-primary-foreground/90')
 				)} />
 			</div>
 		</Button>

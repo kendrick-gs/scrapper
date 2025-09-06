@@ -83,11 +83,29 @@ export default function ListDetailPage(){
     const cols = source.map(col=>{
       // Override handle column to inject show/hide options controls
       if(col.accessorKey==='handle'){
-        return { ...col, header:(ctx:any)=>{ const Original=(col as any).header; return (<div className="flex items-center gap-1 w-full pr-1"> <div className="flex-1">{typeof Original==='function'?Original(ctx):Original}</div>{!showOptions && (<button type="button" onClick={(e)=>{e.stopPropagation(); setShowOptions(true);} } className="flex-none text-[10px] font-semibold text-muted-foreground hover:text-foreground px-1.5 py-1 rounded border border-border/50 hover:border-border transition-colors bg-background">{'>>'}</button> )}</div>); }, cell: ({row}:any)=>{ const isParent=row.getCanExpand(); const product=isVariant(row.original)? (row.getParentRow()?.original): row.original; const handle=isVariant(row.original)?'':product?.handle; return (<div style={{paddingLeft:`${row.depth*1.5}rem`}} className="flex items-center gap-1">{isParent? <button onClick={row.getToggleExpandedHandler()} className="mr-1 cursor-pointer text-xs font-semibold text-muted-foreground hover:text-foreground">{row.getIsExpanded()? '▼':'►'}</button>: <span className="mr-1 w-4 inline-block" /> }<span className="line-clamp-2 font-medium">{handle}</span></div>); } };
+        return { ...col, header:(ctx:any)=>{ const Original=(col as any).header; return (
+          <div className="flex items-center gap-1 w-full pr-1 min-h-[36px]">
+            <div className="flex-1 min-w-0 truncate">{typeof Original==='function'?Original(ctx):Original}</div>
+            {!showOptions && (
+              <button
+                type="button"
+                onClick={(e)=>{e.stopPropagation(); setShowOptions(true);} }
+                className="flex-none text-[10px] font-semibold text-muted-foreground hover:text-foreground px-1.5 py-1 rounded border border-border/70 hover:border-border transition-colors bg-background shadow-sm"
+              >{'>>'}</button>
+            )}
+          </div>); }, cell: ({row}:any)=>{ const isParent=row.getCanExpand(); const product=isVariant(row.original)? (row.getParentRow()?.original): row.original; const handle=isVariant(row.original)?'':product?.handle; return (<div style={{paddingLeft:`${row.depth*1.5}rem`}} className="flex items-center gap-1">{isParent? <button onClick={row.getToggleExpandedHandler()} className="mr-1 cursor-pointer text-xs font-semibold text-muted-foreground hover:text-foreground">{row.getIsExpanded()? '▼':'►'}</button>: <span className="mr-1 w-4 inline-block" /> }<span className="line-clamp-2 font-medium">{handle}</span></div>); } };
       }
       // Collapse option column
       if(col.id==='option'){
-        return { ...col, header:(ctx:any)=>{ const Original=(col as any).header; return (<div className="flex items-center gap-1 w-full pr-1"><button type="button" onClick={(e)=>{e.stopPropagation(); setShowOptions(false);} } className="flex-none text-[10px] font-semibold text-muted-foreground hover:text-foreground px-1.5 py-1 rounded border border-border/50 hover:border-border transition-colors bg-background">{'<<'}</button><div className="flex-1">{typeof Original==='function'?Original(ctx):Original}</div></div>); } };
+        return { ...col, header:(ctx:any)=>{ const Original=(col as any).header; return (
+          <div className="flex items-center gap-1 w-full pr-1 min-h-[36px]">
+            <button
+              type="button"
+              onClick={(e)=>{e.stopPropagation(); setShowOptions(false);} }
+              className="flex-none text-[10px] font-semibold text-muted-foreground hover:text-foreground px-1.5 py-1 rounded border border-border/70 hover:border-border transition-colors bg-background shadow-sm"
+            >{'<<'}</button>
+            <div className="flex-1 min-w-0 truncate">{typeof Original==='function'?Original(ctx):Original}</div>
+          </div>); } };
       }
       // Replace existing body_html column so we don't add an extra custom one later.
       if(col.accessorKey==='body_html'){
@@ -126,6 +144,13 @@ export default function ListDetailPage(){
       header:()=>(<div className="text-right"><ArrowUpRight className="h-4 w-4 inline" /></div>),
       cell:({row}:any)=>{ const product = isVariant(row.original)? (row.getParentRow()?.original): row.original; const url = `${(product.__storeUrl||'').replace(/\/$/,'')}/products/${product.handle}`; return (<div className="flex justify-end"><a href={url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground"><ArrowUpRight className="h-4 w-4"/></a></div>); }
     };
+    // Ensure option column always immediately follows handle regardless of user drag order.
+    const handleIdx = cols.findIndex(c=> (c.accessorKey||c.id)==='handle');
+    const optionIdx = cols.findIndex(c=> (c.accessorKey||c.id)==='option');
+    if(handleIdx>=0 && optionIdx>=0 && optionIdx!==handleIdx+1){
+      const [opt]=cols.splice(optionIdx,1);
+      cols.splice(handleIdx+1,0,opt);
+    }
     return [selectCol, ...cols, previewCol];
   },[baseColumns,editMode,showOptions]);
 
@@ -274,12 +299,12 @@ export default function ListDetailPage(){
                     <TableHead
                       key={idAttr}
                       style={{width:size,minWidth:size,maxWidth:size}}
-                      className={cn('relative px-2 sm:px-4 border-r last:border-r-0 border-l [&:first-child]:border-l-0 group [&_button]:!text-foreground [&_button:hover]:!text-foreground [&_button]:!opacity-100', dragOverId.current===colId && 'before:absolute before:inset-y-0 before:-left-[2px] before:w-1 before:bg-brand-green before:rounded-full')}
+                      className={cn('relative px-1.5 sm:px-2 border-r last:border-r-0 border-l [&:first-child]:border-l-0 group [&[data-sort-button]]:!text-foreground [&_button]:!text-foreground [&_button:hover]:!text-foreground [&_button]:!opacity-100 [&_*]:!text-foreground', dragOverId.current===colId && 'before:absolute before:inset-y-0 before:-left-[2px] before:w-1 before:bg-brand-green before:rounded-full')}
                       onDragOver={draggable? handleDragOver(colId):undefined}
                       onDragLeave={draggable? handleDragLeave(colId):undefined}
                       onDrop={draggable? handleDrop(colId):undefined}
                     >
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 min-h-[34px]">
                         {draggable && (
                           <span
                             className="flex items-center justify-center h-4 w-4 cursor-grab active:cursor-grabbing text-muted-foreground opacity-60 group-hover:opacity-100"
@@ -290,7 +315,7 @@ export default function ListDetailPage(){
                             <GripVertical className="h-3.5 w-3.5" />
                           </span>
                         )}
-                        <div className="flex-1 min-w-0 truncate select-none">
+                        <div className="flex-1 min-w-0 truncate select-none text-foreground">
                           {flexRender(h.column.columnDef.header, h.getContext())}
                         </div>
                       </div>
